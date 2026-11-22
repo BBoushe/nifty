@@ -26,19 +26,19 @@
 - [x] 3.5 Commit Phase 3 (`chore(agents): configure AGENTS.md, CLAUDE.md, GEMINI.md, rules, skills, and hooks`)
 
 ## Phase 4 — Local Tooling, Monorepo Scaffold & Docker
-- [ ] 4.1 Verify/install Java 21 SDK and Maven locally
-- [ ] 4.2 Scaffold `backend/` (Java 21, `./mvnw`, Spring Boot 4.x, Web/SSE, Security 2-role skeleton, JPA, Validation, Actuator, Postgres, Flyway `V1__init.sql`, Spring AI 2.0, Timefold, springdoc-openapi, JUnit 5/Mockito/Testcontainers) + health endpoint + passing `./mvnw test`
-- [ ] 4.3 Commit backend (`feat(backend): scaffold Spring Boot 4 Java 21 backend with Flyway, Spring AI 2.0, and Timefold`)
-- [ ] 4.4 Scaffold `frontend/` (Vue 3.5 stable, TypeScript, Vite 8, Vue Router, Pinia, TanStack Query, Tailwind v4, Apache ECharts, OpenAPI script stub, Assessment/Ranking shell) + passing `typecheck`, `lint`, `build`
-- [ ] 4.5 Commit frontend (`feat(frontend): scaffold Vue 3.5 TypeScript Vite 8 frontend with Tailwind v4 and ECharts`)
-- [ ] 4.6 Add `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`, `.env.example`, and verify `docker compose config` / build
-- [ ] 4.7 Commit Docker setup (`build(docker): add backend/frontend Dockerfiles, docker-compose, and env template`)
+- [x] 4.1 Verify/install Java 21 SDK and Maven locally
+- [x] 4.2 Scaffold `backend/` (Java 21, `./mvnw`, Spring Boot 4.x, Web/SSE, Security 2-role skeleton, JPA, Validation, Actuator, Postgres, Flyway `V1__init.sql`, Spring AI 2.0, Timefold, springdoc-openapi, JUnit 5/Mockito/Testcontainers) + health endpoint + passing `./mvnw test`
+- [x] 4.3 Commit backend (`feat(backend): scaffold Spring Boot 4 Java 21 backend with Flyway, Spring AI 2.0, and Timefold`)
+- [x] 4.4 Scaffold `frontend/` (Vue 3.5 stable, TypeScript, Vite 8, Vue Router, Pinia, TanStack Query, Tailwind v4, Apache ECharts, OpenAPI script stub, Assessment/Ranking shell) + passing `typecheck`, `lint`, `build`
+- [x] 4.5 Commit frontend (`feat(frontend): scaffold Vue 3.5 TypeScript Vite 8 frontend with Tailwind v4 and ECharts`)
+- [x] 4.6 Add `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`, `.env.example`, and verify `docker compose config` / build
+- [x] 4.7 Commit Docker setup (`build(docker): add backend/frontend Dockerfiles, docker-compose, and env template`)
 
 ## Phase 5 — GitHub Branch Protection Rulesets & CI
-- [ ] 5.1 Add `.github/rulesets/{main,alpha,dev}.json` and executable `scripts/apply-github-rulesets.sh`
-- [ ] 5.2 Attempt to apply rulesets via `gh api` (or document exact status cleanly if blocked by auth/plan)
-- [ ] 5.3 Add `.github/workflows/ci.yml` and `.github/PULL_REQUEST_TEMPLATE.md`
-- [ ] 5.4 Commit Phase 5 (`ci(github): add branch protection rulesets, CI workflow, and PR template`)
+- [x] 5.1 Add `.github/rulesets/{main,alpha,dev}.json` and executable `scripts/apply-github-rulesets.sh`
+- [x] 5.2 Attempt to apply rulesets via `gh api` (or document exact status cleanly if blocked by auth/plan)
+- [x] 5.3 Add `.github/workflows/ci.yml` and `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] 5.4 Commit Phase 5 (`ci(github): add branch protection rulesets, CI workflow, and PR template`)
 
 ## Phase 6 — Dual Hydrogen Audit & `README.md`
 - [ ] 6.1 Run 2 Gemini 4 Hydrogen audit subagents in parallel (Stack/Build/Docker Auditor + Harness/Specs/Governance Auditor)
