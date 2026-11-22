@@ -19,6 +19,7 @@ This log captures the baseline architectural decisions from [`docs/discovery-can
 | **D11** | Core stack | Java 21 + Spring Boot 4.x + Spring AI 2.0 + Timefold Solver + PostgreSQL + Flyway; Vue 3.5 (stable, **not** 3.6 RC) + TypeScript + Vite 8 + Pinia + Vue Router + TanStack Query + Tailwind CSS v4 + Apache ECharts. | Aligns with course mandate, 2026–2027 production stability, and deterministic Java constraint solving. |
 | **D12** | Spec-driven harness | OpenSpec (`openspec/`) + universal `AGENTS.md` + agent-native `CLAUDE.md`/`GEMINI.md`/`.agents/rules/` + portable `.githooks/`. | Tool-agnostic across T3 Code, Claude Code, Antigravity (`agy`), Codex, and IDEs. |
 | **D13** | Default branch protection | Repository currently uses `master` as its default branch alongside `alpha` and `dev`. Governance rulesets, hooks, and CI protect both `master` and `main` (via `~DEFAULT_BRANCH` + explicit refs) to stay resilient if the default branch is renamed. | Matches existing Git remote without breaking docs or future renames. |
+| **D14** | **EU LLM provider for the Evaluator** | Use **ki:connect NRW** (FH AI, provided by FH Dortmund & the state of NRW) via `https://chat.kiconnect.nrw/api/v1` **specifically for the LLM evaluator** (evidence extraction & constrained judging). Supported models: **`OpenAI GPT OSS 120B`**, **`Qwen 3.8 27B`**, and **`Mistral Small 4 119B`**. | Hosted in Aachen / NRW (EU data residency, GDPR-friendly for student transcripts) and completely free for students. |
 
 ## 2. Open Team Decisions (TBD)
 
@@ -27,7 +28,7 @@ These items are intentionally left open for the 5-person team to finalize on Day
 | ID | Question | Options / Constraints | Owner |
 |---|---|---|---|
 | **O1** | **Frontend UI component library** | **PrimeVue** (rich data tables/sliders out of the box) vs. **shadcn-vue** (copy-paste Radix/Reka primitives on Tailwind CSS v4). | Frontend leads |
-| **O2** | **LLM provider & EU region** | Must prefer **EU-hosted endpoints** (GDPR: transcripts are personal data) and support Spring AI 2.0 structured output & streaming (e.g., Azure OpenAI EU, Mistral EU, OpenAI EU data residency, Vertex AI `europe-west*`, or Ollama for local dev). | Backend / AI lead |
+| **O2** | **Interviewer LLM provider** *(evaluator resolved in D14)* | Evaluator uses **ki:connect NRW** (D14). Decide whether the conversational interviewer (Step 1) also uses ki:connect NRW or a separate EU-hosted streaming endpoint. | Backend / AI lead |
 | **O3** | **MVP skill taxonomy size** | Keep all 16 course sub-skills or trim to 6–8 core project-readiness skills for block-week velocity. | Whole team + Lecturer |
 | **O4** | **Team size & solver constraints** | Confirm lecturer's exact team size (default 5) and hard/soft constraints (e.g., ≥1 strong backend/frontend per team). | Team Builder lead + Lecturer |
 | **O5** | **Formula expression editor in MVP** | Ship presets only in MVP or include the sandboxed SpEL expression editor. | Formula Engine lead |

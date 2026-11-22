@@ -63,7 +63,19 @@ docker compose up --build
 - **OpenAPI / Swagger UI:** http://localhost:8080/swagger-ui.html
 - **PostgreSQL:** `localhost:5432` (credentials in `.env`)
 
-> The backend boots cleanly with placeholder LLM settings (`AI_PROVIDER_MODE=placeholder`) even before an API key is configured.
+> The backend boots cleanly even before an API key is configured.
+
+### LLM Evaluator Configuration (`ki:connect` / FH AI)
+
+For the **LLM evaluator** (evidence extraction & constrained judging only), we currently use an **AI Connect (`ki:connect` NRW / FH AI) API key** — hosted in **Aachen / NRW** (EU data residency) and **free for students** *(later support for other OpenAI-API-format providers is planned)*.
+
+1. Copy `.env.example` to `.env` (never commit `.env`).
+2. Configure your personal AI Connect (`ki:connect` / FH AI) API key in `.env` under `KICONNECT_API_KEY=`.
+3. Endpoint: `https://chat.kiconnect.nrw/api/v1` (`AI_EVALUATOR_BASE_URL`).
+4. Pick one of the 3 available evaluator models via `AI_EVALUATOR_MODEL`:
+   - `OpenAI GPT OSS 120B` *(default)*
+   - `Qwen 3.8 27B`
+   - `Mistral Small 4 119B`
 
 ### 3. Run Backend & Frontend Locally (Fast Inner Loop)
 

@@ -9,7 +9,8 @@ Use this skill before committing or reviewing any change under `backend/`.
 
 ## Team Settings (Update via First-Run Bootstrap once resolved)
 
-- **LLM Provider & EU Region:** `[TBD — see docs/decisions.md O2; must boot with placeholder env vars]`
+- **LLM Evaluator Provider & EU Region:** **ki:connect NRW / FH AI** (`https://chat.kiconnect.nrw/api/v1`, hosted in Aachen / NRW, free for students; models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B`; key via `KICONNECT_API_KEY`; must still boot cleanly with blank/placeholder key). See `docs/decisions.md` D14.
+- **Interviewer LLM Provider:** `[TBD — see docs/decisions.md O2]`
 - **Java Version:** Java 21 (`backend/pom.xml`)
 
 ## Checklist & Verification Commands

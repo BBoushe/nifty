@@ -52,9 +52,9 @@ flowchart LR
 | Step | Executor | Non-Negotiable Rule |
 |---|---|---|
 | 1. Interviewer | LLM (Spring AI 2.0) | Driven by immutable approved config snapshot; tags each Q/A with `origin` (`core \| follow_up \| invented`) and target skills. |
-| 2. Extractor | LLM (schema-validated structured output) | Extracts evidence items (quote, entry reference, skill, tags, suggested level). **Never produces final scores.** |
+| 2. Extractor | LLM Evaluator via **ki:connect NRW / FH AI** (`https://chat.kiconnect.nrw/api/v1`, Aachen/NRW) | Schema-validated structured output extracting evidence items (quote, entry reference, skill, tags, suggested level). Models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B`. **Never produces final scores.** |
 | 3. Quote Verifier | Deterministic Java code | Verifies every quote appears word-for-word in the referenced transcript entry; **discards unverified quotes**. |
-| 4. Scorer | Sandboxed Formula Engine (SpEL `SimpleEvaluationContext`) + 2-run LLM Judge | Missing verified evidence → **`N/A`** (never `0` or `1`). Excluded from fit numerator/denominator. |
+| 4. Scorer | Sandboxed Formula Engine (SpEL `SimpleEvaluationContext`) + 2-run LLM Judge (**ki:connect NRW**) | Missing verified evidence → **`N/A`** (never `0` or `1`). Excluded from fit numerator/denominator. |
 | 5. Confidence | Deterministic Java code | Computed from measurable signals (evidence count, quote verification ratio, judge agreement, question origin, prompted vs. unprompted terms) — **never** LLM self-reported confidence. |
 | 6. Review & Approval | Human (`PROFESSOR` / `REVIEWER`) | Flagged items (below lower confidence bound, team-deciding, or high self-assessment mismatch) must be reviewed individually; overrides require a reason and write an audit log entry. |
 | 7. Totals & Cohort Gaps | Deterministic SQL | LLM **never** calculates totals, rankings, or cohort statistics. Fit and coverage are always computed and displayed separately. |
