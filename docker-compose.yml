@@ -29,10 +29,10 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-nifty}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-nifty_dev_password}
       BACKEND_PORT: 8080
-      AI_API_KEY: ${AI_API_KEY:-not-configured}
-      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com}
-      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gpt-4o-mini}
-      AI_PROVIDER_MODE: ${AI_PROVIDER_MODE:-placeholder}
+      KICONNECT_API_KEY: ${KICONNECT_API_KEY:-not-configured}
+      AI_EVALUATOR_PROVIDER: ${AI_EVALUATOR_PROVIDER:-kiconnect-nrw}
+      AI_EVALUATOR_BASE_URL: ${AI_EVALUATOR_BASE_URL:-https://chat.kiconnect.nrw/api/v1}
+      AI_EVALUATOR_MODEL: ${AI_EVALUATOR_MODEL:-OpenAI GPT OSS 120B}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
 
