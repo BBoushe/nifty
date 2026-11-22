@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+# Portable Conventional Commits validator (macOS, Linux, Windows Git Bash)
+# Activate once per clone: git config core.hooksPath .githooks
+
+set -eu
+
+MSG_FILE="${1:-}"
+if [ -z "$MSG_FILE" ] || [ ! -f "$MSG_FILE" ]; then
+  echo "commit-msg hook: missing commit message file." >&2
+  exit 1
+fi
+
+FIRST_LINE=$(head -n 1 "$MSG_FILE" | tr -d '\r')
+
+# Allow git-generated merge, revert, fixup, squash messages
+case "$FIRST_LINE" in
+  "Merge "*|"Revert "*|"fixup! "*|"squash! "*)
+    exit 0
+    ;;
+esac
+
+PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|hotfix)(\([a-z0-9._/-]+\))?!?: .+'
+
+if ! printf '%s\n' "$FIRST_LINE" | grep -Eq "$PATTERN"; then
+  echo "ERROR: Commit message does not follow Conventional Commits." >&2
+  echo "  Received: $FIRST_LINE" >&2
+  echo "  Expected: <type>(<optional-scope>): <short imperative description>" >&2
+  echo "  Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, hotfix" >&2
+  echo "  Example:  feat(evidence): add verbatim quote verifier" >&2
+  exit 1
+fi
+
+exit 0

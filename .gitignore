@@ -1,16 +1,14 @@
-# Compiled class file
+# === Environment & Secrets (NEVER commit secrets) ===
+.env
+.env.*
+!.env.example
+
+# === Java / Maven ===
+target/
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
 *.nar
@@ -18,7 +16,61 @@
 *.zip
 *.tar.gz
 *.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# === Node / Frontend / Vite ===
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+.eslintcache
+*.tsbuildinfo
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Docker local overrides ===
+docker-compose.override.yml
+compose.override.yml
+
+# === IDEs & Editors ===
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/extensions.json
+.classpath
+.project
+.settings/
+.factorypath
+*.swp
+*.swo
+*~
+
+# === OS Clutter ===
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# === Local AI Agent State & Caches (keep shared specs/rules/skills tracked) ===
+.claude/settings.local.json
+.claude/projects/
+.claude/todos/
+CLAUDE.local.md
+.gemini/
+.codex/
+.t3/
+.cursor/
+.agents/local/
+.kiro/.cache/

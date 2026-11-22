@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nifty}
+      POSTGRES_USER: ${POSTGRES_USER:-nifty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nifty_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nifty} -d ${POSTGRES_DB:-nifty}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-nifty}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-nifty}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-nifty_dev_password}
+      BACKEND_PORT: 8080
+      KICONNECT_API_KEY: ${KICONNECT_API_KEY:-not-configured}
+      AI_EVALUATOR_PROVIDER: ${AI_EVALUATOR_PROVIDER:-kiconnect-nrw}
+      AI_EVALUATOR_BASE_URL: ${AI_EVALUATOR_BASE_URL:-https://chat.kiconnect.nrw/api/v1}
+      AI_EVALUATOR_MODEL: ${AI_EVALUATOR_MODEL:-OpenAI GPT OSS 120B}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${FRONTEND_DOCKER_TARGET:-prod}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8080
+    ports:
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_CONTAINER_PORT:-80}"
+
+volumes:
+  postgres_data:
