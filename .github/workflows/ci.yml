@@ -6,6 +6,10 @@ on:
   push:
     branches: [dev, alpha, main, master]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -77,13 +81,13 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+            COMMITS="$(git rev-list "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}")"
           else
             BEFORE="${{ github.event.before }}"
             if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              RANGE="HEAD~1..HEAD"
+              COMMITS="$(git rev-list --max-count=20 "${{ github.sha }}")"
             else
-              RANGE="${BEFORE}..${{ github.sha }}"
+              COMMITS="$(git rev-list "${BEFORE}..${{ github.sha }}")"
             fi
           fi
 
@@ -99,7 +103,7 @@ jobs:
               echo "::error::Non-conventional commit ${sha}: ${subject}"
               FAILED=1
             fi
-          done < <(git rev-list "$RANGE")
+          done <<< "$COMMITS"
 
           exit "$FAILED"
 
@@ -134,6 +138,8 @@ jobs:
 
       - name: Enforce docs/hotfix-only direct push policy on dev
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -143,10 +149,10 @@ jobs:
             exit 0
           fi
 
-          # Check if the head commit is a PR merge commit (2+ parents) or a squash/rebase from PR
+          # Allow commits arriving from a merged Pull Request (merge, squash, or rebase-and-merge)
           PARENTS="$(git show -s --format=%P "${{ github.sha }}" | wc -w | tr -d ' ')"
-          HEAD_SUBJECT="$(git show -s --format=%s "${{ github.sha }}")"
-          if [ "$PARENTS" -ge 2 ] || printf '%s\n' "$HEAD_SUBJECT" | grep -Eq '\(#[0-9]+\)$'; then
+          PR_COUNT="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq 'length' 2>/dev/null || echo "0")"
+          if [ "$PARENTS" -ge 2 ] || [ "${PR_COUNT:-0}" -ge 1 ]; then
             echo "OK: Push to dev originates from a merged Pull Request."
             exit 0
           fi

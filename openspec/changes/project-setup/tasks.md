@@ -41,10 +41,10 @@
 - [x] 5.4 Commit Phase 5 (`ci(github): add branch protection rulesets, CI workflow, and PR template`)
 
 ## Phase 6 — Dual Hydrogen Audit & `README.md`
-- [ ] 6.1 Run 2 Gemini 4 Hydrogen audit subagents in parallel (Stack/Build/Docker Auditor + Harness/Specs/Governance Auditor)
-- [ ] 6.2 Fix all genuine findings from both Hydrogen reports and re-verify
-- [ ] 6.3 Write concise cross-platform `README.md` (macOS/Windows/Linux)
-- [ ] 6.4 Mark all tasks complete and commit (`docs(readme): add cross-platform onboarding guide and verification fixes`)
+- [x] 6.1 Run 2 Gemini 4 Hydrogen audit subagents in parallel (Stack/Build/Docker Auditor + Harness/Specs/Governance Auditor)
+- [x] 6.2 Fix all genuine findings from both Hydrogen reports and re-verify
+- [x] 6.3 Write concise cross-platform `README.md` (macOS/Windows/Linux)
+- [x] 6.4 Mark all tasks complete and commit (`docs(readme): add cross-platform onboarding guide and verification fixes`)
 
 ## Phase 7 — Changelog, Push & PR
 - [ ] 7.1 Create `CHANGELOG.md` (Keep a Changelog v1.1.0) and commit (`docs(changelog): initialize CHANGELOG.md`)

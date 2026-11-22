@@ -7,19 +7,32 @@
 
 Allow professors to configure, preview, version, and approve how the LLM interviewer conducts assessments—without writing raw system prompts. Configuration drives the interviewer, evidence extractor, scorer, and team balancer.
 
-## Scope
+## Requirements
 
-- Project/team vision input (free text or job/course description).
-- Required **core questions** with per-question weights and linked skills/tags.
-- Controlled **skills & tags taxonomy** (accept, merge, or reject pending extractor-suggested tags).
-- Behaviour toggles: follow-up probing on/off, invented questions on/off, turn budget, and coverage targets.
-- Candidate list management (CSV import / invite link generation).
-- Mock-candidate preview mode prior to publishing.
-- Immutable versioned configuration snapshots upon professor approval.
+### Requirement: REQ-IS-01 Immutable Configuration Snapshots
+**WHEN** the professor publishes a configuration **THE SYSTEM SHALL** store an immutable, versioned snapshot and link all subsequent interviews to it.
 
-## Seed Requirements (EARS)
+#### Scenario: Publish approved interviewer configuration
+- **WHEN** the professor approves and publishes a draft configuration with vision, core questions, skills, and toggles
+- **THEN** the system creates an immutable versioned snapshot (e.g., `cfg_7@v3`) and links every subsequent candidate interview to that snapshot.
 
-- **REQ-IS-01:** **WHEN** the professor publishes a configuration **THE SYSTEM SHALL** store an immutable, versioned snapshot and link all subsequent interviews to it.
-- **REQ-IS-02:** **WHEN** the extractor suggests a new inferred tag **THE SYSTEM SHALL** store it in a `pending` state and **SHALL NOT** include it in scoring until the professor approves or merges it into the controlled taxonomy.
-- **REQ-IS-03:** **WHEN** the professor adds new skills or core questions after interviews have already occurred **THE SYSTEM SHALL** create a new configuration version and mark previously assessed candidates as incomplete against the new version.
-- **REQ-IS-04:** **THE SYSTEM SHALL** prevent any candidate from starting an interview against a draft (unapproved) configuration.
+### Requirement: REQ-IS-02 Controlled Inferred Tag Approval
+**WHEN** the extractor suggests a new inferred tag **THE SYSTEM SHALL** store it in a `pending` state and **SHALL NOT** include it in scoring until the professor approves or merges it into the controlled taxonomy.
+
+#### Scenario: Pending tag awaits professor decision
+- **WHEN** evidence extraction discovers an unrecognised tag such as `containers`
+- **THEN** the system displays it as a `pending` chip for the professor to accept, merge (e.g., into `Docker`), or reject, excluding it from scoring until approved.
+
+### Requirement: REQ-IS-03 Post-Interview Structural Configuration Changes
+**WHEN** the professor adds new skills or core questions after interviews have already occurred **THE SYSTEM SHALL** create a new configuration version and mark previously assessed candidates as incomplete against the new version.
+
+#### Scenario: Add core question after candidates completed interviews
+- **WHEN** a new core question is added to a configuration with existing completed transcripts
+- **THEN** the system increments the configuration version and flags affected prior candidates as incomplete rather than mutating their historical snapshot.
+
+### Requirement: REQ-IS-04 Draft Configuration Gate
+**THE SYSTEM SHALL** prevent any candidate from starting an interview against a draft (unapproved) configuration.
+
+#### Scenario: Candidate opens invite for unapproved configuration
+- **WHEN** a candidate attempts to begin an assessment tied to an unapproved draft configuration
+- **THEN** the system rejects session creation until the professor explicitly approves and publishes the configuration.

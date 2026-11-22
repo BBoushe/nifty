@@ -7,17 +7,32 @@
 
 Transform completed `assessment-transcript/v1` transcripts into verified, auditable evidence items, rubric levels, and deterministically computed confidence values—eliminating hallucinated quotes and unsupported scores.
 
-## Scope
+## Requirements
 
-- **Step 2 — Evidence Extractor (LLM structured output):** Schema-validated extraction of `{ entryId, skill, quote, suggestedLevel, rationale, inferredTags }`. Never computes final scores.
-- **Step 3 — Quote Verifier (deterministic Java):** Exact word-for-word substring verification against the referenced transcript entry; discards unverified items.
-- **Step 4 — Constrained Judge & Scorer:** Two independent judge runs for level boundaries; combines verified evidence via the Formula Engine; records `N/A` when no verified evidence exists.
-- **Step 5 — Confidence Calculator (deterministic Java):** Computes `0..1` confidence from measurable signals (evidence count vs. target, quote verification ratio, judge run agreement, question origin, prompted vs. unprompted terms)—never LLM self-report.
-- Asynchronous background job execution with replayable recorded LLM fixtures for deterministic testing.
+### Requirement: REQ-EP-01 Verbatim Quote Verification
+**WHEN** the extractor returns an evidence item **THE SYSTEM SHALL** verify that its quote appears word-for-word in the referenced transcript entry and discard it if it does not.
 
-## Seed Requirements (EARS)
+#### Scenario: Hallucinated quote rejected by deterministic verifier
+- **WHEN** the LLM extractor emits an evidence item whose `quote` is not an exact substring of the referenced `entryId` answer text
+- **THEN** the deterministic quote verifier discards the item before scoring.
 
-- **REQ-EP-01:** **WHEN** the extractor returns an evidence item **THE SYSTEM SHALL** verify that its quote appears word-for-word in the referenced transcript entry and discard it if it does not.
-- **REQ-EP-02:** **IF** a skill has no verified evidence **THEN THE SYSTEM SHALL** record its score as `N/A` and exclude it from fit calculations.
-- **REQ-EP-03:** **THE SYSTEM SHALL** compute evidence and skill confidence deterministically from measurable signals (evidence count, quote verification ratio, judge agreement, question origin, and prompted vs. unprompted terms) and **SHALL NOT** use LLM self-reported confidence values.
-- **REQ-EP-04:** **THE SYSTEM SHALL** calculate all totals, rankings and team-balance metrics in code, and **SHALL NOT** take any numerical value from LLM output without validation.
+### Requirement: REQ-EP-02 Explicit N/A for Missing Evidence
+**IF** a skill has no verified evidence **THEN THE SYSTEM SHALL** record its score as `N/A` and exclude it from fit calculations.
+
+#### Scenario: Untested skill produces N/A instead of 0 or 1
+- **WHEN** a candidate transcript has zero verified evidence items for skill `spring_boot`
+- **THEN** the scorer records `spring_boot = N/A` and omits `spring_boot` from both the numerator and denominator of the candidate's fit score.
+
+### Requirement: REQ-EP-03 Deterministic Confidence Calculation
+**THE SYSTEM SHALL** compute evidence and skill confidence deterministically from measurable signals (evidence count, quote verification ratio, judge agreement, question origin, and prompted vs. unprompted terms) and **SHALL NOT** use LLM self-reported confidence values.
+
+#### Scenario: Judge disagreement lowers calculated confidence
+- **WHEN** two independent judge runs disagree on a rubric level boundary
+- **THEN** the deterministic confidence calculator reduces the skill's `0..1` confidence score based on the documented signal formula.
+
+### Requirement: REQ-EP-04 Deterministic Numerical Aggregation
+**THE SYSTEM SHALL** calculate all totals, rankings and team-balance metrics in code, and **SHALL NOT** take any numerical value from LLM output without validation.
+
+#### Scenario: Pipeline discards unvalidated LLM totals
+- **WHEN** the evidence pipeline processes a completed transcript
+- **THEN** all skill averages, fit totals, coverage ratios, and cohort metrics are computed exclusively in deterministic Java/SQL code.

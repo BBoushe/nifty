@@ -7,18 +7,32 @@
 
 Provide an evidence-first visual review workspace where professors and TAs inspect candidate skill matrices, drill into verified quotes in one click, prioritize uncertain or high-impact scores, record auditable overrides, and inspect SQL-calculated cohort gaps.
 
-## Scope
+## Requirements
 
-- **Skills Matrix Heatmap (ECharts):** Candidates × skills; color = level, hatched = `N/A`, red border = flagged, opacity = confidence; hover summary, click opens Evidence Drawer.
-- **Evidence Drawer:** Step-by-step breakdown (`formula -> weighted parts -> evidence items -> verbatim quotes` linked to transcript position + question origin); actions: Approve, Override (reason required), Request re-probe.
-- **Confidence Bounds & Prioritized Review Queue:** Lower/upper confidence bounds; bulk-approve allowed only above upper bound; flagged items must be approved individually. Queue priority: (1) below lower confidence bound, (2) team-placement-deciding scores, (3) large self-assessment mismatch, (4) remaining items.
-- **Rubber-Stamp Detection:** Reviewer override rate and average time per review.
-- **Immutable Audit Log:** Records actor, timestamp, entity, old value, new value, and mandatory reason (EU AI Act Annex III readiness).
-- **Cohort Gap Overview (UX-12):** Pure SQL aggregation over **approved** scores only (level distribution, `N/A` share, weakest domains) with drill-down to underlying candidates and quotes.
+### Requirement: REQ-SM-01 Confidence-Bound Flagging
+**WHEN** a score's confidence is below the configured lower bound **THE SYSTEM SHALL** mark it as flagged and place it in the "Needs attention" queue.
 
-## Seed Requirements (EARS)
+#### Scenario: Low-confidence score enters priority review queue
+- **WHEN** a skill score has calculated confidence `0.42` and the configured lower bound is `0.60`
+- **THEN** the system marks the cell as flagged (red border) and places it at the top of the "Needs attention" queue.
 
-- **REQ-SM-01:** **WHEN** a score's confidence is below the configured lower bound **THE SYSTEM SHALL** mark it as flagged and place it in the "Needs attention" queue.
-- **REQ-SM-02:** **WHEN** the professor overrides a score **THE SYSTEM SHALL** require a reason and write an audit log entry with user, timestamp, old value and new value.
-- **REQ-SM-03:** **WHILE** a score is marked as flagged **THE SYSTEM SHALL** prevent bulk approval and require individual human review.
-- **REQ-SM-04:** **THE SYSTEM SHALL** compute all Cohort Gap Overview statistics in deterministic SQL from approved scores only and **SHALL NOT** generate cohort numbers via an LLM.
+### Requirement: REQ-SM-02 Auditable Score Overrides
+**WHEN** the professor overrides a score **THE SYSTEM SHALL** require a reason and write an audit log entry with user, timestamp, old value and new value.
+
+#### Scenario: Professor overrides a flagged skill level
+- **WHEN** a professor changes a candidate's skill level from `2` to `3` with reason `"Follow-up explanation showed practical mastery"`
+- **THEN** the system persists the new score and inserts an immutable `audit_log` row containing actor, timestamp, old value, new value, and reason.
+
+### Requirement: REQ-SM-03 No Bulk Approval for Flagged Scores
+**WHILE** a score is marked as flagged **THE SYSTEM SHALL** prevent bulk approval and require individual human review.
+
+#### Scenario: Bulk approve skips flagged items
+- **WHEN** a reviewer triggers bulk approval across a candidate cohort
+- **THEN** only unflagged scores above the upper confidence bound are bulk-approved while all flagged scores remain pending individual review.
+
+### Requirement: REQ-SM-04 SQL-Only Cohort Gap Overview
+**THE SYSTEM SHALL** compute all Cohort Gap Overview statistics in deterministic SQL from approved scores only and **SHALL NOT** generate cohort numbers via an LLM.
+
+#### Scenario: Lecturer opens Cohort Gap Overview
+- **WHEN** the professor loads the Cohort Gap Overview dashboard
+- **THEN** skill level distributions, `N/A` shares, and weakest domains are aggregated exclusively in SQL over approved scores and link directly to underlying candidate evidence.

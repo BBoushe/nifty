@@ -24,7 +24,17 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       fi
 
       if [ "$remote_sha" = "$ZERO_OID" ]; then
-        RANGE="$local_sha"
+        if git rev-parse --verify --quiet origin/master >/dev/null 2>&1; then
+          RANGE="origin/master..${local_sha}"
+        elif git rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+          RANGE="origin/main..${local_sha}"
+        elif git rev-parse --verify --quiet master >/dev/null 2>&1; then
+          RANGE="master..${local_sha}"
+        elif git rev-parse --verify --quiet main >/dev/null 2>&1; then
+          RANGE="main..${local_sha}"
+        else
+          RANGE="$local_sha"
+        fi
       else
         RANGE="${remote_sha}..${local_sha}"
       fi
