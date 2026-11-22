@@ -3,11 +3,16 @@
 FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
+# Prefer IPv4 inside Docker VMs to avoid Maven Central HTTP/2 / IPv6 stalls
+ENV MAVEN_OPTS="-Djava.net.preferIPv4Stack=true"
+
 COPY pom.xml .
-RUN mvn -B dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -Dmaven.resolver.transport=wagon dependency:go-offline
 
 COPY src ./src
-RUN mvn -B package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -Dmaven.resolver.transport=wagon package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
