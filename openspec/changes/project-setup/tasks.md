@@ -19,11 +19,11 @@
 - [x] 2.5 Commit Phase 2 (`chore(specs): install openspec, project setup plan, and seed domain specs`)
 
 ## Phase 3 — Multi-Agent Steering, Skills & Hooks
-- [ ] 3.1 Create universal root `AGENTS.md`
-- [ ] 3.2 Create Antigravity `GEMINI.md` and flat scoped `.agents/rules/` (`spec-driven.md`, `backend-java.md`, `frontend-vue.md`, `git-workflow.md`) with valid snake_case YAML frontmatter (< 24 KB each)
-- [ ] 3.3 Create Claude Code `CLAUDE.md` (with First-Run Bootstrap section), baseline `.claude/skills/*/SKILL.md`, and `.claude/settings.json` lifecycle hooks
-- [ ] 3.4 Create executable `.githooks/commit-msg` and `.githooks/pre-push`
-- [ ] 3.5 Commit Phase 3 (`chore(agents): configure AGENTS.md, CLAUDE.md, GEMINI.md, rules, skills, and hooks`)
+- [x] 3.1 Create universal root `AGENTS.md`
+- [x] 3.2 Create Antigravity `GEMINI.md` and flat scoped `.agents/rules/` (`spec-driven.md`, `backend-java.md`, `frontend-vue.md`, `git-workflow.md`) with valid snake_case YAML frontmatter (< 24 KB each)
+- [x] 3.3 Create Claude Code `CLAUDE.md` (with First-Run Bootstrap section), baseline `.claude/skills/*/SKILL.md`, and `.claude/settings.json` lifecycle hooks
+- [x] 3.4 Create executable `.githooks/commit-msg` and `.githooks/pre-push`
+- [x] 3.5 Commit Phase 3 (`chore(agents): configure AGENTS.md, CLAUDE.md, GEMINI.md, rules, skills, and hooks`)
 
 ## Phase 4 — Local Tooling, Monorepo Scaffold & Docker
 - [ ] 4.1 Verify/install Java 21 SDK and Maven locally
