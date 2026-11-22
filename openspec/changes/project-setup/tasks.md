@@ -47,6 +47,6 @@
 - [x] 6.4 Mark all tasks complete and commit (`docs(readme): add cross-platform onboarding guide and verification fixes`)
 
 ## Phase 7 — Changelog, Push & PR
-- [ ] 7.1 Create `CHANGELOG.md` (Keep a Changelog v1.1.0) and commit (`docs(changelog): initialize CHANGELOG.md`)
-- [ ] 7.2 Push `feat/setup` to `origin`
-- [ ] 7.3 Open plain-language PR from `feat/setup` to `dev` (or print exact command + body if `gh` is not authenticated)
+- [x] 7.1 Create `CHANGELOG.md` (Keep a Changelog v1.1.0) and commit (`docs(changelog): initialize CHANGELOG.md`)
+- [x] 7.2 Push `feat/setup` to `origin`
+- [x] 7.3 Open plain-language PR from `feat/setup` to `dev` (or print exact command + body if `gh` is not authenticated)
