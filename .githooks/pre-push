@@ -57,4 +57,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   esac
 done
 
+# Run fast path-scoped compile/build gate (honors NIFTY_SKIP_GATE=1)
+if command -v node >/dev/null 2>&1; then
+  REPO_ROOT="$(git rev-parse --show-toplevel)"
+  if [ -f "${REPO_ROOT}/.claude/hooks/test-gate.mjs" ]; then
+    node "${REPO_ROOT}/.claude/hooks/test-gate.mjs"
+  fi
+fi
+
 exit 0
