@@ -36,12 +36,14 @@ rules:
   tasks:
     - Break work into small, verifiable tasks with explicit test or verification commands.
     - Mark tasks complete only after running and observing passing exit codes.
+    - Include a `## Handoff Log` section at the bottom of `tasks.md` recording Commits, Verification (command + exit code), Contracts/Migrations added, Decisions, and Open Questions after each completed milestone.
 
 operations:
   apply:
     guidance:
       - "Implement one logical milestone at a time and use Conventional Commits."
       - "Never skip verification — run real Maven, npm, and Docker checks before marking tasks done."
+      - "Append a compact 5-line entry to `## Handoff Log` in `tasks.md` at the end of each completed milestone for cross-session and multi-agent continuity."
   archive:
     guidance:
       - "Sync updated domain requirements into openspec/specs/<module>/spec.md before archiving."
