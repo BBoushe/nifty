@@ -6,15 +6,19 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 
 1. [`AGENTS.md`](AGENTS.md) — Universal non-negotiable rules & stack constraints.
 2. @.agents/rules/coding-standards.md — Canonical living coding standards (auto-imported directly by Claude Code; never duplicated).
-3. [`openspec/config.yaml`](openspec/config.yaml) & `openspec/specs/` — Domain requirements in EARS notation.
-4. `openspec/changes/<active-change>/` — Active `proposal.md`, `specs/`, `design.md`, and `tasks.md`.
-5. [`docs/decisions/index.md`](docs/decisions/index.md), [`docs/api.md`](docs/api.md), & [`docs/discovery-canvas.md`](docs/discovery-canvas.md) — Traceable decisions, living API contract, & product vision.
+3. @.agents/rules/spec-driven.md — Canonical spec-first & domain invariant rules (auto-imported directly; Decision 3.4).
+4. @.agents/rules/git-workflow.md — Canonical branching, Conventional Commits, & mandatory PR/MR template rules (auto-imported directly; Decision 3.4).
+5. [`openspec/config.yaml`](openspec/config.yaml) & `openspec/specs/` — Domain requirements in EARS notation.
+6. `openspec/changes/<active-change>/` — Active `proposal.md`, `specs/`, `design.md`, and `tasks.md`.
+7. [`docs/decisions/index.md`](docs/decisions/index.md), [`docs/api.md`](docs/api.md), & [`docs/discovery-canvas.md`](docs/discovery-canvas.md) — Traceable decisions, living API contract, & product vision.
 
 ## Working Agreement for Claude Code
 
 - Implement one logical task at a time from `openspec/changes/<change>/tasks.md`, following `.agents/rules/coding-standards.md` and leaving `// Decision X.Y` pointers where non-obvious.
+- Before editing `backend/**` or `frontend/**`, read `.agents/rules/backend-java.md` (+ `docs/api.md`) or `.agents/rules/frontend-vue.md` respectively.
 - Whenever the user/prompter changes direction or answers a `question-round`, record the decision via `node scripts/record-decision.mjs` (never skip recording).
-- Check the active Git forge via `node scripts/check-setup.mjs --forge` (`gh` for GitHub vs. `glab` for GitLab) — never read `.env` directly.
+- Check the active Git forge via `node scripts/check-setup.mjs --forge` (`gh`, `glab`, or `node scripts/forge.mjs` for `both`) — never read `.env` directly.
+- When opening or updating a PR/MR, **always** fill `.github/PULL_REQUEST_TEMPLATE.md` (mirrored in `.gitlab/merge_request_templates/Default.md`) via the `pr-memo` skill — never write an ad-hoc summary that drops the Spec/Issue or Verification checklists.
 - Run real verification commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`) before claiming completion.
 - Keep diffs small, atomic, and strictly scoped to the active spec.
 
