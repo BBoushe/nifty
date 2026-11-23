@@ -24,9 +24,9 @@ export const VALID_TRIGGERS = new Set([
 export function slugifyHeading(text) {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
     .trim()
-    .replace(/\s+/g, '-');
+    .replace(/[^a-z0-9_\s-]/g, '')
+    .replace(/\s/g, '-');
 }
 
 export function computeNextDecisionId(categoryContent, category) {
@@ -78,16 +78,16 @@ export function formatIndexRow({ id, categoryLabel, topic, date, trigger, file }
 export function markOpenDecisionResolved(indexContent, openId, decisionId) {
   if (!openId) return indexContent;
   const escaped = openId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const rowRe = new RegExp(`^(\\|\\s*\\*\\*${escaped}\\*\\*\\s*\\|[^\\n]*)\\|\\s*Open\\s*\\|$`, 'm');
+  const rowRe = new RegExp(`^(\\|\\s*\\*\\*${escaped}\\*\\*\\s*\\|[^\\r\\n]*)\\|\\s*Open\\s*\\|(\\r?)$`, 'm');
   if (!rowRe.test(indexContent)) {
     return indexContent;
   }
-  return indexContent.replace(rowRe, `$1| Resolved -> **${decisionId}** |`);
+  return indexContent.replace(rowRe, (_, prefix, cr) => `${prefix}| Resolved -> **${decisionId}** |${cr}`);
 }
 
 export function recordDecision(options) {
   const category = String(options.category ?? '').trim();
-  const catMeta = CATEGORIES[category];
+  const catMeta = Object.hasOwn(CATEGORIES, category) ? CATEGORIES[category] : null;
   if (!catMeta) {
     throw new Error(`Invalid --category '${category}'. Expected one of: 1, 2, 3, 4.`);
   }
@@ -157,7 +157,7 @@ export function recordDecision(options) {
   }
 
   const updatedCategory = `${categoryContent.trimEnd()}\n\n${entry}`;
-  let updatedIndex = indexContent.replace(marker, `${indexRow}\n${marker}`);
+  let updatedIndex = indexContent.replace(marker, () => `${indexRow}\n${marker}`);
   if (resolves) {
     updatedIndex = markOpenDecisionResolved(updatedIndex, resolves, id);
   }

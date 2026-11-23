@@ -26,6 +26,18 @@ const ALLOWED_NON_SECRET_KEYS = new Set([
 const PLACEHOLDER_KEY_RE =
   /^(|not-configured|changeme|placeholder|example|dummy|your[-_].*|<[^>]+>)$/i;
 
+const VALID_HOSTNAME_RE = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/i;
+
+export function validateGitLabHost(rawHost) {
+  const host = String(rawHost ?? '').trim();
+  if (!host || !VALID_HOSTNAME_RE.test(host)) {
+    throw new Error(
+      `Invalid GITLAB_HOST '${host.replace(/[\r\n]/g, ' ')}'. Expected a hostname like 'gitlab.com' or 'gitlab.example.edu:8443'.`
+    );
+  }
+  return host;
+}
+
 /**
  * Parse a .env file returning ONLY allowlisted non-secret values plus a boolean
  * indicator for whether KICONNECT_API_KEY is populated with a non-placeholder value.
@@ -84,12 +96,12 @@ export function resolveForgeConfig(rootDir = process.cwd(), envOverride = proces
     .toLowerCase();
 
   const forge = rawForge === 'gitlab' ? 'gitlab' : 'github';
-  const gitlabHost = (
+  const gitlabHost = validateGitLabHost(
     envOverride?.GITLAB_HOST ||
-    dotEnvParsed.safe.GITLAB_HOST ||
-    exampleParsed.safe.GITLAB_HOST ||
-    'gitlab.com'
-  ).trim();
+      dotEnvParsed.safe.GITLAB_HOST ||
+      exampleParsed.safe.GITLAB_HOST ||
+      'gitlab.com'
+  );
 
   const evaluatorModel =
     dotEnvParsed.safe.AI_EVALUATOR_MODEL ||
@@ -186,10 +198,19 @@ export function runSetupChecks(options = {}) {
 
   for (const hook of ['pre-commit', 'commit-msg', 'pre-push']) {
     const hookFile = path.join(rootDir, '.githooks', hook);
-    if (fs.existsSync(hookFile)) {
-      add('PASS', `Hook .githooks/${hook}`, 'present');
-    } else {
+    if (!fs.existsSync(hookFile)) {
       add('FAIL', `Hook .githooks/${hook}`, 'missing');
+      continue;
+    }
+    if (process.platform !== 'win32') {
+      try {
+        fs.accessSync(hookFile, fs.constants.X_OK);
+        add('PASS', `Hook .githooks/${hook}`, 'present & executable');
+      } catch {
+        add('FAIL', `Hook .githooks/${hook}`, 'not executable', `chmod +x .githooks/${hook}`);
+      }
+    } else {
+      add('PASS', `Hook .githooks/${hook}`, 'present');
     }
   }
 
@@ -251,6 +272,13 @@ export function runSetupChecks(options = {}) {
     add('PASS', 'Docker', dockerVer.out.split('\n')[0]);
   } else {
     add('WARN', 'Docker', 'not detected (optional for host-only mode)');
+  }
+
+  const openspecVer = runCmd('openspec', ['--version']);
+  if (openspecVer.ok) {
+    add('PASS', 'OpenSpec CLI', openspecVer.out.split('\n')[0]);
+  } else {
+    add('WARN', 'OpenSpec CLI', 'optional CLI not installed', 'npm install -g @fission-ai/openspec@latest');
   }
 
   const failed = checks.filter((c) => c.level === 'FAIL').length;

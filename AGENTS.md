@@ -5,7 +5,7 @@ This repository builds the **Evidence-First Skill Assessment Platform** (see [`d
 ## 1. Monorepo Map
 
 - `backend/` — Java 21, Spring Boot 4.x, Maven (`./mvnw`), Spring Security (2 roles: `PROFESSOR`/`REVIEWER`, `CANDIDATE`), Spring Web (SSE), Spring Data JPA, Spring AI 2.0, Timefold Solver, PostgreSQL (JSONB), Flyway, springdoc-openapi, JUnit 5, Mockito, Testcontainers.
-- `frontend/` — Vue 3.5 (**stable only — NEVER upgrade to Vue 3.6 RC**), TypeScript, Vite 8, Vue Router, Pinia, TanStack Query (`@tanstack/vue-query`), Tailwind CSS v4, Apache ECharts (`vue-echarts`). UI component kit (`PrimeVue` vs. `shadcn-vue`) is still TBD (`docs/decisions.md` O1).
+- `frontend/` — Vue 3.5 (**stable only — NEVER upgrade to Vue 3.6 RC**), TypeScript, Vite 8, Vue Router, Pinia, TanStack Query (`@tanstack/vue-query`), Tailwind CSS v4, Apache ECharts (`vue-echarts`). UI component kit (`PrimeVue` vs. `shadcn-vue`) is still TBD (`docs/decisions/index.md` O1).
 - `openspec/` — Spec-driven source of truth (`config.yaml`, `specs/<module>/spec.md`, `changes/<change>/`).
 - `docs/` — Product vision (`discovery-canvas.md`), `architecture.md`, `api.md`, `workflow.md`, hierarchical decisions (`decisions/index.md`), and AI/SDD/ADD harness guide (`setup.md`).
 - `scripts/` — Zero-dependency harness helpers (`record-decision.mjs` for `X.Y` decisions, `check-setup.mjs` for secret-safe GitHub/GitLab forge switch & preflight checks).

@@ -5,7 +5,7 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 ## Source of Truth Hierarchy
 
 1. [`AGENTS.md`](AGENTS.md) — Universal non-negotiable rules & stack constraints.
-2. `@.agents/rules/coding-standards.md` — Canonical living coding standards (imported directly; never duplicated).
+2. @.agents/rules/coding-standards.md — Canonical living coding standards (auto-imported directly by Claude Code; never duplicated).
 3. [`openspec/config.yaml`](openspec/config.yaml) & `openspec/specs/` — Domain requirements in EARS notation.
 4. `openspec/changes/<active-change>/` — Active `proposal.md`, `specs/`, `design.md`, and `tasks.md`.
 5. [`docs/decisions/index.md`](docs/decisions/index.md), [`docs/api.md`](docs/api.md), & [`docs/discovery-canvas.md`](docs/discovery-canvas.md) — Traceable decisions, living API contract, & product vision.

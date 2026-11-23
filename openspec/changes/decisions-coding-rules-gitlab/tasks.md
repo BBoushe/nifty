@@ -29,9 +29,13 @@ Execute incrementally on branch `feat/new-harness-tools` (updating PR #2 into `d
 - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` -> exit `0`
 - [x] Run `node scripts/check-setup.mjs --forge` and verify `.gitlab-ci.yml` valid YAML & `.claude/settings.json` valid JSON
 - [x] Run `cd backend && ./mvnw -o test` and `cd frontend && npm run typecheck && npm run lint && npm run build` -> exit `0`
-- [ ] Run cold read-only `reviewer` audit on `git diff dev...HEAD` -> `Verdict: APPROVE`
-- [ ] Push commits to `feat/new-harness-tools`, update PR #2 description via `pr-memo`, and record final `## Handoff Log`
+- [x] Run cold read-only `reviewer` audit on `git diff dev...HEAD` -> `Verdict: APPROVE`
+- [x] Push commits to `feat/new-harness-tools`, update PR #2 description via `pr-memo`, and record final `## Handoff Log`
 
 ## Handoff Log
 
-*(Append final milestone entry after cold reviewer sign-off.)*
+- **Commits:** `c036fa7` (`chore(specs)`), `34e510c` (`feat(decisions)`), `6c22e63` (`feat(rules)`), `6b0a873` (`feat(forge)`), plus cold-review fix commit (`fix(harness)`).
+- **Verification:** `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (20/20 pass), `OPENSPEC_TELEMETRY=0 openspec validate --all` (11/11 pass, 0 warnings), `node scripts/check-setup.mjs` (0 failures), `.gitlab-ci.yml` YAML valid, `cd backend && ./mvnw -o test` (2/2 pass), `cd frontend && npm run typecheck && npm run lint && npm run build` (exit 0).
+- **Contracts/Migrations added:** `docs/decisions/{index,1-architecture,2-design,3-team-process,4-direction}.md`, `scripts/record-decision.mjs`, `scripts/check-setup.mjs`, `scripts/harness-scripts.test.mjs`, `.agents/rules/coding-standards.md`, `docs/api.md`, `.gitlab-ci.yml`.
+- **Decisions:** `1.7` (parallel GitHub/GitLab `.env` switch), `2.9` (living `docs/api.md`), `3.1`–`3.3` (cold review, canonical living coding standards, mandatory decision recording & code pointers).
+- **Open Questions:** `O1`–`O7` migrated cleanly into `docs/decisions/index.md` for Day-1 team resolution.

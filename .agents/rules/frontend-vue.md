@@ -14,7 +14,7 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
    - Use **Pinia** only for client/UI state (e.g., active filters, drawer selection, drag-and-drop staging).
    - Use **Vue Router** separating Assessment View (`/assessment/*`) and Ranking View (`/ranking/*`).
 3. **Styling & Visualisation:**
-   - Use **Tailwind CSS v4** utilities. Do not install PrimeVue or shadcn-vue until team Decision O1 (`docs/decisions.md`) is finalized.
+   - Use **Tailwind CSS v4** utilities. Do not install PrimeVue or shadcn-vue until team Decision O1 (`docs/decisions/index.md`) is finalized.
    - Use **Apache ECharts (`vue-echarts`)** for the Skills Matrix heatmap, Cohort Gap charts, and Team Balance charts.
 4. **Evidence-First UX Rules:**
    - **Zero client-side scoring math:** Never recompute or duplicate fit, coverage, confidence, or ranking math in TypeScript/Vue — render backend-computed values only.

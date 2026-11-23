@@ -8,25 +8,40 @@ import {
   parseSafeEnvContent,
   resolveForgeConfig,
   runSetupChecks,
+  validateGitLabHost,
 } from './check-setup.mjs';
 import {
   computeNextDecisionId,
   recordDecision,
+  slugifyHeading,
 } from './record-decision.mjs';
 
 const FAKE_SECRET_KEY = ['fhai', 'secret', 'token', '987654321'].join('_');
 const FAKE_DB_PASS = ['super', 'secret', 'dbpass', '2026'].join('_');
 
 describe('scripts/record-decision.mjs', () => {
-  it('computes next sequential hierarchical X.Y ID cleanly', () => {
+  it('computes next sequential hierarchical X.Y ID cleanly and matches GitHub heading anchors', () => {
     assert.equal(computeNextDecisionId('# Category 4\n\n---\n', '4'), '4.1');
     assert.equal(
       computeNextDecisionId('## 1.1 — First\n\n## 1.2 — Second\n', '1'),
       '1.3'
     );
+    assert.equal(slugifyHeading('2.2 — Select PrimeVue_v4'), '22--select-primevue_v4');
+    assert.throws(
+      () =>
+        recordDecision({
+          category: 'toString',
+          topic: 'Prototype check',
+          trigger: 'team',
+          context: 'c',
+          decision: 'd',
+          rationale: 'r',
+        }),
+      /Invalid --category/
+    );
   });
 
-  it('appends decision entry, updates index.md, and resolves open decision in isolated temp dir', () => {
+  it('appends decision entry, updates index.md (including CRLF & $& safety), and resolves open decision in isolated temp dir', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nifty-decisions-'));
     try {
       const decDir = path.join(tmp, 'docs', 'decisions');
@@ -48,14 +63,14 @@ describe('scripts/record-decision.mjs', () => {
           '|---|---|---|---|---|',
           '| **O1** | UI kit | PrimeVue vs shadcn-vue | Frontend | Open |',
           '',
-        ].join('\n'),
+        ].join('\r\n'),
         'utf8'
       );
 
       const res = recordDecision({
         root: tmp,
         category: '2',
-        topic: 'Select PrimeVue for Ranking View',
+        topic: 'Select PrimeVue ($& safe)',
         trigger: 'question-round',
         context: 'Team needs fast data tables and sliders.',
         decision: 'Use PrimeVue v4 with Tailwind v4.',
@@ -70,10 +85,12 @@ describe('scripts/record-decision.mjs', () => {
       const catText = fs.readFileSync(path.join(decDir, '2-design.md'), 'utf8');
       const idxText = fs.readFileSync(path.join(decDir, 'index.md'), 'utf8');
 
-      assert.equal(catText.includes('## 2.2 — Select PrimeVue for Ranking View'), true);
+      assert.equal(catText.includes('## 2.2 — Select PrimeVue ($& safe)'), true);
       assert.equal(catText.includes('- **Triggered By:** question-round'), true);
       assert.equal(catText.includes('- **Resolves:** O1'), true);
-      assert.equal(idxText.includes('| **2.2** | — | Design | Select PrimeVue for Ranking View |'), true);
+      assert.equal(idxText.includes('| **2.2** | — | Design | Select PrimeVue ($& safe) |'), true);
+      assert.equal(idxText.includes('<!-- DECISION_INDEX_END -->'), true);
+      assert.equal(idxText.includes('./2-design.md#22--select-primevue--safe)'), true);
       assert.equal(idxText.includes('| Resolved -> **2.2** |'), true);
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
@@ -129,6 +146,13 @@ describe('scripts/check-setup.mjs', () => {
     }
   });
 
+  it('rejects malformed or injection-attempt GITLAB_HOST values', () => {
+    assert.equal(validateGitLabHost('gitlab.fhdortmund.de:8443'), 'gitlab.fhdortmund.de:8443');
+    assert.throws(() => validateGitLabHost('--help'), /Invalid GITLAB_HOST/);
+    assert.throws(() => validateGitLabHost('gitlab.com\nCLI=evil'), /Invalid GITLAB_HOST/);
+    assert.throws(() => validateGitLabHost('bad host'), /Invalid GITLAB_HOST/);
+  });
+
   it('runs preflight checks for gitlab mode without exposing secrets', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nifty-preflight-'));
     try {
@@ -137,9 +161,11 @@ describe('scripts/check-setup.mjs', () => {
       fs.mkdirSync(path.join(tmp, '.agents', 'rules'), { recursive: true });
       fs.mkdirSync(path.join(tmp, 'docs', 'decisions'), { recursive: true });
 
-      fs.writeFileSync(path.join(tmp, '.githooks', 'pre-commit'), '#!/bin/sh\n');
-      fs.writeFileSync(path.join(tmp, '.githooks', 'commit-msg'), '#!/bin/sh\n');
-      fs.writeFileSync(path.join(tmp, '.githooks', 'pre-push'), '#!/bin/sh\n');
+      for (const hook of ['pre-commit', 'commit-msg', 'pre-push']) {
+        const p = path.join(tmp, '.githooks', hook);
+        fs.writeFileSync(p, '#!/bin/sh\n');
+        fs.chmodSync(p, 0o755);
+      }
       fs.writeFileSync(path.join(tmp, '.claude', 'settings.json'), '{}');
       fs.writeFileSync(path.join(tmp, '.agents', 'rules', 'coding-standards.md'), '# Rules\n');
       fs.writeFileSync(path.join(tmp, 'docs', 'decisions', 'index.md'), '# Index\n');

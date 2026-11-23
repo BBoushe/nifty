@@ -92,10 +92,11 @@ Follow these steps in order to replicate this SDD/ADD harness into any greenfiel
 4. **Add Role Separation & Shared Skills:**
    - Copy `.claude/agents/{spec-builder,reviewer,test-writer}.md` and adapt test-path globs in `guard-agent.mjs` to the target repo's test directories.
    - Copy `.agents/skills/{record-decision,question-round,pr-memo}/SKILL.md` and symlink them into `.claude/skills/`.
-5. **Wire CI & Governance:**
-   - Add `node --test .claude/hooks/hooks.test.mjs`, Conventional Commits validation, and branch promotion checks to `.github/workflows/ci.yml`.
+5. **Wire CI, Decision & Preflight Scripts, & Governance:**
+   - Copy `scripts/{record-decision,check-setup,harness-scripts.test}.mjs` and `docs/decisions/` templates, plus `.agents/rules/coding-standards.md` and `docs/api.md`.
+   - Add `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`, Conventional Commits validation, and branch promotion checks to `.github/workflows/ci.yml` and parallel `.gitlab-ci.yml`.
    - Add declarative `.github/rulesets/*.json` matching the team's branch promotion flow.
 6. **Verify End-to-End:**
    - Run `OPENSPEC_TELEMETRY=0 openspec validate --all` -> exit `0`.
-   - Run `node --test .claude/hooks/hooks.test.mjs` -> exit `0`.
-   - Validate `.claude/settings.json` JSON and execute a cold `reviewer` pass to confirm zero rule drift across all canonical and pointer files.
+   - Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` -> exit `0`.
+   - Run `node scripts/check-setup.mjs` -> 0 failures; validate `.claude/settings.json` JSON and `.gitlab-ci.yml` YAML; execute a cold `reviewer` pass to confirm zero rule drift across all canonical and pointer files.

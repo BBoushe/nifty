@@ -45,15 +45,21 @@ harness-tests:
 
 conventional-commits:
   stage: verify
-  image: alpine/git:latest
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
   variables:
     GIT_DEPTH: "0"
   script:
     - |
       set -eu
       if [ "${CI_PIPELINE_SOURCE:-}" = "merge_request_event" ]; then
-        git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=50 || true
-        COMMITS="$(git rev-list "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}..${CI_COMMIT_SHA}")"
+        if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
+          COMMITS="$(git rev-list "${CI_MERGE_REQUEST_DIFF_BASE_SHA}..${CI_COMMIT_SHA}")"
+        else
+          git fetch origin "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}:refs/remotes/origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}"
+          COMMITS="$(git rev-list "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}..${CI_COMMIT_SHA}")"
+        fi
       else
         BEFORE="${CI_COMMIT_BEFORE_SHA:-0000000000000000000000000000000000000000}"
         if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
@@ -80,7 +86,9 @@ conventional-commits:
 
 branch-policy:
   stage: verify
-  image: alpine/git:latest
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
   variables:
     GIT_DEPTH: "0"
   script:
