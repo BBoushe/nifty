@@ -7,6 +7,7 @@ Every skill score traces to a word-for-word verified quote in an `assessment-tra
 - **Product Vision & Requirements:** [`docs/discovery-canvas.md`](docs/discovery-canvas.md)
 - **Architecture & 9-Step Pipeline:** [`docs/architecture.md`](docs/architecture.md)
 - **Team Workflow & Branching:** [`docs/workflow.md`](docs/workflow.md)
+- **AI / SDD / ADD Harness Guide:** [`docs/setup.md`](docs/setup.md)
 - **Architectural Decisions & Open Questions:** [`docs/decisions.md`](docs/decisions.md)
 - **Shared Spec Layer:** [`openspec/`](openspec/)
 
@@ -110,9 +111,10 @@ All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/
 
 | Tool / Harness | Auto-Loaded Config | Typical Usage |
 |---|---|---|
-| **Claude Code (`claude`)** | `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.claude/settings.json` | Run `claude` in repo root; first run executes the Bootstrap check in `CLAUDE.md`. Great as **Builder** implementing `openspec/changes/<feature>/tasks.md`. |
-| **Antigravity (`agy`) / Gemini CLI** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/` | Run `agy` in repo root. Ideal as **Spec Architect** and independent **Verifier / Auditor** against EARS requirements. |
+| **Claude Code (`claude`)** | `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` | Run `claude` in repo root; first run executes the Bootstrap check in `CLAUDE.md`. Great as **Spec Builder**, **Test Writer**, or cold **Reviewer** against `openspec/changes/<feature>/tasks.md`. |
+| **Antigravity (`agy`) / Gemini CLI** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/` | Run `agy` in repo root. Ideal as **Spec Architect** and independent cold **Reviewer / Auditor** against EARS requirements. |
 | **OpenAI Codex (`codex`)** | `AGENTS.md`, `.agents/skills/` | Run `codex` in repo root against `openspec/changes/<feature>/` tasks. |
+| **Kiro Crew / Kiro IDE (optional)** | `.kiro/steering/nifty-core.md` (bridges to `AGENTS.md` & `openspec/`) | Connect existing **Claude Code** / **Codex** CLI subscriptions as Conductor + parallel Builder + cold Reviewer workers on isolated branches (see [`docs/workflow.md`](docs/workflow.md)). |
 | **T3 Code (optional UI)** | Reads `AGENTS.md`, `CLAUDE.md`, and `openspec/` via attached CLI backend | Optional multi-agent UI; works identically alongside direct CLI teammates. |
 
 ### Branch & Commit Rules (Summary)
