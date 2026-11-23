@@ -10,6 +10,12 @@ workflow:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "alpha" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
     - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "alpha" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
 
+# Runner tags from the FH Dortmund GitLab: untagged jobs stay "pending, stuck" there.
+default:
+  tags:
+    - docker
+    - dind
+
 backend:
   stage: verify
   image: eclipse-temurin:21-jdk
