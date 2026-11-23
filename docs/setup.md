@@ -17,7 +17,7 @@ Every rule, feature spec, agent role, and safety hook lives as **plain text file
 - **One rule file, thin pointers everywhere else:** Engineering rules live in `AGENTS.md` and `.agents/rules/`. Tool entrypoints (`CLAUDE.md`, `GEMINI.md`, `.kiro/steering/`) are short pointers — never copy-pasted duplicates.
 - **Traceable decisions (`docs/decisions/`):** Every answered `question-round` and every prompter direction change is recorded with a stable `X.Y` ID via `node scripts/record-decision.mjs`, and builders leave `// Decision X.Y` pointers in code so anyone can trace *why* something works the way it does.
 - **One living coding-rules file:** Team coding standards live in one canonical file (`.agents/rules/coding-standards.md`), automatically loaded across tools and checked by our sandboxed cold **Reviewer**.
-- **Parallel GitHub / GitLab switch:** Set `GIT_FORGE=github` or `GIT_FORGE=gitlab` in `.env` and run `node scripts/check-setup.mjs` — agents read only the non-secret forge setting and never see your API keys.
+- **Parallel GitHub / GitLab switch:** Set `GIT_FORGE=github`, `gitlab`, or `both` in `.env` and run `node scripts/check-setup.mjs` — agents read only the non-secret forge setting and never see your API keys.
 - **Cold, separate-session review:** The agent that wrote the code should never grade its own homework. A fresh, read-only **Reviewer** session inspects only the Git diff, specs, coding standards, and decisions, separating hard **Blocking** defects from non-blocking **Convention Candidates**.
 - **Portable hooks for everyone:** Zero-dependency Node `.mjs` hooks (tested by `node --test`) + `.githooks/` block accidental `.env` secret leaks, bad commit messages, and direct pushes to protected branches identically on **macOS, Windows, and Linux**.
 
@@ -32,7 +32,7 @@ Every rule, feature spec, agent role, and safety hook lives as **plain text file
 3. **Check or create the spec:** Read (or draft) `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`). If blocked by an unresolved team decision, use `question-round` (which records the answer in `docs/decisions/`).
 4. **Build incrementally:** Implement unchecked tasks in `tasks.md` using `spec-builder`, follow `.agents/rules/coding-standards.md`, leave `// Decision X.Y` pointers, record any prompter direction shifts via `scripts/record-decision.mjs`, stage (`git add`), commit separately with Conventional Commits, and add a 5-line entry to `## Handoff Log`.
 5. **Run a cold review:** Start a fresh read-only `reviewer` session with *only* `git diff dev...HEAD`, `openspec/`, `.agents/rules/coding-standards.md`, and `docs/decisions/index.md`. Fix any `Blocking` findings.
-6. **Open a short PR / MR into `dev`:** Use `pr-memo` (auto-adapts to `gh` or `glab` via `scripts/check-setup.mjs --forge`) to produce a <=10-line plain-language summary.
+6. **Open a short PR / MR into `dev`:** Use `pr-memo` (auto-adapts to `gh`, `glab`, or both via `scripts/check-setup.mjs --forge` and `scripts/forge.mjs`) to produce a <=10-line plain-language summary.
 
 ---
 
@@ -47,8 +47,9 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 | `openspec/config.yaml` | Schema (`spec-driven`), project context, non-negotiable invariants, EARS & Handoff Log rules | OpenSpec CLI, all agents | **Canonical** |
 | `openspec/specs/<module>/spec.md` | Long-lived domain requirements in EARS notation + scenarios | All agents & humans | **Canonical** |
 | `openspec/changes/<change>/` | Active execution plans (`proposal.md`, `specs/`, `design.md`, `tasks.md` + `## Handoff Log`, `.openspec.yaml`) | All agents & humans | **Canonical** |
-| `AGENTS.md` | Universal engineering rules, domain invariants, Git policy, role parity table, cross-tool hook parity table | All agents (universal standard) | **Canonical** |
-| `.agents/rules/*.md` | Scoped progressive rules (`always_on`, `glob`, `model_decision`), including canonical `coding-standards.md` — pluggable coding & stack slots | Antigravity (`agy`), imported by `CLAUDE.md` (`@`), referenced by `AGENTS.md` | **Canonical** |
+| `AGENTS.md` | Universal engineering rules, domain invariants, Scoped Rules & Templates Dispatch table, Git policy, role parity table, cross-tool hook parity table | All agents (universal standard) | **Canonical** |
+| `.agents/rules/*.md` | Scoped progressive rules (`always_on`, `glob`, `model_decision`), including canonical `coding-standards.md`, `spec-driven.md`, and `git-workflow.md` | Antigravity (`agy`), `@`-imported by `CLAUDE.md`, dispatched by `AGENTS.md` | **Canonical** |
+| `.github/PULL_REQUEST_TEMPLATE.md` & `.gitlab/merge_request_templates/Default.md` | Identical unified PR/MR template (`What changed?`, `Why?`, `Spec / Issue Reference`, `Verification` checklist) filled by `pr-memo` | GitHub, GitLab, all agents (`pr-memo`) | **Canonical (PR/MR Template)** |
 | `.agents/skills/*/SKILL.md` | Shared tool-agnostic workflow skills (OpenSpec skills + `record-decision`, `question-round`, `pr-memo`) | Antigravity (`agy`), Codex, symlinked to Claude Code | **Canonical** |
 | `docs/decisions/` | Hierarchical decision registry (`index.md`, `1-architecture.md`, `2-design.md`, `3-team-process.md`, `4-direction.md`) with `X.Y` code pointers | All agents & humans | **Canonical (Decisions)** |
 | `docs/api.md` | Living API contract summary (pluggable contract slot synced alongside runtime OpenAPI) | Builders, reviewers, humans | **Canonical (Contract Slot)** |
@@ -57,7 +58,7 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 | `.claude/hooks/*.mjs` | Zero-dependency cross-platform safety guards (`lib`, `guard-files`, `guard-bash`, `guard-agent`, `test-gate`) + `hooks.test.mjs` | Claude Code `PreToolUse`, `.githooks/`, CI | **Canonical (Enforcement)** |
 | `.claude/settings.json` | Claude Code `permissions.allow` / `permissions.deny` and `PreToolUse` hook wiring | Claude Code | **Adapter** |
 | `.claude/skills/` | Symlinks to `.agents/skills/*` plus Claude-oriented verification skills (`spec-implementer`, stack checks) | Claude Code | **Adapter / Symlinks** |
-| `CLAUDE.md` | Claude Code entrypoint (`@` import of canonical `coding-standards.md`) + forge-aware First-Run Bootstrap | Claude Code, T3 Code | **Thin Pointer** |
+| `CLAUDE.md` | Claude Code entrypoint (`@` imports of canonical `coding-standards.md`, `spec-driven.md`, `git-workflow.md`) + forge-aware First-Run Bootstrap | Claude Code, T3 Code | **Thin Pointer** |
 | `GEMINI.md` | Antigravity / Gemini CLI verifier persona & quota-conscious habits | Antigravity (`agy`), Gemini CLI | **Thin Pointer** |
 | `.kiro/steering/*.md` | `inclusion: always` steering bridge (<=25 lines) directing Kiro IDE / Kiro Crew to `AGENTS.md`, `openspec/`, `.githooks/` | Kiro IDE, Kiro Crew | **Thin Pointer** |
 | `.githooks/` | Portable Git hooks (`pre-commit` -> `guard-bash.mjs --pre-commit`, `commit-msg`, `pre-push` -> branch guard + `test-gate.mjs`) | Git (every CLI, IDE, wrapper, and human) | **Adapter (Universal Enforcement)** |
@@ -66,7 +67,7 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 
 ### 2. Modification Rules (Zero-Drift Policy)
 
-1. **Adding or changing a project invariant or coding rule:** Edit `AGENTS.md`, `openspec/config.yaml`, or `.agents/rules/coding-standards.md` (with an explicit `Blocking` vs. `Convention Candidate` reviewer level). **Never** copy rule prose into `CLAUDE.md` (use `@` import instead), `GEMINI.md`, `.kiro/steering/`, or a separate `.claude/rules/` folder.
+1. **Adding or changing a project invariant or coding rule:** Edit `AGENTS.md`, `openspec/config.yaml`, or `.agents/rules/coding-standards.md` (with an explicit `Blocking` vs. `Convention Candidate` reviewer level). **Never** copy rule prose into `CLAUDE.md` (use `@` import instead), `GEMINI.md`, `.kiro/steering/`, or a separate `.claude/rules/` folder. Whenever a new cross-tool rule or template is added to `.agents/rules/`, register it in `AGENTS.md`'s Scoped Rules & Templates Dispatch table (and `@`-import it in `CLAUDE.md` if always/workflow-critical) so fresh sessions outside Antigravity load it automatically (Decision 3.4).
 2. **Recording a decision (mandatory on `question-round` & prompter changes):** Run `node scripts/record-decision.mjs --category 1|2|3|4 ...` so `X.Y` IDs and `docs/decisions/index.md` stay deterministic, then add `// Decision X.Y` pointers in affected files.
 3. **Adding a new workflow skill:** Create `.agents/skills/<name>/SKILL.md` first, then create a relative symlink `.claude/skills/<name> -> ../../.agents/skills/<name>`.
 4. **Adding or changing a hook or helper script:** Implement shared logic in `.claude/hooks/lib.mjs` or `scripts/*.mjs`, add `node:test` coverage in `.claude/hooks/hooks.test.mjs` or `scripts/harness-scripts.test.mjs`, verify tests pass, and never weaken `.env` secret isolation (agents always use `node scripts/check-setup.mjs --forge`, never reading `.env`).

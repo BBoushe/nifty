@@ -40,20 +40,34 @@ All significant features follow the Kiro-style spec workflow stored as plain Mar
 
 ### Day-to-Day Ticket Loop
 
-1. Run `node scripts/check-setup.mjs --forge` if unsure whether the repo is currently targeting GitHub (`gh`) or GitLab (`glab`).
+1. Run `node scripts/check-setup.mjs --forge` if unsure whether the repo is currently targeting GitHub (`gh`), GitLab (`glab`), or both.
 2. Pick a ticket (or `openspec/` module slice) and confirm no blocking `O1`–`O7` TBD remains (if blocked, run `question-round` -> automatically persisted via `scripts/record-decision.mjs`).
 3. Sync `dev` (`git checkout dev && git pull origin dev`) and create a branch (`feat/<KEY>-slug`, `fix/<KEY>-slug`, or `chore/<slug>`).
 4. Ensure an approved OpenSpec change exists in `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`).
 5. Implement tasks as **Spec Builder** (`.claude/agents/spec-builder.md`), obeying `.agents/rules/coding-standards.md`, keeping `docs/api.md` updated on endpoint changes, leaving `// Decision X.Y` pointers, and recording any prompter direction shift via `node scripts/record-decision.mjs --trigger prompter-change ...`.
 6. Append a 5-line entry to `## Handoff Log` in `tasks.md` (`Commits`, `Verification`, `Contracts/Migrations`, `Decisions`, `Open Questions`).
 7. Run an independent, sandboxed **Cold Reviewer** session (`.claude/agents/reviewer.md`) on `git diff dev...HEAD` + `openspec/` + `.agents/rules/coding-standards.md` + `docs/decisions/index.md` (zero builder chat history) and resolve all `Blocking` items.
-8. Generate a <=10-line summary via `pr-memo`, open a PR (`gh`) or MR (`glab`) into `dev`, and tag the module owner from the table below.
+8. Generate a <=10-line summary via `pr-memo`, open a PR (`gh`) and/or MR (`glab`) into `dev` (`node scripts/forge.mjs pr` does both when `GIT_FORGE=both`), and tag the module owner from the table below.
 
 ### Parallel GitHub & GitLab Forge Switch (Decision 1.7)
 
 - Both **GitHub** (`.github/workflows/ci.yml`, `.github/rulesets/`, `gh`) and **GitLab** (`.gitlab-ci.yml`, `glab`) are supported in parallel.
 - Set `GIT_FORGE=github` or `GIT_FORGE=gitlab` (plus `GITLAB_HOST` for university GitLab) in your local `.env`.
 - Run `node scripts/check-setup.mjs` to verify CLI installation, authentication, `.githooks/` activation, and harness readiness for the active forge without ever printing `.env` secrets.
+
+### Working With Both Forges (`GIT_FORGE=both`, Decision 1.8)
+
+GitHub (`origin`) is primary; GitLab (`gitlab`) is the secondary course repo. Never hand-roll pushes or PRs for one side only:
+
+| Step | Command |
+|---|---|
+| Push current branch to both (GitHub first; stops if GitHub fails) | `node scripts/forge.mjs push` |
+| Open PR **and** MR with the same text | `node scripts/forge.mjs pr --title "<conventional title>" --body-file <file>` |
+| After merging the PR **on GitHub**, fast-forward GitLab (`dev`/`alpha`/`master`) | `node scripts/forge.mjs sync` |
+| Check for drift between the two | `node scripts/forge.mjs status` |
+| Apply GitLab branch protections (equivalent of `.github/rulesets/`) | `scripts/apply-gitlab-protections.sh` |
+
+Rules that prevent drift: merge only on GitHub (merge commit, not squash, so GitLab can mark the MR as merged after `sync`); do not merge MRs on GitLab; every command is dry-runnable with `--dry-run`. `sync` never force-pushes, so a diverged GitLab branch is rejected, not overwritten.
 
 ### Module Ownership Table (PR Reviewer Routing)
 

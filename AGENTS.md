@@ -28,13 +28,25 @@ This repository builds the **Evidence-First Skill Assessment Platform** (see [`d
 - **Traceable Decisions (`docs/decisions/`):** Whenever a `question-round` is answered OR the prompter changes, redirects, or overrides a design, architecture, coding, team, or direction choice, record it via `node scripts/record-decision.mjs` (see `record-decision` skill) and leave concise inline code/spec pointers (`// Decision X.Y: <short why>`).
 - **Living Coding Standards (`.agents/rules/coding-standards.md`):** Canonical coding rules enforced across all tools (ETC/DRY, small testable functions, avoid Java Streams in hot/repeated functions, living [`docs/api.md`](docs/api.md) synced with OpenAPI, minimal reusable classes, frontend reuse/HOFs/feature-grouped views). Append newly agreed team rules there — never duplicate into `.claude/rules/`.
 
+### Scoped Rules & Templates Dispatch (Cross-Tool — Decision 3.4)
+
+Tools that do not auto-parse `.agents/rules/*.md` YAML frontmatter (Claude Code, Codex, Kiro, Gemini CLI, T3 Code) MUST read the canonical file(s) below whenever the trigger applies:
+
+| When You Are... | Mandatory Canonical File(s) to Read / Follow |
+|---|---|
+| Starting any task | `.agents/rules/coding-standards.md`, `.agents/rules/spec-driven.md` (auto-imported in `CLAUDE.md`) |
+| Editing `backend/**` | `.agents/rules/backend-java.md`, `docs/api.md` |
+| Editing `frontend/**` | `.agents/rules/frontend-vue.md` |
+| Branching, committing, pushing, or opening a PR/MR | `.agents/rules/git-workflow.md`, `.github/PULL_REQUEST_TEMPLATE.md` (mirrored in `.gitlab/merge_request_templates/Default.md`), `pr-memo` skill |
+| Answering a `question-round` or receiving a prompter direction change | `record-decision` skill (`node scripts/record-decision.mjs`) |
+
 ## 4. Git, Forge Switch (`gh` / `glab`) & Commit Rules
 
-- **Forge Switch (Parallel GitHub & GitLab):** Check the active forge via `node scripts/check-setup.mjs --forge` (reads only non-secret `GIT_FORGE` / `GITLAB_HOST` from `.env` — never inspect `.env` directly). Use `gh` when `GIT_FORGE=github` and `glab` when `GIT_FORGE=gitlab`.
+- **Forge Switch (GitHub primary, GitLab secondary):** Check the active forge via `node scripts/check-setup.mjs --forge` (reads only non-secret `GIT_FORGE` / `GITLAB_HOST` from `.env` — never inspect `.env` directly). Use `gh` when `GIT_FORGE=github`, `glab` when `GIT_FORGE=gitlab`, and for `GIT_FORGE=both` always go through `node scripts/forge.mjs push | pr | sync | status` (remote `origin` = GitHub, remote `gitlab` = GitLab; Decision 1.8). Merge PRs on GitHub only, then run `node scripts/forge.mjs sync` so GitLab fast-forwards instead of drifting.
 - **Branches:** Work on `feat/*`, `fix/*`, `refactor/*`, `chore/*`, or `docs/*` branched from `dev`. Promotion flow: `feat/* -> dev -> alpha -> master` (also covers `main` if renamed).
 - **Protected branches:** Never push directly to `master`, `main`, or `alpha`. Direct pushes to `dev` are permitted **only** when every commit is prefixed with `docs:` or `hotfix:`.
 - **Conventional Commits (mandatory):** `type(scope): imperative summary` (e.g., `feat(backend): ...`, `fix(frontend): ...`, `chore(specs): ...`, `docs(readme): ...`).
-- **PRs / MRs:** Keep PRs/MRs small, focused, and written in plain language explaining **What** and **Why** (use the forge-aware `pr-memo` skill).
+- **PRs / MRs:** Every PR/MR body MUST use the unified repository template (`.github/PULL_REQUEST_TEMPLATE.md` / `.gitlab/merge_request_templates/Default.md`) via the forge-aware `pr-memo` skill — keep it concise (<60s read) without dropping the `Spec / Issue Reference` or `Verification` checklists (Decision 3.4).
 
 ## 5. Adopting Agent Roles (Cross-Tool Parity)
 
