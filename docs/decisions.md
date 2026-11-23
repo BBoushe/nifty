@@ -1,36 +1,13 @@
-# Architectural & Product Decisions
+# Architectural & Product Decisions (Moved)
 
-This log captures the baseline architectural decisions from [`docs/discovery-canvas.md`](./discovery-canvas.md) (§12–§13) and tracks open team decisions.
+> **Moved to [`docs/decisions/index.md`](./decisions/index.md)** (Decision 3.3).
 
-## 1. Decided Architecture & Product Rules
+All architectural (`1.x`), design (`2.x`), team/process (`3.x`), and product-direction (`4.x`) decisions — including all migrated `D1`–`D14` entries and open team decisions `O1`–`O7` — now live in the hierarchical decision registry under [`docs/decisions/`](./decisions/index.md):
 
-| ID | Topic | Decision | Rationale |
-|---|---|---|---|
-| **D1** | Inferred tags from answers | Extractor suggests tags as `pending`; professor approves, merges, or rejects into controlled list. | Prevents tag sprawl (e.g., "Docker" vs. "containers") and keeps cross-candidate calibration consistent. |
-| **D2** | Multi-skill answers | One Q/A pair may produce evidence for multiple skills, each with its own level and confidence; default formula caps single-Q/A impact per skill. | Reflects realistic conversational answers without allowing one long answer to dominate all scores. |
-| **D3** | Question & skill weights | Both exist (`w_q` and `w_s`); Evidence Drawer displays every multiplication step. | Full transparency for professors and candidates. |
-| **D4** | Invented questions | Optional via Studio toggle; tagged `origin: invented`, lower default weight, optionally excluded from cross-candidate ranking. | Preserves cohort comparability while allowing adaptive probing. |
-| **D5** | Turn budget vs. skill count | Core questions guarantee baseline coverage; untested skills record `N/A`. | Prevents penalizing candidates for unasked domains. |
-| **D6** | Post-interview config changes | Weight/formula changes recompute immediately; adding skills or core questions creates a new config version and flags affected candidates as incomplete. | Protects evidence integrity and auditability. |
-| **D7** | LLM in team formation | Only in a fresh, empty context: parses natural-language criteria into Timefold constraints (Mode B) or proposes teams validated by deterministic code (Mode C). | Eliminates hallucinated candidates, duplicate placements, or invented scores. |
-| **D8** | Assessment Transcript format | JSON validated by JSON Schema (`assessment-transcript/v1`, `*.transcript.json`, Postgres `JSONB`), not a custom `.ast` DSL. | Native Jackson, TypeScript, JSONB, and LLM structured-output support within a 1-week block week. |
-| **D9** | "Ranking View" UX framing | Internal module name stays "Ranking View"; UI emphasizes spec fit and team balance over a single global leaderboard. | Reduces EU AI Act / discrimination liability and better serves team formation. |
-| **D10** | Candidate transparency | Formula, weights, and verified evidence are shown to the candidate **only after human approval**; mocked dispute flow in MVP. | Prevents gaming during interviews while providing full post-approval explainability. |
-| **D11** | Core stack | Java 21 + Spring Boot 4.x + Spring AI 2.0 + Timefold Solver + PostgreSQL + Flyway; Vue 3.5 (stable, **not** 3.6 RC) + TypeScript + Vite 8 + Pinia + Vue Router + TanStack Query + Tailwind CSS v4 + Apache ECharts. | Aligns with course mandate, 2026–2027 production stability, and deterministic Java constraint solving. |
-| **D12** | Spec-driven harness | OpenSpec (`openspec/`) + universal `AGENTS.md` + agent-native `CLAUDE.md`/`GEMINI.md`/`.agents/rules/` + portable `.githooks/`. | Tool-agnostic across T3 Code, Claude Code, Antigravity (`agy`), Codex, and IDEs. |
-| **D13** | Default branch protection | Repository currently uses `master` as its default branch alongside `alpha` and `dev`. Governance rulesets, hooks, and CI protect both `master` and `main` (via `~DEFAULT_BRANCH` + explicit refs) to stay resilient if the default branch is renamed. | Matches existing Git remote without breaking docs or future renames. |
-| **D14** | **EU LLM provider for the Evaluator** | Use **ki:connect NRW** (FH AI, provided by FH Dortmund & the state of NRW) via `https://chat.kiconnect.nrw/api/v1` **specifically for the LLM evaluator** (evidence extraction & constrained judging). Supported models: **`OpenAI GPT OSS 120B`**, **`Qwen 3.8 27B`**, and **`Mistral Small 4 119B`**. | Hosted in Aachen / NRW (EU data residency, GDPR-friendly for student transcripts) and completely free for students. |
+- **Master Registry & Open Decisions (`O1`–`O7`):** [`docs/decisions/index.md`](./decisions/index.md)
+- **Category 1 — Architecture (`1.x`):** [`docs/decisions/1-architecture.md`](./decisions/1-architecture.md)
+- **Category 2 — Design (`2.x`):** [`docs/decisions/2-design.md`](./decisions/2-design.md)
+- **Category 3 — Team & Process (`3.x`):** [`docs/decisions/3-team-process.md`](./decisions/3-team-process.md)
+- **Category 4 — Product & Direction (`4.x`):** [`docs/decisions/4-direction.md`](./decisions/4-direction.md)
 
-## 2. Open Team Decisions (TBD)
-
-These items are intentionally left open for the 5-person team to finalize on Day 1:
-
-| ID | Question | Options / Constraints | Owner |
-|---|---|---|---|
-| **O1** | **Frontend UI component library** | **PrimeVue** (rich data tables/sliders out of the box) vs. **shadcn-vue** (copy-paste Radix/Reka primitives on Tailwind CSS v4). | Frontend leads |
-| **O2** | **Interviewer LLM provider** *(evaluator resolved in D14)* | Evaluator uses **ki:connect NRW** (D14). Decide whether the conversational interviewer (Step 1) also uses ki:connect NRW or a separate EU-hosted streaming endpoint. | Backend / AI lead |
-| **O3** | **MVP skill taxonomy size** | Keep all 16 course sub-skills or trim to 6–8 core project-readiness skills for block-week velocity. | Whole team + Lecturer |
-| **O4** | **Team size & solver constraints** | Confirm lecturer's exact team size (default 5) and hard/soft constraints (e.g., ≥1 strong backend/frontend per team). | Team Builder lead + Lecturer |
-| **O5** | **Formula expression editor in MVP** | Ship presets only in MVP or include the sandboxed SpEL expression editor. | Formula Engine lead |
-| **O6** | **Candidate result visibility timing** | Show results immediately after individual score approval, or only after final teams are published? | Whole team |
-| **O7** | **Demo transcript data retention** | Define retention / purge window for real or synthetic transcripts in the demo environment. | Whole team |
+To record a new decision deterministically, run `node scripts/record-decision.mjs --category 1|2|3|4 ...` (see `.agents/skills/record-decision/SKILL.md`).

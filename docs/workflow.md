@@ -36,25 +36,65 @@ All significant features follow the Kiro-style spec workflow stored as plain Mar
 3. **Implement & Verify:** Agents (or humans) implement tasks one by one, running real builds and tests, checking off items in `tasks.md`.
 4. **Sync Domain Specs:** Once shipped, update the canonical domain spec under `openspec/specs/<module>/spec.md`.
 
-## 3. Tool-Agnostic Multi-Agent Collaboration
+## 3. Day-to-Day Ticket Loop & Ownership
 
-No developer is locked into a single harness (T3 Code, Claude Code, Antigravity `agy`, Codex, or IDE). All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/rules/`), skills (`.claude/skills/`), and hooks (`.githooks/`) live in Git.
+### Day-to-Day Ticket Loop
+
+1. Run `node scripts/check-setup.mjs --forge` if unsure whether the repo is currently targeting GitHub (`gh`) or GitLab (`glab`).
+2. Pick a ticket (or `openspec/` module slice) and confirm no blocking `O1`–`O7` TBD remains (if blocked, run `question-round` -> automatically persisted via `scripts/record-decision.mjs`).
+3. Sync `dev` (`git checkout dev && git pull origin dev`) and create a branch (`feat/<KEY>-slug`, `fix/<KEY>-slug`, or `chore/<slug>`).
+4. Ensure an approved OpenSpec change exists in `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`).
+5. Implement tasks as **Spec Builder** (`.claude/agents/spec-builder.md`), obeying `.agents/rules/coding-standards.md`, keeping `docs/api.md` updated on endpoint changes, leaving `// Decision X.Y` pointers, and recording any prompter direction shift via `node scripts/record-decision.mjs --trigger prompter-change ...`.
+6. Append a 5-line entry to `## Handoff Log` in `tasks.md` (`Commits`, `Verification`, `Contracts/Migrations`, `Decisions`, `Open Questions`).
+7. Run an independent, sandboxed **Cold Reviewer** session (`.claude/agents/reviewer.md`) on `git diff dev...HEAD` + `openspec/` + `.agents/rules/coding-standards.md` + `docs/decisions/index.md` (zero builder chat history) and resolve all `Blocking` items.
+8. Generate a <=10-line summary via `pr-memo`, open a PR (`gh`) or MR (`glab`) into `dev`, and tag the module owner from the table below.
+
+### Parallel GitHub & GitLab Forge Switch (Decision 1.7)
+
+- Both **GitHub** (`.github/workflows/ci.yml`, `.github/rulesets/`, `gh`) and **GitLab** (`.gitlab-ci.yml`, `glab`) are supported in parallel.
+- Set `GIT_FORGE=github` or `GIT_FORGE=gitlab` (plus `GITLAB_HOST` for university GitLab) in your local `.env`.
+- Run `node scripts/check-setup.mjs` to verify CLI installation, authentication, `.githooks/` activation, and harness readiness for the active forge without ever printing `.env` secrets.
+
+### Module Ownership Table (PR Reviewer Routing)
+
+| Module / Area | Primary Paths | OpenSpec Modules | Suggested Reviewer |
+|---|---|---|---|
+| **Backend Core & Evidence Pipeline** | `backend/src/...` (transcript, extractor, verifier, audit) | `assessment-chat`, `evidence-pipeline` | Backend / AI Lead |
+| **Formula Engine & Timefold Teams** | `backend/src/...` (formula, solver, constraints) | `formula-engine`, `team-builder` | Formula / Solver Lead |
+| **Interviewer Studio & Auth** | `backend/src/...` (studio, security), `frontend/` studio | `interviewer-studio` | Studio / Security Lead |
+| **Frontend Views & ECharts Matrix** | `frontend/src/...` (Assessment, Matrix, Results) | `skills-matrix-review`, `candidate-results` | Frontend Lead |
+| **Harness, Specs, Docker & CI** | `openspec/`, `.claude/`, `.agents/`, `.kiro/`, `.githooks/`, `.github/`, `docs/` | `project-setup`, `harness-v2-upgrade` | Lead Setup Architect |
+
+### Review & Documentation Policies
+
+- **Blocking vs. Convention Candidate:** Reviewers **only** block PRs/MRs on `AGENTS.md` §2 domain/regulatory invariants, unmet `openspec/` EARS criteria, clear `.agents/rules/coding-standards.md` blocking rules (DRY/duplicate classes, hotspot Java Streams, missing `docs/api.md` updates, un-grouped bespoke Vue views), undocumented architectural/direction shifts missing a `docs/decisions/` entry, security/secret leaks, or failing builds/tests. Subjective function-splitting, optional HOF refactors, and naming polish go under non-blocking **Convention Candidates**.
+- **Link, Never Copy (Confluence ↔ Git):** Architecture, EARS specs, hierarchical decisions (`docs/decisions/`), API docs (`docs/api.md`), and setup guides live canonically in Git. Wiki/Confluence pages and tickets **link** to repository files and PRs/MRs instead of pasting copies that drift out of date.
+
+## 4. Tool-Agnostic Multi-Agent Collaboration
+
+No developer is locked into a single harness (Kiro Crew, T3 Code, Claude Code, Antigravity `agy`, Codex, or IDE). All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/rules/`), agent roles (`.claude/agents/`), skills (`.agents/skills/`, `.claude/skills/`), Kiro steering (`.kiro/steering/`), and hooks (`.githooks/`, `.claude/hooks/`) live in Git. See [`docs/setup.md`](./setup.md) for the standalone SDD/ADD harness guide.
 
 ### Recommended Builder / Verifier Split
 
 | Role | Suggested Agent(s) | Responsibilities |
 |---|---|---|
-| **Spec Author / Architect** | Human + Gemini (`agy`) or Claude | Drafts `proposal.md`, EARS `requirements.md`, and `design.md`; breaks down `tasks.md`. |
-| **Builder** | Claude Code / Codex / T3 Code / IDE | Implements scoped tasks against `openspec/changes/<change>/tasks.md`, writes unit & integration tests. |
-| **Verifier / Auditor** | Antigravity (`agy` / Gemini) | Audits diffs against EARS requirements, checks domain invariants (no LLM math, `N/A` handling, verbatim quotes, audit logging), verifies builds/tests independently. |
-| **Approver** | Human Teammate | Reviews PRs, checks evidence/tests, approves merges into `alpha` (≥2) and `master` (≥4). |
+| **Spec Author / Architect** | Human + Gemini (`agy`) or Claude | Drafts `proposal.md`, EARS `specs/`, and `design.md`; breaks down `tasks.md`. |
+| **Spec Builder** | Claude Code / Codex / Kiro Crew / T3 Code | Implements scoped tasks against `openspec/changes/<change>/tasks.md`, runs tests, appends `## Handoff Log`. |
+| **Independent Test Writer** | Separate `test-writer` session | Writes JUnit 5 / Vitest tests strictly from `openspec/` EARS criteria (`tests-only` paths). |
+| **Cold Reviewer / Auditor** | Fresh Antigravity (`agy`) or Claude `reviewer` session | Read-only audit of `git diff dev...HEAD` against `openspec/` + `AGENTS.md` invariants (<=30-line report). |
+| **Approver** | Human Teammate | Reviews PRs, checks evidence/tests, approves merges into `alpha` (>=2) and `master` (>=4). |
 
-### Using Optional Wrappers (e.g., T3 Code) vs. Direct CLI
+### Using Optional Wrappers (Kiro Crew & T3 Code) vs. Direct CLI
 
-- Developers using **T3 Code** can attach their preferred backend agent (Claude Code, Codex, etc.) to this repo; it automatically reads `AGENTS.md`, `CLAUDE.md`, and `openspec/`.
-- Developers using **direct CLI** (`claude`, `agy`, `codex`) get the exact same specs, rules, and `.githooks/` enforcement with zero wrapper dependency.
+- **Kiro Crew (optional multi-agent orchestrator):** `.kiro/steering/nifty-core.md` (`inclusion: always`) automatically points Kiro IDE and Kiro Crew to `AGENTS.md`, `openspec/`, and `.githooks/` without duplicating `.kiro/specs/`. Connect your existing **Claude Code** and/or **Codex** CLI logins as Kiro Crew worker backends (reusing existing subscriptions):
+  - **Conductor (interactive):** Picks an approved `openspec/changes/<module>/` change, resolves any `O1`–`O7` open decisions via `question-round`, and dispatches independent branches/worktrees (`feat/evidence-pipeline`, `feat/team-builder`, etc.).
+  - **Parallel Builder Workers:** Each background Claude Code / Codex worker owns one `openspec/changes/<module>/` slice, verifies tests locally, and appends to `tasks.md`'s `## Handoff Log`.
+  - **Cold Reviewer Worker:** Triggered on completed branches with *only* `git diff dev...HEAD` + `openspec/` specs using `.claude/agents/reviewer.md` before opening the GitHub PR.
+  - **Optional Hygiene Check:** On-demand or scheduled task running `OPENSPEC_TELEMETRY=0 openspec validate --all`, `node --test .claude/hooks/hooks.test.mjs`, and scanning `backend/src/` for domain invariant regressions.
+- **T3 Code:** Attach your preferred CLI backend (Claude Code, Codex, etc.); it automatically reads `AGENTS.md`, `CLAUDE.md`, and `openspec/`.
+- **Direct CLI (`claude`, `agy`, `codex`):** Gets the exact same specs, rules, roles, and `.githooks/` enforcement with zero wrapper dependency.
 
-## 4. Human-in-the-Loop Policy (Product & Engineering)
+## 5. Human-in-the-Loop Policy (Product & Engineering)
 
 - **In the product:** Humans approve interviewer configurations, flagged/final candidate scores, and final team assignments (EU AI Act Annex III & GDPR alignment).
 - **In our repo:** Agents propose specs, code, and audits; humans review and approve merges to `alpha` and `master`.

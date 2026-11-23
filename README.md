@@ -6,8 +6,11 @@ Every skill score traces to a word-for-word verified quote in an `assessment-tra
 
 - **Product Vision & Requirements:** [`docs/discovery-canvas.md`](docs/discovery-canvas.md)
 - **Architecture & 9-Step Pipeline:** [`docs/architecture.md`](docs/architecture.md)
+- **Living API Reference:** [`docs/api.md`](docs/api.md)
 - **Team Workflow & Branching:** [`docs/workflow.md`](docs/workflow.md)
-- **Architectural Decisions & Open Questions:** [`docs/decisions.md`](docs/decisions.md)
+- **AI / SDD / ADD Harness Guide:** [`docs/setup.md`](docs/setup.md)
+- **Traceable Decision Registry (`X.Y`) & Open Questions:** [`docs/decisions/index.md`](docs/decisions/index.md)
+- **Living Coding Standards:** [`.agents/rules/coding-standards.md`](.agents/rules/coding-standards.md)
 - **Shared Spec Layer:** [`openspec/`](openspec/)
 
 ---
@@ -30,7 +33,8 @@ Install the following tools before starting (follow each official download page 
 | **Apache Maven 3.9+** *(optional — `./mvnw` is included)* | Local Maven commands | https://maven.apache.org/download.cgi |
 | **Node.js 22+ (LTS)** | Local frontend development (`npm run dev`, lint, typecheck) | https://nodejs.org/ |
 | **OpenSpec CLI** *(optional)* | Validating and managing specs (`npm install -g @fission-ai/openspec@latest`) | https://github.com/Fission-AI/OpenSpec |
-| **GitHub CLI (`gh`)** *(optional)* | Opening PRs & applying GitHub rulesets | https://cli.github.com/ |
+| **GitHub CLI (`gh`)** *(when `GIT_FORGE=github`)* | Opening GitHub PRs & applying GitHub rulesets | https://cli.github.com/ |
+| **GitLab CLI (`glab`)** *(when `GIT_FORGE=gitlab`)* | Opening GitLab MRs & checking GitLab pipelines | https://gitlab.com/gitlab-org/cli |
 
 ---
 
@@ -48,7 +52,12 @@ cp .env.example .env
 
 # Activate shared Conventional Commits & branch-protection hooks (once per clone)
 git config core.hooksPath .githooks
+
+# Verify local tooling, hooks, and active Git forge (GitHub `gh` vs. GitLab `glab`)
+node scripts/check-setup.mjs
 ```
+
+> **GitLab / GitHub Switch:** Set `GIT_FORGE=github` (default) or `GIT_FORGE=gitlab` (+ `GITLAB_HOST` for university GitLab) in your local `.env`. Both `.github/workflows/ci.yml` and `.gitlab-ci.yml` are maintained in parallel, and AI agents inspect only the non-secret forge setting via `node scripts/check-setup.mjs --forge`.
 
 *(On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`, or run all commands in Git Bash / WSL.)*
 
@@ -110,9 +119,10 @@ All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/
 
 | Tool / Harness | Auto-Loaded Config | Typical Usage |
 |---|---|---|
-| **Claude Code (`claude`)** | `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.claude/settings.json` | Run `claude` in repo root; first run executes the Bootstrap check in `CLAUDE.md`. Great as **Builder** implementing `openspec/changes/<feature>/tasks.md`. |
-| **Antigravity (`agy`) / Gemini CLI** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/` | Run `agy` in repo root. Ideal as **Spec Architect** and independent **Verifier / Auditor** against EARS requirements. |
+| **Claude Code (`claude`)** | `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` | Run `claude` in repo root; first run executes the Bootstrap check in `CLAUDE.md`. Great as **Spec Builder**, **Test Writer**, or cold **Reviewer** against `openspec/changes/<feature>/tasks.md`. |
+| **Antigravity (`agy`) / Gemini CLI** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`, `.agents/skills/` | Run `agy` in repo root. Ideal as **Spec Architect** and independent cold **Reviewer / Auditor** against EARS requirements. |
 | **OpenAI Codex (`codex`)** | `AGENTS.md`, `.agents/skills/` | Run `codex` in repo root against `openspec/changes/<feature>/` tasks. |
+| **Kiro Crew / Kiro IDE (optional)** | `.kiro/steering/nifty-core.md` (bridges to `AGENTS.md` & `openspec/`) | Connect existing **Claude Code** / **Codex** CLI subscriptions as Conductor + parallel Builder + cold Reviewer workers on isolated branches (see [`docs/workflow.md`](docs/workflow.md)). |
 | **T3 Code (optional UI)** | Reads `AGENTS.md`, `CLAUDE.md`, and `openspec/` via attached CLI backend | Optional multi-agent UI; works identically alongside direct CLI teammates. |
 
 ### Branch & Commit Rules (Summary)

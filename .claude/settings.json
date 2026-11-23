@@ -1,23 +1,50 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw:*)",
+      "Bash(mvnw.cmd:*)",
+      "Bash(npm run:*)",
+      "Bash(node --test:*)",
+      "Bash(node scripts/check-setup.mjs:*)",
+      "Bash(node scripts/record-decision.mjs:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(glab status:*)",
+      "Bash(glab mr view:*)",
+      "Bash(glab mr list:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(openspec:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./**/.env)",
+      "Read(./**/.env.local)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write",
+        "matcher": "Read|Edit|Write|MultiEdit|Grep|Glob|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "sh .claude/hooks/pre-tool-guard.sh"
+            "command": "node .claude/hooks/guard-files.mjs"
           }
         ]
-      }
-    ],
-    "PostToolUse": [
+      },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "sh .claude/hooks/post-tool-validate.sh"
+            "command": "node .claude/hooks/guard-bash.mjs"
           }
         ]
       }

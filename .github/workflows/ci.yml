@@ -67,6 +67,21 @@ jobs:
       - name: Build
         run: npm run build
 
+  hook-tests:
+    name: Hook Tests (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run harness hook and script unit tests
+        run: node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs
+
   conventional-commits:
     name: Conventional Commits
     runs-on: ubuntu-latest

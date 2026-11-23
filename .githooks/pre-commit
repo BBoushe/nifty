@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Portable pre-commit secret & protected-branch guard (macOS, Linux, Windows Git Bash)
+# Delegates to the shared zero-dependency Node hook so every tool & human gets identical checks.
+# Activate once per clone: git config core.hooksPath .githooks
+
+set -eu
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "ERROR: pre-commit hook requires Node.js 22+ on PATH." >&2
+  exit 1
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+exec node "${REPO_ROOT}/.claude/hooks/guard-bash.mjs" --pre-commit

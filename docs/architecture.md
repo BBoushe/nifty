@@ -9,10 +9,11 @@ nifty/
 ├── backend/              # Java 21, Spring Boot 4.x, Spring AI 2.0, Timefold Solver, Flyway, PostgreSQL
 ├── frontend/             # Vue 3.5 (stable), TypeScript, Vite 8, Pinia, Vue Router, TanStack Query, Tailwind v4, ECharts
 ├── openspec/             # Shared Kiro-style spec-driven source of truth (specs/, changes/, config.yaml)
-├── docs/                 # Product vision, architecture, workflow, and ADRs
-├── .agents/              # Antigravity (agy) scoped rules & skills
-├── .claude/              # Claude Code skills & lifecycle hooks
-├── .githooks/            # Cross-agent & human portable Git hooks (Conventional Commits, branch guards)
+├── docs/                 # Product vision, architecture, workflow, decisions, and AI harness setup guide
+├── .agents/              # Canonical scoped rules & shared skills
+├── .claude/              # Claude Code agent roles, tested Node .mjs hooks, permissions, skill symlinks
+├── .kiro/                # Thin Kiro IDE / Kiro Crew steering bridge (points to AGENTS.md & openspec/)
+├── .githooks/            # Cross-agent & human portable Git hooks (pre-commit secrets, commit-msg, pre-push gate)
 ├── .github/              # CI workflows, PR template, and declarative GitHub Rulesets
 ├── scripts/              # Automation scripts (e.g., apply-github-rulesets.sh)
 ├── docker-compose.yml    # Local full-stack orchestration (db + backend + frontend)
@@ -69,6 +70,18 @@ Transcripts are stored as **PostgreSQL `JSONB`**, validated against JSON Schema,
 - **Top-level fields:** `format`, `transcriptId`, `candidateId`, `configVersion`, `startedAt`, `entries[]`, `evidence[]`
 - **Entry (`entries[]`):** `entryId`, `turn`, `question` (`text`, `origin`: `core | follow_up | invented`, `coreQuestionId`, `weight`, `targetSkills[]`), `answer` (`text`, `durationSec`), `metadata` (`inferredTags[]` with `status: approved | pending | rejected`, `promptedTerms[]`, `unpromptedTerms[]`).
 - **Evidence (`evidence[]`):** `evidenceId`, `entryId`, `skill`, `quote`, `quoteVerified` (`boolean`), `suggestedLevel` (`0..4`), `judgeRuns` (`int[]`), `rationale`.
+
+### Cross-Layer Enum & State Lock-In Table
+
+All backend Java enums, PostgreSQL columns/JSONB payloads, OpenAPI schemas, and frontend TypeScript union types MUST match these exact wire literals:
+
+| Entity / Field | Exact Allowed Literals | Transitions / Computed-vs-Stored | Owner |
+|---|---|---|---|
+| `Role` | `PROFESSOR`, `REVIEWER`, `CANDIDATE` | Stored per account/session; Spring Security authority boundary (2 views: Ranking vs. Assessment) | Backend Security & Frontend Router |
+| `question.origin` | `core`, `follow_up`, `invented` | Immutable once recorded in `assessment-transcript/v1` `entries[]` | Interviewer Studio & Assessment Chat |
+| `inferredTag.status` | `pending`, `approved`, `rejected` | Stored; transitions `pending -> approved \| rejected` via human review only (D1) | Evidence Pipeline & Skills Matrix Review |
+| `score` (`N/A` wire format) | `value: number (0..4) \| null`, `status: "SCORED" \| "N/A"` | Computed deterministically in Java/SQL; `null` + `"N/A"` when zero verified quotes (NEVER `0` or `1`); excluded from fit | Formula Engine & Frontend Matrix |
+| `reviewStatus` | `pending`, `flagged`, `approved`, `overridden` | Stored; `pending \| flagged -> approved \| overridden`; `flagged` blocks bulk-approve; `overridden` requires reason + immutable `audit_log` row | Skills Matrix Review & Candidate Results |
 
 ## 5. Runtime Topology (Docker Compose)
 
