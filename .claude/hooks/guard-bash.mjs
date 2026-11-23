@@ -12,9 +12,11 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import {
   findSecretsInDiff,
+  getGitSubcommand,
   isBlockedEnvPath,
   readStdinJson,
   splitShellSegments,
+  stripLeadingEnvAssignments,
   tokenizeSegment,
 } from './lib.mjs';
 
@@ -33,43 +35,51 @@ function defaultRunGit(args, cwd = process.cwd()) {
   }
 }
 
-function stripLeadingEnvAssignments(tokens) {
-  let idx = 0;
-  while (idx < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[idx].value)) {
-    idx += 1;
+function extractCommandSubstitutions(segment) {
+  const subs = [];
+  // Extract $( ... ) substitutions respecting nested parentheses
+  for (let i = 0; i < segment.length - 1; i += 1) {
+    if (segment[i] === '$' && segment[i + 1] === '(') {
+      let depth = 1;
+      let j = i + 2;
+      while (j < segment.length && depth > 0) {
+        if (segment[j] === '(') depth += 1;
+        else if (segment[j] === ')') depth -= 1;
+        j += 1;
+      }
+      if (depth === 0) {
+        subs.push(segment.slice(i + 2, j - 1));
+        i = j - 1;
+      }
+    }
   }
-  return tokens.slice(idx);
+  // Extract backtick `...` substitutions
+  const backtickRe = /`([^`]+)`/g;
+  let m;
+  while ((m = backtickRe.exec(segment)) !== null) {
+    subs.push(m[1]);
+  }
+  return subs;
 }
 
-function getGitSubcommand(tokens) {
-  const cleaned = stripLeadingEnvAssignments(tokens);
-  if (!cleaned.length) return null;
-  const cmd = cleaned[0].value;
-  if (cmd !== 'git' && !cmd.endsWith('/git') && !cmd.endsWith('\\git.exe')) {
-    return null;
-  }
-  // Skip global git flags such as -C <dir>, -c key=val, --git-dir=...
-  let i = 1;
-  while (i < cleaned.length) {
-    const tok = cleaned[i].value;
-    if (tok === '-C' || tok === '-c' || tok === '--git-dir' || tok === '--work-tree') {
-      i += 2;
-      continue;
-    }
-    if (tok.startsWith('-')) {
-      i += 1;
-      continue;
-    }
-    return { subcommand: tok, args: cleaned.slice(i + 1) };
-  }
-  return null;
-}
+function segmentTouchesBlockedEnv(segment, depth = 0) {
+  if (depth > 4) return null;
 
-function segmentTouchesBlockedEnv(segment) {
-  // Check raw input redirection like `< .env` or `<.env`
-  const redirMatch = segment.match(/<\s*([^\s;&|]+)/);
-  if (redirMatch && isBlockedEnvPath(redirMatch[1])) {
-    return redirMatch[1];
+  // Check raw input redirections like `< .env`, `<.env`, or `$(<.env)`
+  const redirRe = /<\s*([^\s;&|)"'`]+)/g;
+  let redirMatch;
+  while ((redirMatch = redirRe.exec(segment)) !== null) {
+    if (isBlockedEnvPath(redirMatch[1])) {
+      return redirMatch[1];
+    }
+  }
+
+  // Recursively inspect $(...) and `...` subshells even inside echo/printf
+  for (const sub of extractCommandSubstitutions(segment)) {
+    for (const inner of splitShellSegments(sub)) {
+      const hit = segmentTouchesBlockedEnv(inner, depth + 1);
+      if (hit) return hit;
+    }
   }
 
   const tokens = stripLeadingEnvAssignments(tokenizeSegment(segment));
@@ -90,7 +100,7 @@ function segmentTouchesBlockedEnv(segment) {
 
   const cmd = tokens[0].value.split(/[\\/]/).pop();
   if (cmd === 'echo' || cmd === 'printf') {
-    // Only block if trying to expand/read .env file directly, not printing documentation text
+    // Subshells and `<` redirections were already inspected above; plain text arguments are safe.
     return null;
   }
 
@@ -267,6 +277,18 @@ export function evaluateBashCommand(command, options = {}) {
     }
 
     if (gitInfo.subcommand === 'commit') {
+      const hasAutoStageFlag = gitInfo.args.some((t) => {
+        const v = t.value;
+        return v === '-a' || v === '--all' || /^-[a-zA-Z]*a[a-zA-Z]*$/.test(v);
+      });
+      if (hasAutoStageFlag) {
+        return {
+          blocked: true,
+          reason:
+            `BLOCKED: Do not use 'git commit -a/--all'. Stage files explicitly with 'git add' ` +
+            `and then run 'git commit' so staged diffs are scanned for secrets.`,
+        };
+      }
       hasGitCommit = true;
     }
 

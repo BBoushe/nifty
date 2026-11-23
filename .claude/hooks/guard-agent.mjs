@@ -11,9 +11,11 @@
 //   node .claude/hooks/guard-agent.mjs --mode tests-only
 import { pathToFileURL } from 'node:url';
 import {
+  getGitSubcommand,
   isBlockedEnvPath,
   readStdinJson,
   splitShellSegments,
+  stripLeadingEnvAssignments,
   tokenizeSegment,
   toRepoRelative,
 } from './lib.mjs';
@@ -74,30 +76,25 @@ function isMutatingBashCommand(command) {
       return `output redirection in '${segment}'`;
     }
 
-    const tokens = tokenizeSegment(segment);
+    const tokens = stripLeadingEnvAssignments(tokenizeSegment(segment));
     if (!tokens.length) continue;
 
-    // Skip env var prefixes
-    let idx = 0;
-    while (idx < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[idx].value)) {
-      idx += 1;
+    const gitInfo = getGitSubcommand(tokens);
+    if (gitInfo) {
+      if (MUTATING_GIT_SUBCOMMANDS.has(gitInfo.subcommand)) {
+        return `mutating git subcommand 'git ${gitInfo.subcommand}'`;
+      }
+      continue;
     }
-    if (idx >= tokens.length) continue;
 
-    const cmd = tokens[idx].value.split(/[\\/]/).pop();
-    const rest = tokens.slice(idx + 1).map((t) => t.value);
+    const cmd = tokens[0].value.split(/[\\/]/).pop();
+    const rest = tokens.slice(1).map((t) => t.value);
 
     if (MUTATING_COMMANDS.has(cmd)) {
       return `mutating command '${cmd}'`;
     }
     if ((cmd === 'sed' || cmd === 'perl') && rest.some((a) => a === '-i' || a.startsWith('-i'))) {
       return `in-place edit '${cmd} -i'`;
-    }
-    if (cmd === 'git') {
-      const sub = rest.find((a) => !a.startsWith('-'));
-      if (sub && MUTATING_GIT_SUBCOMMANDS.has(sub)) {
-        return `mutating git subcommand 'git ${sub}'`;
-      }
     }
     if (cmd === 'npm' && rest[0] && ['install', 'i', 'ci', 'uninstall', 'update'].includes(rest[0])) {
       return `mutating npm command 'npm ${rest[0]}'`;

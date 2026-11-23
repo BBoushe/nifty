@@ -64,6 +64,11 @@ describe('lib.mjs helpers', () => {
     ].join('\n');
     const findings = findSecretsInDiff(leakyDiff);
     assert.equal(findings.length, 6);
+    for (const f of findings) {
+      assert.equal(f.preview.includes('AAAA'), false, 'redacted preview must not leak secret chars');
+      assert.equal(f.preview.includes('sk-'), false, 'redacted preview must not leak key prefix');
+      assert.equal(f.preview.includes('[REDACTED]'), true);
+    }
   });
 });
 
@@ -75,6 +80,7 @@ describe('guard-files.mjs', () => {
       { tool_name: 'Write', tool_input: { file_path: '.env.production' } },
       { tool_name: 'MultiEdit', tool_input: { edits: [{ file_path: '.env' }] } },
       { tool_name: 'Grep', tool_input: { path: '.env', pattern: 'KEY' } },
+      { tool_name: 'Grep', tool_input: { glob: '.env*', pattern: 'KEY' } },
       { tool_name: 'Glob', tool_input: { pattern: '**/.env*' } },
     ]) {
       const res = evaluateFileTool(payload);
@@ -82,11 +88,12 @@ describe('guard-files.mjs', () => {
     }
   });
 
-  it('allows .env.example and regular source files', () => {
+  it('allows .env.example, regular source files, and Grep searching docs for ".env" text', () => {
     for (const payload of [
       { tool_name: 'Read', tool_input: { file_path: '.env.example' } },
       { tool_name: 'Edit', tool_input: { file_path: '.env.example' } },
       { tool_name: 'Grep', tool_input: { path: 'backend/src', pattern: 'KICONNECT' } },
+      { tool_name: 'Grep', tool_input: { path: 'docs', pattern: '.env' } },
       { tool_name: 'Glob', tool_input: { pattern: 'frontend/src/**/*.vue' } },
     ]) {
       const res = evaluateFileTool(payload);
@@ -102,30 +109,44 @@ describe('guard-bash.mjs', () => {
     stagedFiles: ['README.md'],
   };
 
-  it('blocks reading, printing, or staging .env via shell', () => {
+  it('blocks reading, printing, or staging .env via shell including subshells', () => {
     for (const cmd of [
       'cat .env',
       'grep KEY .env.local',
       'git add .env',
       'head -n 5 < .env',
       'source .env',
+      'echo $(cat .env)',
+      'echo "$(<.env)"',
+      'printf "%s" "`cat .env.local`"',
     ]) {
       const res = evaluateBashCommand(cmd, cleanOpts);
       assert.equal(res.blocked, true, `expected block for '${cmd}'`);
     }
   });
 
-  it('allows reading .env.example and commit messages mentioning .env', () => {
+  it('allows reading .env.example, plain echo text, and commit messages mentioning .env', () => {
     assert.equal(evaluateBashCommand('cat .env.example', cleanOpts).blocked, false);
+    assert.equal(evaluateBashCommand('echo "Copy .env.example to .env"', cleanOpts).blocked, false);
     assert.equal(
       evaluateBashCommand('git commit -m "chore(hooks): block .env reads"', cleanOpts).blocked,
       false
     );
   });
 
-  it('blocks chaining git add && git commit', () => {
-    const res = evaluateBashCommand('git add README.md && git commit -m "docs: update"', cleanOpts);
-    assert.equal(res.blocked, true);
+  it('blocks chaining git add && git commit and git commit -a/-am/--all', () => {
+    assert.equal(
+      evaluateBashCommand('git add README.md && git commit -m "docs: update"', cleanOpts).blocked,
+      true
+    );
+    assert.equal(
+      evaluateBashCommand('git commit -am "docs: bypass"', cleanOpts).blocked,
+      true
+    );
+    assert.equal(
+      evaluateBashCommand('git commit --all -m "docs: bypass"', cleanOpts).blocked,
+      true
+    );
   });
 
   it('blocks direct commits and pushes on master, main, alpha, and force pushes', () => {
@@ -210,6 +231,20 @@ describe('guard-agent.mjs', () => {
     );
     assert.equal(
       evaluateAgentAction(
+        { tool_name: 'Bash', tool_input: { command: 'git -C . reset --hard' } },
+        'readonly'
+      ).blocked,
+      true
+    );
+    assert.equal(
+      evaluateAgentAction(
+        { tool_name: 'Bash', tool_input: { command: 'git -c user.name=test commit -m "x"' } },
+        'readonly'
+      ).blocked,
+      true
+    );
+    assert.equal(
+      evaluateAgentAction(
         { tool_name: 'Bash', tool_input: { command: 'git diff dev...HEAD' } },
         'readonly'
       ).blocked,
@@ -217,12 +252,14 @@ describe('guard-agent.mjs', () => {
     );
   });
 
-  it('restricts writes to test paths only in tests-only mode', () => {
+  it('restricts writes to test paths only in tests-only mode and blocks path traversal', () => {
     assert.equal(isAllowedTestPath('backend/src/test/java/com/nifty/QuoteVerifierTest.java'), true);
     assert.equal(isAllowedTestPath('frontend/src/views/RankingView.spec.ts'), true);
     assert.equal(isAllowedTestPath('frontend/src/utils/format.test.ts'), true);
 
     assert.equal(isAllowedTestPath('backend/src/main/java/com/nifty/QuoteVerifier.java'), false);
+    assert.equal(isAllowedTestPath('backend/src/test/../../main/java/App.java'), false);
+    assert.equal(isAllowedTestPath('../outside/backend/src/test/AppTest.java'), false);
     assert.equal(isAllowedTestPath('frontend/src/views/RankingView.vue'), false);
     assert.equal(isAllowedTestPath('.env'), false);
 

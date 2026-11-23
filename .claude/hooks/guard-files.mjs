@@ -29,7 +29,8 @@ export function evaluateFileTool(payload) {
     input.notebook_path,
     input.path,
     input.glob,
-    input.pattern,
+    // Only treat `pattern` as a file-path glob for Glob (not Grep search text)
+    !toolName || toolName === 'Glob' ? input.pattern : null,
   ].filter((v) => typeof v === 'string' && v.trim().length > 0);
 
   if (Array.isArray(input.edits)) {

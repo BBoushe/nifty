@@ -39,9 +39,13 @@ Execute incrementally on branch `feat/new-harness-tools` (branched off `dev`) wi
 - [x] Run `node --test .claude/hooks/hooks.test.mjs` -> exit `0`
 - [x] Run `cd backend && ./mvnw test` -> exit `0`
 - [x] Run `cd frontend && npm run typecheck && npm run lint && npm run build` -> exit `0`
-- [ ] Run cold `reviewer` subagent audit on `git diff dev...HEAD` against `openspec/` specs and verify zero rule drift across `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/rules/`, `.kiro/steering/nifty-core.md`, and `docs/setup.md`
-- [ ] Update `CHANGELOG.md` and record final entry in `## Handoff Log` below
+- [x] Run cold `reviewer` subagent audit on `git diff dev...HEAD` against `openspec/` specs and verify zero rule drift across `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/rules/`, `.kiro/steering/nifty-core.md`, and `docs/setup.md`
+- [x] Update `CHANGELOG.md` and record final entry in `## Handoff Log` below
 
 ## Handoff Log
 
-*(Append a compact entry at each completed milestone: Commits, Verification, Contracts/Migrations added, Decisions, Open Questions.)*
+- **Commits:** `d227b36` (`chore(specs)`), `dc13838` (`feat(hooks)`), `bda21fa` (`feat(agents)`), `737efe3` (`chore(rules)`), `ad7f093` (`docs(setup)`), plus cold-review hardening commit (`fix(hooks)`).
+- **Verification:** `node --test .claude/hooks/hooks.test.mjs` (14/14 pass), `OPENSPEC_TELEMETRY=0 openspec validate --all` (10/10 pass, 0 warnings), `cd backend && ./mvnw -o test` (2/2 pass), `cd frontend && npm run typecheck && npm run lint && npm run build` (exit 0), live `.githooks/pre-commit` + `.githooks/commit-msg` verified on all commits.
+- **Contracts/Migrations added:** Cross-Layer Enum & State Lock-In Table in `docs/architecture.md`; `.claude/hooks/*.mjs` + `.githooks/pre-commit`; `.claude/agents/{spec-builder,reviewer,test-writer}.md`; `.agents/skills/{record-decision,question-round,pr-memo}/`; `.kiro/steering/nifty-core.md`; `docs/setup.md`.
+- **Decisions:** Kept single `openspec/changes/` plan tree (no `plans/`), canonical `AGENTS.md` + `.agents/rules/` (no `.claude/rules/`), Spring AI 2.0 provider portability without artificial offline demo stub.
+- **Open Questions:** `O1`–`O7` remain open in `docs/decisions.md` for Day-1 team resolution.

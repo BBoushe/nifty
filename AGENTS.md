@@ -53,5 +53,5 @@ Claude Code enforces these checks automatically via `.claude/hooks/*.mjs`; Antig
 | Block shell `.env` leaks & `git add && git commit` | `.claude/hooks/guard-bash.mjs` | Stage with `git add` first, then run `git commit` separately; never `cat`/`grep` `.env`. |
 | Scan staged diff for API keys / private keys | `.claude/hooks/guard-bash.mjs` | Enforced automatically for all tools via `.githooks/pre-commit`. |
 | Block direct commits/pushes to `master`/`main`/`alpha` & non-`docs:`/`hotfix:` `dev` pushes | `.claude/hooks/guard-bash.mjs` | Enforced automatically for all tools via `.githooks/pre-commit` + `.githooks/pre-push` + GitHub Rulesets. |
-| Fast path-scoped compile gate (no slow Testcontainers) | `.claude/hooks/test-gate.mjs` | Enforced automatically on push via `.githooks/pre-push` (`NIFTY_SKIP_GATE=1` escape hatch). |
+| Fast path-scoped compile gate (no slow Testcontainers) | `.githooks/pre-push` -> `.claude/hooks/test-gate.mjs` | Enforced automatically on push via `.githooks/pre-push` for all tools and humans (`NIFTY_SKIP_GATE=1` escape hatch). |
 | Role write boundaries (`readonly` / `tests-only`) | `.claude/hooks/guard-agent.mjs` | Honor role boundaries strictly when acting as cold reviewer or spec test-writer. |

@@ -45,20 +45,64 @@ export function getRepoRoot(cwd = process.cwd()) {
 }
 
 /**
- * Normalize an absolute or relative path into a repo-relative POSIX path when possible.
+ * Normalize an absolute or relative path into a canonical repo-relative POSIX path.
+ * Resolves `..` segments and returns `''` if the path escapes `repoRoot`.
  */
 export function toRepoRelative(input, repoRoot = process.cwd()) {
-  const norm = normalizePath(input);
-  if (!norm) return '';
-  const rootNorm = normalizePath(path.resolve(repoRoot)).replace(/\/$/, '');
-  if (norm.startsWith(`${rootNorm}/`)) {
-    return norm.slice(rootNorm.length + 1);
+  if (typeof input !== 'string' || !input.trim()) return '';
+  const cleaned = input.trim().replaceAll('\\', '/');
+  const absRoot = path.resolve(repoRoot);
+  const resolved = path.resolve(absRoot, cleaned);
+  const rel = normalizePath(path.relative(absRoot, resolved));
+  if (!rel || rel === '..' || rel.startsWith('../') || path.isAbsolute(rel)) {
+    return '';
   }
-  if (path.isAbsolute(input)) {
-    const rel = normalizePath(path.relative(repoRoot, input));
-    if (!rel.startsWith('..')) return rel;
+  return rel;
+}
+
+/**
+ * Strip leading shell environment variable assignments (e.g. `CI=true npm run build`).
+ */
+export function stripLeadingEnvAssignments(tokens) {
+  let idx = 0;
+  while (idx < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[idx].value)) {
+    idx += 1;
   }
-  return norm;
+  return tokens.slice(idx);
+}
+
+/**
+ * Extract `{ subcommand, args }` from tokenized git command, skipping global
+ * flags that take a separate value (`-C`, `-c`, `--git-dir`, `--work-tree`, `--namespace`).
+ */
+export function getGitSubcommand(tokens) {
+  const cleaned = stripLeadingEnvAssignments(tokens);
+  if (!cleaned.length) return null;
+  const cmd = cleaned[0].value;
+  if (cmd !== 'git' && !cmd.endsWith('/git') && !cmd.endsWith('\\git.exe')) {
+    return null;
+  }
+  let i = 1;
+  while (i < cleaned.length) {
+    const tok = cleaned[i].value;
+    if (
+      tok === '-C' ||
+      tok === '-c' ||
+      tok === '--git-dir' ||
+      tok === '--work-tree' ||
+      tok === '--namespace' ||
+      tok === '--super-prefix'
+    ) {
+      i += 2;
+      continue;
+    }
+    if (tok.startsWith('-')) {
+      i += 1;
+      continue;
+    }
+    return { subcommand: tok, args: cleaned.slice(i + 1) };
+  }
+  return null;
 }
 
 /**
@@ -286,7 +330,6 @@ export function findSecretsInDiff(diffText, { rawMode = false } = {}) {
 }
 
 function redactLine(line) {
-  const trimmed = line.trim();
-  if (trimmed.length <= 24) return `${trimmed.slice(0, 8)}...[REDACTED]`;
-  return `${trimmed.slice(0, 24)}...[REDACTED]`;
+  const varMatch = line.trim().match(/^([A-Za-z_][A-Za-z0-9_]*)\s*[:=]/);
+  return varMatch ? `${varMatch[1]}=[REDACTED]` : '[REDACTED]';
 }
