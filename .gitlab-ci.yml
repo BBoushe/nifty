@@ -3,6 +3,7 @@
 
 stages:
   - verify
+  - package
 
 workflow:
   rules:
@@ -133,3 +134,29 @@ branch-policy:
         done
         exit "$FAILED"
       fi
+
+# Smoke-build both images with their own multi-stage Dockerfiles (they compile inside Docker,
+# so no jar/dist hand-off from the verify jobs). Needs a privileged runner for docker:dind.
+.docker-build:
+  stage: package
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: /certs/client
+  before_script:
+    - docker info
+
+backend-image:
+  extends: .docker-build
+  script:
+    - docker build --pull -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA" backend
+
+frontend-image:
+  extends: .docker-build
+  script:
+    - docker build --pull --target prod -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA" frontend
