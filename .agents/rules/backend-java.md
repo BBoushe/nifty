@@ -6,6 +6,8 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and Time
 
 # Backend Java / Spring Boot Rules
 
+> Also follow canonical [`.agents/rules/coding-standards.md`](./coding-standards.md) (ETC/DRY, small testable functions, avoid Java Streams in hot/repeated shared functions, minimal reusable classes, and update [`docs/api.md`](../../docs/api.md) on every endpoint change).
+
 1. **Runtime & Build:** Target **Java 21** strictly and build/test using `./mvnw test` inside `backend/`.
 2. **Spring Boot 4 & Security:**
    - Maintain the two-role model (`PROFESSOR` / `REVIEWER` vs. `CANDIDATE`). Candidates MUST NEVER access another candidate's data or unapproved scores/formulas.

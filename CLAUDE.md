@@ -5,13 +5,16 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 ## Source of Truth Hierarchy
 
 1. [`AGENTS.md`](AGENTS.md) — Universal non-negotiable rules & stack constraints.
-2. [`openspec/config.yaml`](openspec/config.yaml) & `openspec/specs/` — Domain requirements in EARS notation.
-3. `openspec/changes/<active-change>/` — Active `proposal.md`, `requirements.md`, `design.md`, and `tasks.md`.
-4. [`docs/discovery-canvas.md`](docs/discovery-canvas.md) & [`docs/decisions.md`](docs/decisions.md) — Product vision & open decisions.
+2. `@.agents/rules/coding-standards.md` — Canonical living coding standards (imported directly; never duplicated).
+3. [`openspec/config.yaml`](openspec/config.yaml) & `openspec/specs/` — Domain requirements in EARS notation.
+4. `openspec/changes/<active-change>/` — Active `proposal.md`, `specs/`, `design.md`, and `tasks.md`.
+5. [`docs/decisions/index.md`](docs/decisions/index.md), [`docs/api.md`](docs/api.md), & [`docs/discovery-canvas.md`](docs/discovery-canvas.md) — Traceable decisions, living API contract, & product vision.
 
 ## Working Agreement for Claude Code
 
-- Implement one logical task at a time from `openspec/changes/<change>/tasks.md`.
+- Implement one logical task at a time from `openspec/changes/<change>/tasks.md`, following `.agents/rules/coding-standards.md` and leaving `// Decision X.Y` pointers where non-obvious.
+- Whenever the user/prompter changes direction or answers a `question-round`, record the decision via `node scripts/record-decision.mjs` (never skip recording).
+- Check the active Git forge via `node scripts/check-setup.mjs --forge` (`gh` for GitHub vs. `glab` for GitLab) — never read `.env` directly.
 - Run real verification commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`) before claiming completion.
 - Keep diffs small, atomic, and strictly scoped to the active spec.
 
@@ -22,15 +25,12 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 > **Instruction for Claude Code when a developer opens this repository for the first time:**
 > Run this lightweight self-check once before starting feature work (do not modify tracked files without telling the developer what changed):
 
-1. **Inspect Harness Configuration:**
+1. **Run Forge-Aware Setup Preflight:**
+   - Run `node scripts/check-setup.mjs` (checks active `GIT_FORGE` `gh` vs. `glab` CLI/auth, `.githooks/` activation, `.env` status without printing secrets, `.claude/settings.json` JSON validity, `.agents/rules/coding-standards.md`, `docs/decisions/index.md`, `docs/api.md`, `.gitlab-ci.yml`, Node 22+, Java 21, Docker).
+   - Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`.
+2. **Inspect Harness Configuration:**
    - Verify `.claude/skills/` contains the OpenSpec skills, shared skills (`record-decision`, `question-round`, `pr-memo`), and project skills (`spec-implementer`, `backend-spring-check`, `frontend-vue-check`, `evidence-pipeline-guard`).
    - Verify `.claude/agents/` contains `spec-builder.md`, `reviewer.md`, and `test-writer.md`.
-   - Inspect `.claude/settings.json` to confirm valid JSON, `permissions.allow`/`deny`, and active `PreToolUse` `.mjs` hooks (`guard-files.mjs`, `guard-bash.mjs`).
-2. **Check Team `[TBD]` Decisions (`docs/decisions.md`):**
-   - Check whether the team has resolved open decisions **O1** (UI component library: PrimeVue vs. shadcn-vue) and **O2** (Interviewer LLM provider; evaluator is already resolved in **D14** — ki:connect NRW).
-   - If resolved in `docs/decisions.md` or `package.json`/`pom.xml`, run the `record-decision` skill to update any `[TBD]` placeholders in `.claude/skills/frontend-vue-check/SKILL.md`, `.claude/skills/backend-spring-check/SKILL.md`, and `openspec/config.yaml` (and note developer-specific preferences in untracked `.claude/settings.local.json`).
-3. **Verify Local Hook Executables & OS Compatibility:**
-   - Confirm `.githooks/` is enabled (`git config --get core.hooksPath` should return `.githooks`; if unset, prompt the developer to run `git config core.hooksPath .githooks`).
-   - Run `node --test .claude/hooks/hooks.test.mjs` and confirm `.githooks/pre-commit`, `.githooks/commit-msg`, and `.githooks/pre-push` are executable on the developer's OS (macOS, Linux, or Windows Git Bash / WSL). Report any path or permission issues immediately.
-4. **Verify Local Tooling:**
-   - Confirm Java 21 (`java -version`), Maven (`./backend/mvnw -v`), Node 22+ (`node -v`), and Docker (`docker --version`) are available before running builds.
+3. **Check Team `[TBD]` Decisions (`docs/decisions/index.md`):**
+   - Check whether the team has resolved open decisions **O1** (UI component library: PrimeVue vs. shadcn-vue) and **O2** (Interviewer LLM provider; evaluator is already resolved in **1.6 / D14** — ki:connect NRW).
+   - If resolved in `docs/decisions/index.md` or `package.json`/`pom.xml`, run the `record-decision` skill (`node scripts/record-decision.mjs ... --resolves O<k>`) to synchronize `openspec/config.yaml`, `CLAUDE.md`, and affected skills (note developer-specific preferences in untracked `.claude/settings.local.json`).

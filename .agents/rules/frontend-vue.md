@@ -6,7 +6,9 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
 
 # Frontend Vue / TypeScript Rules
 
-1. **Framework Pin:** Stay on **Vue 3.5 stable** + **Vite 8** + **TypeScript strict mode**. **NEVER** upgrade to Vue 3.6 RC / Vapor Mode without an explicit team ADR in `docs/decisions.md`.
+> Also follow canonical [`.agents/rules/coding-standards.md`](./coding-standards.md) (ETC/DRY, avoid bespoke one-off components, use HOFs cleanly, and organize views into domain/feature folders under `frontend/src/views/<feature>/`).
+
+1. **Framework Pin:** Stay on **Vue 3.5 stable** + **Vite 8** + **TypeScript strict mode**. **NEVER** upgrade to Vue 3.6 RC / Vapor Mode without an explicit team ADR in `docs/decisions/index.md`.
 2. **State & Data Fetching:**
    - Use **TanStack Query (`@tanstack/vue-query`)** for server state and backend API calls. Every TanStack Query view MUST explicitly render `loading`, `empty`, `success`, and `error` states.
    - Use **Pinia** only for client/UI state (e.g., active filters, drawer selection, drag-and-drop staging).

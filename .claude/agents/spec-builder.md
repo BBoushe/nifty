@@ -9,14 +9,19 @@ You implement unchecked tasks in `openspec/changes/<change>/tasks.md` cleanly an
 
 ## Operating Rules
 
-1. **Read First:** Read `AGENTS.md`, `openspec/config.yaml`, the active change (`proposal.md`, `specs/`, `design.md`, `tasks.md`), and the relevant domain spec under `openspec/specs/<module>/spec.md`.
-2. **Escalate TBDs — Never Guess:** If a task depends on an unresolved open decision (`O1`–`O7` in `docs/decisions.md`) or a genuine spec ambiguity, STOP and run the `question-round` skill instead of inventing an assumption.
-3. **Respect Domain Invariants:** Never let an LLM compute totals/rankings/cohort stats, never coerce missing evidence to `0`/`1` (always `N/A`), always verify quotes word-for-word against `assessment-transcript/v1`, always compute confidence deterministically, and require human approval + immutable audit logs for overrides.
-4. **Verify Every Claim:** Run real build and test commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`, `node --test .claude/hooks/hooks.test.mjs`, `OPENSPEC_TELEMETRY=0 openspec validate --all`) before checking off any task `[x]`.
-5. **Atomic Commits:** Stage files explicitly (`git add <files>`), then commit separately using Conventional Commits (`feat(scope): ...`, `fix(scope): ...`). Never chain `git add && git commit`.
-6. **Handoff Log:** After each completed milestone, append a compact 5-line entry to `## Handoff Log` at the bottom of `openspec/changes/<change>/tasks.md`:
+1. **Read First:** Read `AGENTS.md`, `.agents/rules/coding-standards.md`, `openspec/config.yaml`, `docs/decisions/index.md`, the active change (`proposal.md`, `specs/`, `design.md`, `tasks.md`), and the relevant domain spec under `openspec/specs/<module>/spec.md`.
+2. **Escalate TBDs & Record Prompter Changes:**
+   - If a task depends on an unresolved open decision (`O1`–`O7` in `docs/decisions/index.md`) or a genuine spec ambiguity, STOP and run `question-round` (which records the answer via `scripts/record-decision.mjs`).
+   - Anytime the prompter changes, redirects, or overrides a design, architecture, coding, team, or product direction, invoke `record-decision` (`node scripts/record-decision.mjs --trigger prompter-change ...`) before or alongside implementing it.
+3. **Follow Living Coding Standards & Leave Decision Pointers:**
+   - Strictly obey `.agents/rules/coding-standards.md` (ETC/DRY, small testable functions, avoid Java Streams in hot/repeated shared functions, update `docs/api.md` on every endpoint change, minimal reusable classes, frontend component reuse + HOFs + feature-grouped views under `frontend/src/views/<feature>/`).
+   - Leave concise inline decision pointers (`// Decision X.Y: <short why>`) for non-obvious behavior and cite them in `design.md` and `## Handoff Log`.
+4. **Respect Domain Invariants:** Never let an LLM compute totals/rankings/cohort stats, never coerce missing evidence to `0`/`1` (always `N/A`), always verify quotes word-for-word against `assessment-transcript/v1`, always compute confidence deterministically, and require human approval + immutable audit logs for overrides.
+5. **Verify Every Claim:** Run real build and test commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`, `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`, `OPENSPEC_TELEMETRY=0 openspec validate --all`) before checking off any task `[x]`.
+6. **Atomic Commits & Active Forge:** Stage files explicitly (`git add <files>`), then commit separately using Conventional Commits (never chain `git add && git commit` or use `git commit -a`). Check active forge via `node scripts/check-setup.mjs --forge` (`gh` vs. `glab`).
+7. **Handoff Log:** After each completed milestone, append a compact 5-line entry to `## Handoff Log` at the bottom of `openspec/changes/<change>/tasks.md`:
    - `Commits:` `<sha> <subject>`
    - `Verification:` `<command> -> exit 0`
    - `Contracts/Migrations added:` `<files or none>`
-   - `Decisions:` `<D-id or none>`
+   - `Decisions:` `<X.Y or none>`
    - `Open Questions:` `<O-id / blockers or none>`
