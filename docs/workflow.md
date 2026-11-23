@@ -40,13 +40,20 @@ All significant features follow the Kiro-style spec workflow stored as plain Mar
 
 ### Day-to-Day Ticket Loop
 
-1. Pick a Jira ticket (or `openspec/` module slice) and confirm no blocking `O1`–`O7` TBD remains (if blocked, run `question-round`).
-2. Sync `dev` (`git checkout dev && git pull origin dev`) and create a branch (`feat/<KEY>-slug`, `fix/<KEY>-slug`, or `chore/<slug>`).
-3. Ensure an approved OpenSpec change exists in `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`).
-4. Implement tasks as **Spec Builder** (`.claude/agents/spec-builder.md`) with real build/test verification and atomic Conventional Commits (never chaining `git add && git commit`).
-5. Append a 5-line entry to `## Handoff Log` in `tasks.md` (`Commits`, `Verification`, `Contracts/Migrations`, `Decisions`, `Open Questions`).
-6. Run an independent **Cold Reviewer** session (`.claude/agents/reviewer.md`) on `git diff dev...HEAD` + `openspec/` specs (zero builder chat history) and resolve all `Blocking` items.
-7. Generate a <=10-line PR body via `pr-memo`, open a PR into `dev`, and tag the module owner from the table below.
+1. Run `node scripts/check-setup.mjs --forge` if unsure whether the repo is currently targeting GitHub (`gh`) or GitLab (`glab`).
+2. Pick a ticket (or `openspec/` module slice) and confirm no blocking `O1`–`O7` TBD remains (if blocked, run `question-round` -> automatically persisted via `scripts/record-decision.mjs`).
+3. Sync `dev` (`git checkout dev && git pull origin dev`) and create a branch (`feat/<KEY>-slug`, `fix/<KEY>-slug`, or `chore/<slug>`).
+4. Ensure an approved OpenSpec change exists in `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`).
+5. Implement tasks as **Spec Builder** (`.claude/agents/spec-builder.md`), obeying `.agents/rules/coding-standards.md`, keeping `docs/api.md` updated on endpoint changes, leaving `// Decision X.Y` pointers, and recording any prompter direction shift via `node scripts/record-decision.mjs --trigger prompter-change ...`.
+6. Append a 5-line entry to `## Handoff Log` in `tasks.md` (`Commits`, `Verification`, `Contracts/Migrations`, `Decisions`, `Open Questions`).
+7. Run an independent, sandboxed **Cold Reviewer** session (`.claude/agents/reviewer.md`) on `git diff dev...HEAD` + `openspec/` + `.agents/rules/coding-standards.md` + `docs/decisions/index.md` (zero builder chat history) and resolve all `Blocking` items.
+8. Generate a <=10-line summary via `pr-memo`, open a PR (`gh`) or MR (`glab`) into `dev`, and tag the module owner from the table below.
+
+### Parallel GitHub & GitLab Forge Switch (Decision 1.7)
+
+- Both **GitHub** (`.github/workflows/ci.yml`, `.github/rulesets/`, `gh`) and **GitLab** (`.gitlab-ci.yml`, `glab`) are supported in parallel.
+- Set `GIT_FORGE=github` or `GIT_FORGE=gitlab` (plus `GITLAB_HOST` for university GitLab) in your local `.env`.
+- Run `node scripts/check-setup.mjs` to verify CLI installation, authentication, `.githooks/` activation, and harness readiness for the active forge without ever printing `.env` secrets.
 
 ### Module Ownership Table (PR Reviewer Routing)
 
@@ -60,8 +67,8 @@ All significant features follow the Kiro-style spec workflow stored as plain Mar
 
 ### Review & Documentation Policies
 
-- **Blocking vs. Convention Candidate:** Reviewers **only** block PRs on `AGENTS.md` §2 domain/regulatory invariants, unmet `openspec/` EARS criteria, security/secret leaks, or failing builds/tests. Style preferences, naming polish, and optional refactors are reported under non-blocking **Convention Candidates** so block-week velocity never stalls on bikeshedding.
-- **Link, Never Copy (Confluence ↔ GitHub):** Architecture, EARS specs, ADRs (`docs/decisions.md`), and setup guides live canonically in Git. Confluence pages and Jira tickets **link** to GitHub files/PRs instead of pasting copies that drift out of date.
+- **Blocking vs. Convention Candidate:** Reviewers **only** block PRs/MRs on `AGENTS.md` §2 domain/regulatory invariants, unmet `openspec/` EARS criteria, clear `.agents/rules/coding-standards.md` blocking rules (DRY/duplicate classes, hotspot Java Streams, missing `docs/api.md` updates, un-grouped bespoke Vue views), undocumented architectural/direction shifts missing a `docs/decisions/` entry, security/secret leaks, or failing builds/tests. Subjective function-splitting, optional HOF refactors, and naming polish go under non-blocking **Convention Candidates**.
+- **Link, Never Copy (Confluence ↔ Git):** Architecture, EARS specs, hierarchical decisions (`docs/decisions/`), API docs (`docs/api.md`), and setup guides live canonically in Git. Wiki/Confluence pages and tickets **link** to repository files and PRs/MRs instead of pasting copies that drift out of date.
 
 ## 4. Tool-Agnostic Multi-Agent Collaboration
 

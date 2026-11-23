@@ -79,8 +79,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Run harness hook unit tests
-        run: node --test .claude/hooks/hooks.test.mjs
+      - name: Run harness hook and script unit tests
+        run: node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs
 
   conventional-commits:
     name: Conventional Commits
