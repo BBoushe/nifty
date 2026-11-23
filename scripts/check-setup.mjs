@@ -8,7 +8,7 @@
 //   ("configured" vs "placeholder"). It NEVER prints or returns any secret value.
 //
 // Usage:
-//   node scripts/check-setup.mjs --forge       # Print active forge & CLI (gh | glab)
+//   node scripts/check-setup.mjs --forge       # Print active forge & CLI (gh | glab | gh,glab)
 //   node scripts/check-setup.mjs               # Run full setup preflight check
 //   node scripts/check-setup.mjs --root <dir>  # Run against a custom directory
 import { execFileSync } from 'node:child_process';
@@ -95,7 +95,8 @@ export function resolveForgeConfig(rootDir = process.cwd(), envOverride = proces
     .trim()
     .toLowerCase();
 
-  const forge = rawForge === 'gitlab' ? 'gitlab' : 'github';
+  // Decision 1.8: GIT_FORGE=both mirrors every push/PR to GitHub (primary) and GitLab (secondary).
+  const forge = ['gitlab', 'both'].includes(rawForge) ? rawForge : 'github';
   const gitlabHost = validateGitLabHost(
     envOverride?.GITLAB_HOST ||
       dotEnvParsed.safe.GITLAB_HOST ||
@@ -110,7 +111,7 @@ export function resolveForgeConfig(rootDir = process.cwd(), envOverride = proces
 
   return {
     forge,
-    cli: forge === 'gitlab' ? 'glab' : 'gh',
+    cli: { github: 'gh', gitlab: 'glab', both: 'gh,glab' }[forge],
     gitlabHost,
     hasDotEnv,
     apiKeyStatus: dotEnvParsed.apiKeyConfigured ? 'configured' : 'placeholder',
@@ -139,47 +140,57 @@ export function runSetupChecks(options = {}) {
   const checks = [];
   const add = (level, name, detail, fix = '') => checks.push({ level, name, detail, fix });
 
-  // 1. Forge CLI check (gh or glab based on GIT_FORGE)
-  if (config.forge === 'gitlab') {
-    const ver = runCmd('glab', ['--version']);
-    if (ver.ok) {
-      add('PASS', 'GitLab CLI (glab)', `${ver.out.split('\n')[0]} (host: ${config.gitlabHost})`);
-      const auth = runCmd('glab', ['auth', 'status', '--hostname', config.gitlabHost]);
-      if (auth.ok) {
-        add('PASS', 'GitLab Auth', `Authenticated on ${config.gitlabHost}`);
+  // 1. Forge CLI + git remote checks (github -> gh/origin, gitlab -> glab/gitlab; both = each)
+  for (const forge of config.forge === 'both' ? ['github', 'gitlab'] : [config.forge]) {
+    if (forge === 'gitlab') {
+      const ver = runCmd('glab', ['--version']);
+      if (ver.ok) {
+        add('PASS', 'GitLab CLI (glab)', `${ver.out.split('\n')[0]} (host: ${config.gitlabHost})`);
+        const auth = runCmd('glab', ['auth', 'status', '--hostname', config.gitlabHost]);
+        if (auth.ok) {
+          add('PASS', 'GitLab Auth', `Authenticated on ${config.gitlabHost}`);
+        } else {
+          add(
+            'WARN',
+            'GitLab Auth',
+            `Not authenticated on ${config.gitlabHost}`,
+            `glab auth login --hostname ${config.gitlabHost}`
+          );
+        }
       } else {
         add(
-          'WARN',
-          'GitLab Auth',
-          `Not authenticated on ${config.gitlabHost}`,
-          `glab auth login --hostname ${config.gitlabHost}`
+          'FAIL',
+          'GitLab CLI (glab)',
+          `GIT_FORGE=${config.forge} needs \`glab\`, which is not installed on PATH`,
+          'Install glab: https://gitlab.com/gitlab-org/cli'
         );
       }
     } else {
-      add(
-        'FAIL',
-        'GitLab CLI (glab)',
-        'GIT_FORGE=gitlab is set but `glab` is not installed on PATH',
-        'Install glab: https://gitlab.com/gitlab-org/cli'
-      );
-    }
-  } else {
-    const ver = runCmd('gh', ['--version']);
-    if (ver.ok) {
-      add('PASS', 'GitHub CLI (gh)', ver.out.split('\n')[0]);
-      const auth = runCmd('gh', ['auth', 'status']);
-      if (auth.ok) {
-        add('PASS', 'GitHub Auth', 'Authenticated with GitHub');
+      const ver = runCmd('gh', ['--version']);
+      if (ver.ok) {
+        add('PASS', 'GitHub CLI (gh)', ver.out.split('\n')[0]);
+        const auth = runCmd('gh', ['auth', 'status']);
+        if (auth.ok) {
+          add('PASS', 'GitHub Auth', 'Authenticated with GitHub');
+        } else {
+          add('WARN', 'GitHub Auth', 'Not authenticated with GitHub', 'gh auth login');
+        }
       } else {
-        add('WARN', 'GitHub Auth', 'Not authenticated with GitHub', 'gh auth login');
+        add(
+          'WARN',
+          'GitHub CLI (gh)',
+          '`gh` not found on PATH (needed for CLI PR creation)',
+          'Install gh: https://cli.github.com/'
+        );
       }
+    }
+
+    // Remote names are fixed (origin = GitHub, gitlab = GitLab); scripts/forge.mjs relies on them.
+    const remote = forge === 'gitlab' ? 'gitlab' : 'origin';
+    if (runCmd('git', ['remote', 'get-url', remote]).ok) {
+      add('PASS', `Git remote '${remote}'`, 'configured');
     } else {
-      add(
-        'WARN',
-        'GitHub CLI (gh)',
-        '`gh` not found on PATH (needed for CLI PR creation)',
-        'Install gh: https://cli.github.com/'
-      );
+      add('WARN', `Git remote '${remote}'`, 'missing', `git remote add ${remote} <${forge}-repo-url>`);
     }
   }
 
