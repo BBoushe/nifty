@@ -33,8 +33,8 @@ Install the following tools before starting (follow each official download page 
 | **Apache Maven 3.9+** *(optional — `./mvnw` is included)* | Local Maven commands | https://maven.apache.org/download.cgi |
 | **Node.js 22+ (LTS)** | Local frontend development (`npm run dev`, lint, typecheck) | https://nodejs.org/ |
 | **OpenSpec CLI** *(optional)* | Validating and managing specs (`npm install -g @fission-ai/openspec@latest`) | https://github.com/Fission-AI/OpenSpec |
-| **GitHub CLI (`gh`)** *(when `GIT_FORGE=github`)* | Opening GitHub PRs & applying GitHub rulesets | https://cli.github.com/ |
-| **GitLab CLI (`glab`)** *(when `GIT_FORGE=gitlab`)* | Opening GitLab MRs & checking GitLab pipelines | https://gitlab.com/gitlab-org/cli |
+| **GitHub CLI (`gh`)** *(when `GIT_FORGE=github` or `both`)* | Opening GitHub PRs & applying GitHub rulesets | https://cli.github.com/ |
+| **GitLab CLI (`glab`)** *(when `GIT_FORGE=gitlab` or `both`)* | Opening GitLab MRs & checking GitLab pipelines | https://gitlab.com/gitlab-org/cli |
 
 ---
 
@@ -57,7 +57,7 @@ git config core.hooksPath .githooks
 node scripts/check-setup.mjs
 ```
 
-> **GitLab / GitHub Switch:** Set `GIT_FORGE=github` (default) or `GIT_FORGE=gitlab` (+ `GITLAB_HOST` for university GitLab) in your local `.env`. Both `.github/workflows/ci.yml` and `.gitlab-ci.yml` are maintained in parallel, and AI agents inspect only the non-secret forge setting via `node scripts/check-setup.mjs --forge`.
+> **GitLab / GitHub Switch:** Set `GIT_FORGE=github` (default), `gitlab`, or `both` (+ `GITLAB_HOST` for university GitLab) in your local `.env`. With `both`, add the second remote once (`git remote add gitlab https://git.inf.fh-dortmund.de/01/alpac001/nifty.git`; `origin` stays GitHub) and use `node scripts/forge.mjs push|pr|sync|status`. Both `.github/workflows/ci.yml` and `.gitlab-ci.yml` are maintained in parallel, and AI agents inspect only the non-secret forge setting via `node scripts/check-setup.mjs --forge`.
 
 *(On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`, or run all commands in Git Bash / WSL.)*
 

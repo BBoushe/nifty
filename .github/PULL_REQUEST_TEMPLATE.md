@@ -1,12 +1,12 @@
 ## What changed?
 
-<!-- Keep this short and plain-language so any teammate understands it in under 60 seconds. -->
+<!-- 1–2 short, plain-language bullets readable in under 60 seconds. -->
 
 -
 
 ## Why?
 
-<!-- Explain the user, product, or team problem this solves. Skip low-level implementation minutiae. -->
+<!-- Problem solved + key Decision X.Y pointers (docs/decisions/index.md). -->
 
 -
 
@@ -14,9 +14,14 @@
 
 - OpenSpec change (if applicable): `openspec/changes/<name>/`
 - Related issue / Jira key:
+- Suggested reviewer (`docs/workflow.md` Module Ownership Table):
 
 ## Verification
 
-- [ ] Backend tests pass (`cd backend && ./mvnw test`) — if backend changed
-- [ ] Frontend checks pass (`cd frontend && npm run typecheck && npm run lint && npm run build`) — if frontend changed
-- [ ] Domain invariants respected (no LLM math, explicit `N/A`, verbatim quotes, human approval gates)
+<!-- List ONLY commands actually executed with passing exit codes. -->
+
+- Commands run: ``
+- [ ] Backend tests pass (`cd backend && ./mvnw test`) — if `backend/` changed
+- [ ] Frontend checks pass (`cd frontend && npm run typecheck && npm run lint && npm run build`) — if `frontend/` changed
+- [ ] Harness / OpenSpec checks pass (`node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` & `openspec validate --all`) — if harness/specs changed
+- [ ] Domain invariants (`AGENTS.md` §2) & living coding standards (`.agents/rules/coding-standards.md`) verified

@@ -72,3 +72,12 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** Replacing GitHub entirely; letting AI agents read `.env` directly.
 - **Rationale / Justification:** Enables seamless switching to university GitLab (`glab`) while keeping GitHub working and preserving airtight `.env` API-key protection.
 - **Affected Files / Pointers:** `.env.example`, `scripts/check-setup.mjs`, `.gitlab-ci.yml`, `.agents/skills/pr-memo/SKILL.md`, `CLAUDE.md`
+
+## 1.8 — Dual forge: GIT_FORGE=both with GitHub primary and GitLab secondary mirror
+- **Date:** 2026-11-23
+- **Triggered By:** prompter-change
+- **Context:** The team started on GitHub but the course requires GitLab (git.inf.fh-dortmund.de/01/alpac001/nifty). Every push and PR must exist on both, and the repos must not drift.
+- **Decision:** Add GIT_FORGE=both. Remote origin = GitHub (primary, where PRs are merged), remote gitlab = GitLab (secondary). scripts/forge.mjs pushes to both (GitHub first, stop on failure), opens PR and MR with identical text, and fast-forwards GitLab dev/alpha/master after GitHub merges (sync, no force). scripts/apply-gitlab-protections.sh mirrors .github/rulesets/.
+- **Alternatives Considered:** One origin with two push URLs (gh/glab cannot tell the host, failures are silent); GitLab push mirroring or a GitHub Action mirror (tier and network access to the uni GitLab unknown); merging on both sides (guaranteed drift).
+- **Rationale / Justification:** Two named remotes keep gh and glab unambiguous, GitHub-first ordering stops GitLab from getting ahead, and merge-only-on-GitHub plus fast-forward sync removes divergence without force-pushes.
+- **Affected Files / Pointers:** scripts/forge.mjs, scripts/apply-gitlab-protections.sh, scripts/check-setup.mjs, .agents/skills/pr-memo/SKILL.md, docs/workflow.md

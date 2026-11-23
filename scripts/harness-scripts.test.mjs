@@ -10,6 +10,7 @@ import {
   runSetupChecks,
   validateGitLabHost,
 } from './check-setup.mjs';
+import { planPr, planPush, planSync, repoUrl, targetsFor } from './forge.mjs';
 import {
   computeNextDecisionId,
   recordDecision,
@@ -193,5 +194,72 @@ describe('scripts/check-setup.mjs', () => {
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+describe('GIT_FORGE=both (Decision 1.8)', () => {
+  it('resolves both forges and CLIs; unknown values still fall back to github', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nifty-both-'));
+    try {
+      fs.writeFileSync(path.join(tmp, '.env'), 'GIT_FORGE=both\n', 'utf8');
+      const cfg = resolveForgeConfig(tmp, {});
+      assert.equal(cfg.forge, 'both');
+      assert.equal(cfg.cli, 'gh,glab');
+      assert.equal(resolveForgeConfig(tmp, { GIT_FORGE: 'bitbucket' }).forge, 'github');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('preflight checks both CLIs and both remotes', () => {
+    const seen = [];
+    const report = runSetupChecks({
+      rootDir: os.tmpdir(),
+      env: { GIT_FORGE: 'both' },
+      runCmd: (cmd, args) => {
+        seen.push([cmd, args[0]].join(' '));
+        return { ok: true, out: 'ok' };
+      },
+    });
+    assert.ok(seen.includes('gh --version') && seen.includes('glab --version'));
+    const names = report.checks.map((c) => c.name);
+    assert.ok(names.includes("Git remote 'origin'") && names.includes("Git remote 'gitlab'"));
+  });
+});
+
+describe('scripts/forge.mjs', () => {
+  const urls = { github: 'https://github.com/o/r', gitlab: 'https://git.example.edu/g/sub/r' };
+
+  it('targets GitHub first, GitLab second, only the configured forge otherwise', () => {
+    assert.deepEqual(targetsFor('both'), ['github', 'gitlab']);
+    assert.deepEqual(targetsFor('gitlab'), ['gitlab']);
+    assert.deepEqual(
+      planPush('both', 'feat/x').map((s) => s.args.join(' ')),
+      ['push -u origin feat/x', 'push gitlab feat/x']
+    );
+    assert.equal(planPush('gitlab', 'feat/x')[0].args.join(' '), 'push -u gitlab feat/x');
+  });
+
+  it('builds a PR and an MR with explicit repos so gh/glab never guess the host', () => {
+    const [pr, mr] = planPr('both', { base: 'dev', head: 'feat/x', title: 't', body: 'b', urls });
+    assert.deepEqual(pr.args.slice(0, 4), ['pr', 'create', '--repo', 'github.com/o/r']);
+    assert.deepEqual(mr.args.slice(0, 4), ['mr', 'create', '-R', urls.gitlab]);
+    assert.ok(mr.args.includes('--yes'));
+    assert.equal(planPr('github', { base: 'dev', head: 'h', title: 't', body: 'b', urls }).length, 1);
+  });
+
+  it('mirrors origin to gitlab without force, and only in both mode', () => {
+    assert.deepEqual(planSync('github'), []);
+    const steps = planSync('both', ['dev']);
+    assert.deepEqual(steps[0].args, ['fetch', 'origin']);
+    assert.deepEqual(steps[1].args, ['push', '--no-verify', 'gitlab', 'refs/remotes/origin/dev:refs/heads/dev']);
+    assert.ok(steps.every((s) => !s.args.some((a) => a.includes('force') || a === '-f')));
+  });
+
+  it('normalises https and ssh remotes and drops embedded credentials', () => {
+    assert.equal(repoUrl('https://github.com/o/r.git'), 'https://github.com/o/r');
+    assert.equal(repoUrl('https://user:tok@git.example.edu/g/sub/r.git'), 'https://git.example.edu/g/sub/r');
+    assert.equal(repoUrl('git@github.com:o/r.git'), 'https://github.com/o/r');
+    assert.throws(() => repoUrl('not a url'), /Unsupported/);
   });
 });

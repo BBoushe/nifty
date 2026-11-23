@@ -30,3 +30,12 @@ Engineering workflow, AI harness governance, coding standards, and review polici
 - **Alternatives Considered:** Ad-hoc manual edits to a single flat Markdown table without automated IDs or code pointers.
 - **Rationale / Justification:** Guarantees every non-obvious implementation choice can be traced straight back to its rationale, alternatives considered, and trigger event.
 - **Affected Files / Pointers:** `docs/decisions/index.md`, `scripts/record-decision.mjs`, `.agents/skills/record-decision/SKILL.md`, `.agents/skills/question-round/SKILL.md`
+
+## 3.4 — Unified PR/MR template and cross-tool scoped rule dispatch
+- **Date:** 2026-11-23
+- **Triggered By:** prompter-change
+- **Context:** A fresh Claude Code session created an ad-hoc PR summary instead of using .github/PULL_REQUEST_TEMPLATE.md because pr-memo had a competing format and non-Antigravity tools do not auto-parse .agents/rules YAML frontmatter.
+- **Decision:** Unify .github/PULL_REQUEST_TEMPLATE.md, .gitlab/merge_request_templates/Default.md, and pr-memo/SKILL.md onto one concise template; auto-import spec-driven.md and git-workflow.md in CLAUDE.md via @-imports; and add a Scoped Rules & Templates Dispatch table in AGENTS.md.
+- **Alternatives Considered:** Duplicating rules into .claude/rules/ or maintaining separate GitHub vs. pr-memo formats.
+- **Rationale / Justification:** Guarantees every fresh session across Claude Code, Codex, Kiro, and Antigravity loads the exact same canonical rules and PR/MR template with zero duplication.
+- **Affected Files / Pointers:** .github/PULL_REQUEST_TEMPLATE.md, .gitlab/merge_request_templates/Default.md, .agents/skills/pr-memo/SKILL.md, .agents/rules/git-workflow.md, CLAUDE.md, AGENTS.md, docs/setup.md

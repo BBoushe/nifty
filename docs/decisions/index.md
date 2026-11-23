@@ -38,6 +38,8 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **3.1** | — | Team & Process | Single `openspec/changes/` plan tree + cold read-only review separation | Decided | 2026-11-23 | prompter-change | [3-team-process.md](./3-team-process.md#31--single-openspecchanges-plan-tree--cold-review-separation) |
 | **3.2** | — | Team & Process | Canonical living coding standards (`.agents/rules/coding-standards.md`) | Decided | 2026-11-23 | prompter-change | [3-team-process.md](./3-team-process.md#32--canonical-living-coding-standards) |
 | **3.3** | — | Team & Process | Mandatory decision recording on question rounds & prompter changes | Decided | 2026-11-23 | prompter-change | [3-team-process.md](./3-team-process.md#33--mandatory-decision-recording--code-pointers) |
+| **1.8** | — | Architecture | Dual forge: GIT_FORGE=both with GitHub primary and GitLab secondary mirror | Decided | 2026-11-23 | prompter-change | [1-architecture.md](./1-architecture.md#18--dual-forge-git_forgeboth-with-github-primary-and-gitlab-secondary-mirror) |
+| **3.4** | — | Team & Process | Unified PR/MR template and cross-tool scoped rule dispatch | Decided | 2026-11-23 | prompter-change | [3-team-process.md](./3-team-process.md#34--unified-prmr-template-and-cross-tool-scoped-rule-dispatch) |
 <!-- DECISION_INDEX_END -->
 
 ---

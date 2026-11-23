@@ -7,6 +7,7 @@
       "Bash(node --test:*)",
       "Bash(node scripts/check-setup.mjs:*)",
       "Bash(node scripts/record-decision.mjs:*)",
+      "Bash(node scripts/forge.mjs:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(glab status:*)",
