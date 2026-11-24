@@ -1,5 +1,7 @@
 # Prompt & Execution Plan: CI Parity, GitLab Protections & Bash-Guard Hardening
 
+> **Superseded (2026-11-24):** split by blast radius into the OpenSpec changes `bash-guard-hardening` (Workstream C) and `forge-ci-parity` (Workstreams A, B, D). Run them from [`docs/prompts/harness-upgrade-board.md`](../harness-upgrade-board.md). Correction: `git push -n` is `--dry-run`, so REQ-BG-04 blocks only `--no-verify`.
+
 > **Purpose:** Drop this prompt into Claude Code, Antigravity (`agy`), Codex, or Kiro Crew to finish the dual-forge housekeeping before any further harness upgrades. It closes three gaps found on 2026-11-24 while consolidating PR #5 / MR !4: (1) GitHub CI is weaker than GitLab CI, (2) GitLab branches are unprotected, and (3) the agent Bash guard can be bypassed through command wrappers, including `.env` reads.
 >
 > **Core Rule:** Spec first. Create the OpenSpec change `openspec/changes/ci-parity-guard-hardening/` (`proposal.md`, `specs/ci-parity-guard-hardening/spec.md` in EARS notation, `design.md`, `tasks.md`, `.openspec.yaml`). Implement on `chore/ci-parity-guard-hardening` off `dev` in atomic Conventional Commits (never `git add && git commit`, never `git commit -a`). Verify every claim with a real exit code, run a cold read-only `reviewer` audit, then follow the dual-forge flow in **§5**.
