@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Task 2 done and committed
-- **Next action:** Task 3, first step (plugin key = `superpowers@claude-plugins-official`; semantics lookup pending)
+- **Current:** Task 3 done and committed
+- **Next action:** Task 4, first step (role prompts)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -26,11 +26,11 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
   - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: exit 0.
   - [x] Manual check: push a scratch branch with a fixture change whose tasks are all `[x]`. Expect: blocked; `NIFTY_SKIP_GATE=1` passes. Remove the fixture afterwards.
   - [x] Commit `feat(hooks): run archive gate on Claude stop and feature-branch pre-push`.
-- [ ] **3. Settings** — REQ-SL-01
-  - [ ] Settle the plugin key and semantics (design §1).
-  - [ ] Add `enabledPlugins` and `hooks.Stop` to `.claude/settings.json`.
-  - [ ] Run `node -e "JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8'))"`. Expect: exit 0.
-  - [ ] Commit `chore(claude): declare superpowers plugin and archive-gate stop hook`.
+- [x] **3. Settings** — REQ-SL-01
+  - [x] Settle the plugin key and semantics (design §1).
+  - [x] Add `enabledPlugins` and `hooks.Stop` to `.claude/settings.json`.
+  - [x] Run `node -e "JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8'))"`. Expect: exit 0.
+  - [x] Commit `chore(claude): declare superpowers plugin and archive-gate stop hook`.
 - [ ] **4. Loop in role prompts** — REQ-SL-02, REQ-SL-03, REQ-SL-05, REQ-SL-06
   - [ ] Update `spec-builder.md` (loop table + Verification format + Status/commit rule), `reviewer.md` (two checks), `test-writer.md` and `spec-implementer/SKILL.md` (point to the loop) per design §2.
   - [ ] Commit `docs(agents): wire superpowers loop and RED evidence into roles`.
@@ -73,3 +73,10 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Contracts/Migrations added:** `archive-gate.mjs --stop-hook | --pre-push`; `NIFTY_REPO_ROOT` (tests only)
 - **Decisions:** 3.9; pre-push skips branch deletions (zero local sha) and used `--dry-run` instead of a real scratch push
 - **Open Questions:** none
+
+### Task 3 — Settings (2026-11-24)
+- **Commits:** `chore(claude): declare superpowers plugin and archive-gate stop hook`
+- **Verification:** RED: n/a (config only); GREEN: `node -e "JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8'))"` → exit 0; `echo '{}' | node .claude/hooks/archive-gate.mjs --stop-hook` → exit 0, no output
+- **Contracts/Migrations added:** `enabledPlugins["superpowers@claude-plugins-official"]`, `hooks.Stop` → `node .claude/hooks/archive-gate.mjs --stop-hook`
+- **Decisions:** 3.7. claude-code-guide (code.claude.com/docs/en/hooks.md, /plugins/install.md, /plugins/anthropic-marketplaces.md): Stop takes `{"decision":"block","reason"}` at exit 0, no matcher, input has `stop_hook_active`. Project `enabledPlugins` does **not** auto-install or prompt. Each teammate runs `claude plugin install superpowers@claude-plugins-official --scope project` once. `claude-plugins-official` is known by default, so no `extraKnownMarketplaces`
+- **Open Questions:** none (install step documented in docs/setup.md in Task 6)

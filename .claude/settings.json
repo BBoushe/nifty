@@ -29,7 +29,20 @@
       "Bash(git push -f:*)"
     ]
   },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  },
   "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/archive-gate.mjs --stop-hook"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Read|Edit|Write|MultiEdit|Grep|Glob|NotebookEdit",
