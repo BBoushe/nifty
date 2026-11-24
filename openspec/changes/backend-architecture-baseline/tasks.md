@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`
-- **Current:** Task 5 done
-- **Next action:** Task 6, first step (backend-java.md §8)
+- **Current:** Tasks 1–6 done; Delivery not started
+- **Next action:** Delivery step 1 (`git fetch origin && git rebase origin/dev`)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -38,14 +38,14 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
   - [x] Apply design §6.
   - [x] Run `cd backend && ./mvnw -B test` and `docker compose config >/dev/null` (from the repo root). Expect: both exit 0.
   - [x] Commit `fix(backend): read datasource password from the environment only`.
-- [ ] **6. Rules and docs**
-  - [ ] Add `backend-java.md` §8 Architecture (design §7), including the test pyramid table. Update §5 and §7 to point to it instead of repeating it.
-  - [ ] Add the feature slice map (design §1) to `docs/architecture.md` under a heading `## Feature Slice Map` (the `ai-context-docs` change links to this anchor).
-  - [ ] Align `docs/api.md` §3 with the ProblemDetail fields (`type`, `title`, `status`, `detail`, `instance`, `errors`).
-  - [ ] Update `.claude/skills/backend-spring-check/SKILL.md`: `ArchitectureTest` is part of `./mvnw -B test`; quiet output is expected.
-  - [ ] Add a `CHANGELOG.md` `[Unreleased]` entry.
-  - [ ] Run `cd backend && ./mvnw -B test` and `OPENSPEC_TELEMETRY=0 openspec validate --all`. Expect: both exit 0.
-  - [ ] Commit `docs(backend): document feature slices, error contract and test pyramid`.
+- [x] **6. Rules and docs**
+  - [x] Add `backend-java.md` §8 Architecture (design §7), including the test pyramid table. Update §5 and §7 to point to it instead of repeating it.
+  - [x] Add the feature slice map (design §1) to `docs/architecture.md` under a heading `## Feature Slice Map` (the `ai-context-docs` change links to this anchor).
+  - [x] Align `docs/api.md` §3 with the ProblemDetail fields (`type`, `title`, `status`, `detail`, `instance`, `errors`).
+  - [x] Update `.claude/skills/backend-spring-check/SKILL.md`: `ArchitectureTest` is part of `./mvnw -B test`; quiet output is expected.
+  - [x] Add a `CHANGELOG.md` `[Unreleased]` entry.
+  - [x] Run `cd backend && ./mvnw -B test` and `OPENSPEC_TELEMETRY=0 openspec validate --all`. Expect: both exit 0.
+  - [x] Commit `docs(backend): document feature slices, error contract and test pyramid`.
 
 ## Delivery
 
@@ -96,4 +96,11 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - **Verification:** RED `grep -qE '^ +password: \$\{SPRING_DATASOURCE_PASSWORD\}$' backend/src/main/resources/application.yml` → FAIL (committed default); GREEN same check → exit 0, `cd backend && ./mvnw -B test` → exit 0 (18 tests), `docker compose config >/dev/null` → exit 0 (backend env has `SPRING_DATASOURCE_PASSWORD`)
 - **Contracts/Migrations added:** none; running the backend outside compose now needs `SPRING_DATASOURCE_PASSWORD` set (startup fails on the unresolved placeholder)
 - **Decisions:** none new (compose fallback kept per design §6)
+- **Open Questions:** none
+
+### Task 6 — Rules and docs
+- **Commits:** `docs(backend): document feature slices, error contract and test pyramid`
+- **Verification:** RED `git show HEAD~:docs/architecture.md | grep -q '^## Feature Slice Map'` → FAIL (no anchor yet); GREEN `cd backend && ./mvnw -B test` → exit 0 (18 tests), `OPENSPEC_TELEMETRY=0 openspec validate --all` → exit 0 (14/14)
+- **Contracts/Migrations added:** `docs/api.md` §3 now lists `type`, `title`, `status`, `detail`, `instance`, `errors` and the source → status table; `docs/architecture.md#feature-slice-map`
+- **Decisions:** none new; `backend-java.md` §5/§7 now point to §8 instead of repeating it
 - **Open Questions:** none
