@@ -318,3 +318,39 @@ describe('test-gate.mjs', () => {
     assert.equal(winPlan[0].cmd, 'mvnw.cmd');
   });
 });
+
+// archive gate (superpowers-loops, REQ-SL-04). Imports kept local to this block to avoid merge conflicts.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+import { findCompletedUnarchivedChanges } from './archive-gate.mjs';
+import { getRepoRoot } from './lib.mjs';
+
+function makeChangesRepo(changes) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'archive-gate-'));
+  for (const [name, tasks] of Object.entries(changes)) {
+    const dir = path.join(root, 'openspec', 'changes', name);
+    fs.mkdirSync(dir, { recursive: true });
+    if (tasks !== null) fs.writeFileSync(path.join(dir, 'tasks.md'), tasks);
+  }
+  return root;
+}
+
+describe('archive gate', () => {
+  it('lists only completed, unarchived changes', () => {
+    const root = makeChangesRepo({
+      done: '## Tasks\n- [x] **1. A**\n  - [X] step\n',
+      open: '## Tasks\n- [x] **1. A**\n  - [ ] step\n',
+      'delivery-open': '## Tasks\n- [x] **1. A**\n\n## Delivery\n- [ ] push\n',
+      empty: '## Tasks\nnothing yet\n',
+      'archive/2026-01-01-old': '- [x] done\n',
+      'no-tasks': null,
+    });
+    assert.deepEqual(findCompletedUnarchivedChanges(root), ['delivery-open', 'done']);
+  });
+
+  it('repo invariant: no completed change is left unarchived', () => {
+    assert.deepEqual(findCompletedUnarchivedChanges(getRepoRoot()), []);
+  });
+});

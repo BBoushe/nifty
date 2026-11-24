@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/superpowers-loops` (not created)
-- **Worktree:** —
-- **Current:** not started
-- **Next action:** Task 1, first step
+- **Branch:** `chore/superpowers-loops` (local; not pushed yet)
+- **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
+- **Current:** Task 1 done and committed
+- **Next action:** push branch (awaiting user OK), then Task 2, first step
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -14,12 +14,12 @@
 
 Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,test-writer}.md`, `.claude/skills/spec-implementer/SKILL.md`, `openspec/config.yaml`, `.claude/hooks/archive-gate.mjs` (new), `.githooks/pre-push`, the `archive gate` describe at the end of `.claude/hooks/hooks.test.mjs`, one new row in the AGENTS.md §6 parity table, new rows at the end of the `docs/setup.md` inventory table. Decisions 3.7, 3.8 and 3.9 are already recorded. Read `design.md` first.
 
-- [ ] **1. Archive gate core (RED → GREEN)** — REQ-SL-04
-  - [ ] Add `describe('archive gate')` with the fixture cases from design §5.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: FAIL (module missing).
-  - [ ] Implement `findCompletedUnarchivedChanges` (design §4).
-  - [ ] Run the tests. Expect: exit 0, including the repo-invariant test.
-  - [ ] Commit `feat(hooks): add archive gate for completed openspec changes`.
+- [x] **1. Archive gate core (RED → GREEN)** — REQ-SL-04
+  - [x] Add `describe('archive gate')` with the fixture cases from design §5.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: FAIL (module missing).
+  - [x] Implement `findCompletedUnarchivedChanges` (design §4).
+  - [x] Run the tests. Expect: exit 0, including the repo-invariant test.
+  - [x] Commit `feat(hooks): add archive gate for completed openspec changes`.
 - [ ] **2. Stop hook and pre-push wiring** — REQ-SL-04
   - [ ] Add the `--stop-hook` tests (design §5). Run them. Expect: FAIL.
   - [ ] Implement `main()` with `--stop-hook` and `--pre-push`, then wire `.githooks/pre-push` (design §4).
@@ -59,3 +59,10 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - [ ] After `git merge-base --is-ancestor chore/superpowers-loops origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-superpowers-loops`.
 
 ## Handoff Log
+
+### Task 1 — Archive gate core (2026-11-24)
+- **Commits:** `feat(hooks): add archive gate for completed openspec changes`
+- **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (ERR_MODULE_NOT_FOUND archive-gate.mjs); GREEN: `node --test .claude/hooks/hooks.test.mjs` → exit 0 (17/17, repo invariant passes)
+- **Contracts/Migrations added:** `findCompletedUnarchivedChanges(repoRoot)` in `.claude/hooks/archive-gate.mjs`
+- **Decisions:** 3.9; test imports kept inside the `archive gate` block to stay in owned lines
+- **Open Questions:** none
