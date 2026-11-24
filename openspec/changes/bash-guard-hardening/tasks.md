@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-hardening`
 - **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Task 1 done (RED probes committed)
-- **Next action:** Task 2, first step (wrapper peeling in `lib.mjs`)
+- **Current:** Task 2 done (wrapper peeling)
+- **Next action:** Task 3, first step (command-string recursion in `guard-bash.mjs`)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -19,10 +19,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
   - [x] Add `it('allows harmless commands behind wrappers')`: assert `blocked === false` for `rtk git status`, `rtk err npm run build`, `rtk test ./mvnw -B test`, `sh -c "npm run lint"`, `time ./mvnw -B test`, `git push origin feat/x`, `git push --no-verify origin feat/x`, `git push -n origin dev`, and `git commit -m "docs: mention sh -c and .env"`.
   - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the new must-block test FAILS; all existing tests pass.
   - [x] Commit `test(hooks): add wrapper and command-string guard probes`.
-- [ ] **2. Wrapper peeling (GREEN part 1)** — REQ-BG-01
-  - [ ] Extend `stripLeadingEnvAssignments` per the design §1 table.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the wrapper rows pass; only the command-string and `--no-verify` rows still fail; the `guard-agent` tests stay green.
-  - [ ] Commit `fix(hooks): peel nice, time, sudo, xargs, env -u and rtk run wrappers`.
+- [x] **2. Wrapper peeling (GREEN part 1)** — REQ-BG-01
+  - [x] Extend `stripLeadingEnvAssignments` per the design §1 table.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the wrapper rows pass; only the command-string and `--no-verify` rows still fail; the `guard-agent` tests stay green.
+  - [x] Commit `fix(hooks): peel nice, time, sudo, xargs, env -u and rtk run wrappers`.
 - [ ] **3. Command-string recursion with a cap** — REQ-BG-02, REQ-BG-03
   - [ ] Implement design §2 in `guard-bash.mjs`.
   - [ ] Run the tests. Expect: the `-c`, `eval` and depth rows pass.
@@ -59,4 +59,11 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (16/17, only the must-block test); GREEN n/a (RED-only task)
 - Contracts/Migrations added: none
 - Decisions: `bash -c "git commit -m x"` is probed on `master`, because a plain commit on `feat/x` is allowed when run directly (REQ-BG-01 equivalence); probes pass `pushCommitSubjects: ['docs: x']` so dev pushes are deterministic.
+- Open Questions: none
+
+### Task 2 — Wrapper peeling
+- Commits: `fix(hooks): peel nice, time, sudo, xargs, env -u and rtk run wrappers`
+- Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (must-block test; only `-c`/`eval`/`env -S`/`--no-verify` rows still allowed, probed per row); GREEN n/a until Task 3/4; guard-agent tests stay green
+- Contracts/Migrations added: none
+- Decisions: peeling stops on `env -S|--split-string` and `rtk run -c|--command`, leaving the flag first for guard-bash (design §1-§2); unknown `-…` flags after `rtk run` are skipped like other wrappers.
 - Open Questions: none
