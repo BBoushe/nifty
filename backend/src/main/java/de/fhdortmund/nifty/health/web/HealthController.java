@@ -1,4 +1,4 @@
-package de.fhdortmund.nifty.health;
+package de.fhdortmund.nifty.health.web;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

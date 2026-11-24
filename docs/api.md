@@ -20,17 +20,34 @@
 
 ## 3. Standard Error Envelope
 
-All API error responses MUST be produced by a single centralized `@RestControllerAdvice` returning RFC 9457 `ProblemDetail` JSON:
+Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`, produced by `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`; rules in `.agents/rules/backend-java.md` §8). Responses never contain stack traces or exception class names.
+
+| Field | Meaning |
+|---|---|
+| `type` | Problem type URI; `about:blank` unless a specific type is defined |
+| `title` | Short summary, defaults to the HTTP reason phrase (e.g. `Bad Request`) |
+| `status` | HTTP status code |
+| `detail` | Human-readable explanation, safe for clients |
+| `instance` | Request path that failed |
+| `errors` | Only on `400` for an invalid `@Valid` request body: list of `{ "field", "message" }` |
 
 ```json
 {
   "type": "about:blank",
-  "title": "Validation Failed",
+  "title": "Bad Request",
   "status": 400,
-  "detail": "Override reason must not be blank",
-  "instance": "/api/v1/ranking/scores/42/override"
+  "detail": "Invalid request content.",
+  "instance": "/api/v1/ranking/scores/42/override",
+  "errors": [{ "field": "reason", "message": "must not be blank" }]
 }
 ```
+
+| Source | Status | `detail` |
+|---|---|---|
+| `@Valid` body violation | `400` | Spring's validation summary, plus `errors` |
+| `DomainException(status, detail)` thrown by a service | its `status` | its `detail` |
+| Spring MVC errors (404, 405, 415, ...) | as mapped by `ResponseEntityExceptionHandler` | Spring's default |
+| Any other exception | `500` | `An unexpected error occurred.` (logged server-side) |
 
 ## 4. Implemented Endpoints
 

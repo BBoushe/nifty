@@ -1,4 +1,4 @@
-package de.fhdortmund.nifty.config;
+package de.fhdortmund.nifty.shared.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
