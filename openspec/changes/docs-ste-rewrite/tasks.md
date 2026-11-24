@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
-- **Current:** Task 1 next. Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
-- **Next action:** Task 1. Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
+- **Current:** Task 1 done; Task 2 next. Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
+- **Next action:** Task 2 (rules). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -14,8 +14,8 @@
 
 Each task has the same steps: (a) run the obligation check (design §2) on each file and save the output; (b) rewrite the prose; (c) run the obligation check again and compare (expect identical output); (d) run the STE linter (expect no errors, or log the exceptions); (e) run `OPENSPEC_TELEMETRY=0 openspec validate --all` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0); (f) commit `docs(<scope>): rewrite <group> in ASD-STE100`. Doc-only tasks write `RED: n/a (no behaviour)` in the Handoff.
 
-- [ ] **1. Agent entry points** — `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.kiro/steering/*.md`
-  - [ ] Steps (a)–(f)
+- [x] **1. Agent entry points** — `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.kiro/steering/*.md`
+  - [x] Steps (a)–(f)
 - [ ] **2. Rules** — `.agents/rules/*.md`
   - [ ] Steps (a)–(f)
 - [ ] **3. Onboarding** — `README.md`, `docs/setup.md`, `docs/workflow.md`
@@ -43,3 +43,9 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 - [ ] After `git merge-base --is-ancestor docs/docs-ste-rewrite origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-docs-ste-rewrite`.
 
 ## Handoff Log
+
+### 2026-11-25 — Task 1 (Sonnet subagent, checked by main session)
+- **Did:** STE rewrite of `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.kiro/steering/nifty-core.md`. Headings, tables, code, links unchanged.
+- **Verification:** RED: n/a (no behaviour). Obligations equal on all 4 files; ste-lint hard findings 13→0, 8→0, 1→0, 0→0; `openspec validate --all` exit 0; harness tests exit 0. Main session read the word diff: no meaning change.
+- **Note:** word counts rose slightly (split semicolons and long sentences).
+- **Next:** Task 2.
