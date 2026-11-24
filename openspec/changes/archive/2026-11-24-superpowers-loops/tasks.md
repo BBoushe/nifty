@@ -4,11 +4,11 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Delivery: pushed (pre-push archive gate passed), PR/MR opened
-- **Next action:** Delivery: cold review session (reviewer agent on `git diff dev...HEAD`)
+- **Current:** Delivery: cold review APPROVE (0 Blocking); gate narrowed to `refs/heads/*`
+- **Next action:** Delivery: wait for green CI on GitHub PR #9 + GitLab MR !8, then merge on GitHub (ask the user first)
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/9 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/8
-- **Open review findings:** —
+- **Open review findings:** Convention Candidates only (not fixed, outside owned files): `docs/workflow.md:48` Handoff step lacks the RED/GREEN format; `docs/setup.md:66` `.githooks/` row omits the archive gate; Delivery template runs tests before archive
 
 ## Tasks
 
@@ -52,7 +52,7 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive superpowers-loops -y --skip-specs`. Continue in `openspec/changes/archive/*-superpowers-loops/tasks.md`. If `docs/feature_history.md` exists, add this change's entry. Commit `chore(specs): archive superpowers-loops`.
 - [x] `node scripts/forge.mjs push` (the new pre-push gate runs here for the first time).
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "chore: superpowers loops, resumable tasks and archive gate" --body-file <file>`. Record the links in Status.
-- [ ] Cold review session: verdict has no Blocking items.
+- [x] Cold review session: verdict has no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
@@ -108,3 +108,10 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Contracts/Migrations added:** none; `docs/feature_history.md` does not exist, so no entry
 - **Decisions:** 3.8. The Delivery order has "re-run tests, expect exit 0" before "archive", but that can only pass after archiving. Ran the re-run again after the archive
 - **Open Questions:** fix that ordering in the next tasks.md template?
+
+### Delivery — cold review (2026-11-24)
+- **Commits:** `fix(hooks): run archive gate only for branch refs`
+- **Verification:** reviewer verdict APPROVE, Blocking: none. Pre-push fed a `refs/tags/v0` line with an all-`[x]` fixture → gate not run; a `refs/heads/x` line → exit 1 (blocked)
+- **Contracts/Migrations added:** none
+- **Decisions:** 3.8 (REQ-SL-04 says "non-protected branches", so tags are excluded)
+- **Open Questions:** follow-up for the out-of-scope Convention Candidates listed in Status

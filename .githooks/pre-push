@@ -16,7 +16,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # Protected targets and mirror syncs (`forge.mjs sync` uses --no-verify) never run it.
   case "$remote_ref" in
     refs/heads/dev|refs/heads/alpha|refs/heads/master|refs/heads/main) ;;
-    *)
+    refs/heads/*)
       if [ -z "$ARCHIVE_GATE_DONE" ] && [ "$local_sha" != "$ZERO_OID" ] && command -v node >/dev/null 2>&1; then
         ARCHIVE_GATE_DONE=1
         node "$(git rev-parse --show-toplevel)/.claude/hooks/archive-gate.mjs" --pre-push </dev/null || exit 1
