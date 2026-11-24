@@ -15,7 +15,7 @@ date: "2026-11-22"
 
 ## 1. Problem Statement
 
-> **AI interviews can assess skills at scale, but professors and recruiters can't trust or verify the scores. We need a system where every number links to evidence and a human approves it before it's used.**
+> **AI interviews can assess skills at scale, but professors and recruiters cannot trust or verify the scores. We need a system where every number links to evidence and a human approves it before anyone uses it.**
 
 ### 1.1 Background
 
@@ -24,28 +24,28 @@ At the start of the course, every student completed an LLM-run baseline assessme
 What went wrong:
 
 - **Made-up numbers.** The model invented results and statistics for the cohort.
-- **Links that weren't there.** The model connected metrics across candidates in ways the data didn't support.
-- **Students disagreed with their profiles,** and had no way to see *why* they got a score.
+- **Links that were not there.** The model linked metrics across candidates where the data did not support a link.
+- **Students disagreed with their profiles.** They had no way to see *why* they got a score.
 
-The single-candidate output also had structural flaws, even though its averages were correct:
+The single-candidate output also had structural flaws, although its averages were right.
 
 | Flaw | Example from a real scorecard | Consequence |
 |---|---|---|
 | No "insufficient evidence" state | "Not directly assessed" → scored **1 (Theoretical)** | Untested looks the same as weak |
-| No confidence value | All scores look equally certain | Reviewer can't prioritise |
-| No link from score to evidence | Short summary only, no transcript reference | Score can't be checked |
-| Different questions per candidate | Spring scenario skipped for one student, asked to another | Rankings across the cohort aren't comparable |
+| No confidence value | All scores look equally certain | Reviewer cannot prioritise |
+| No link from score to evidence | Short summary only, no transcript reference | Nobody can verify the score |
+| Different questions per candidate | One student got no Spring scenario. Another student got it. | Rankings across the cohort are not comparable |
 | Level 4 rewards keywords | "Mentions `@Transactional`… unprompted" | Easy to game with AI help |
 
-**Root cause:** the LLM was used for jobs that need deterministic code (adding up, ranking, comparing across candidates) and for decisions nobody could audit.
+**Root cause:** the process gave the LLM jobs that need deterministic code (adding up, ranking, comparing across candidates). It also gave the LLM decisions that nobody could audit.
 
 ### 1.2 IRS Framing (from the lecture)
 
 | | |
 |---|---|
-| **Issue** | Decision-makers can't trust or verify AI-generated skill profiles, or the rankings and teams derived from them. |
-| **Requirement** | Every score traces to evidence. Missing evidence is shown explicitly. Totals and team formation are calculated by code and reproducible. A human approves every score and configuration before it's used. |
-| **Solution** | An evidence-first pipeline: LLM for conversation and extraction, deterministic code for scoring, totals and team formation, and a visual review layer where the professor approves. |
+| **Issue** | Decision-makers cannot trust or verify AI-generated skill profiles. They also cannot trust or verify the rankings and teams that come from these profiles. |
+| **Requirement** | Every score traces to evidence. The system shows missing evidence explicitly. Code calculates totals and team formation, and the results are reproducible. A human approves every score and configuration before anyone uses it. |
+| **Solution** | An evidence-first pipeline. The LLM does conversation and extraction. Deterministic code does scoring, totals and team formation. A visual review layer lets the professor approve. |
 
 ### 1.3 Project Constraints
 
@@ -55,7 +55,7 @@ The single-candidate output also had structural flaws, even though its averages 
 | Use agentic harnesses, AI factories and human-in-the-loop agentic engineering | Lecturer |
 | Mandatory stack: **Spring Boot** backend, **Vue.js** frontend, DB to be decided | Team / course |
 | Must still make sense in **2026 and 2027**: current tooling, current regulation | Team |
-| Built on the course's self-assessment interview: what we do *with* it is the product | Course prompt |
+| Builds on the course's self-assessment interview. What we do *with* it is the product | Course prompt |
 
 ### 1.4 Week Checklist (from lecture slides)
 
@@ -82,21 +82,21 @@ The single-candidate output also had structural flaws, even though its averages 
 
 | Category | Examples | What they do | Gap we target |
 |---|---|---|---|
-| Technical assessment & AI interviewers | HackerRank, CodeSignal (Interviewer Agents), HackerEarth, Codility, CoderPad | Coding sandboxes, AI-run screening interviews, rubric scorecards | Focus on coding tasks; little on project or method skills; no team formation |
-| ATS / talent intelligence | Workday, Greenhouse, Lever, Eightfold | CV parsing, matching profiles to jobs | Match profiles but don't verify skills |
+| Technical assessment & AI interviewers | HackerRank, CodeSignal (Interviewer Agents), HackerEarth, Codility, CoderPad | Coding sandboxes, AI-run screening interviews, rubric scorecards | Focus on coding tasks. Little on project or method skills. No team formation. |
+| ATS / talent intelligence | Workday, Greenhouse, Lever, Eightfold | CV parsing, matching profiles to jobs | Match profiles but do not verify skills |
 | One-way video interviews | HireVue, Spark Hire | Recorded answers, AI competency scores | Scores seen as too coarse for technical roles |
 | Team formation in education | CATME Team-Maker | Survey plus algorithm to form student teams | Relies on self-assessment, which studies show is inconsistent |
 
 **Trends that support this product**
 
 - Skills-based hiring is now mainstream (≈70% of US employers per NACE 2026), yet only about a third of employers fully trust CVs.
-- Humans still make most final decisions; fully automated rejection is rare.
-- AI-assisted cheating is common in remote technical assessments (Fabric found signs in ~38.5% of ~20k interviews). The industry answer is redesigning assessments (probing reasoning), not just more surveillance.
+- Humans still make most final decisions. Fully automated rejection is rare.
+- AI-assisted cheating is common in remote technical assessments (Fabric found signs in ~38.5% of ~20k interviews). The industry answer is to redesign assessments (probe reasoning), not only to add surveillance.
 - LLM-as-a-judge research: scores shift when the rubric order or format changes, and high consistency can coexist with strong bias.
 
 **Regulatory context (key for 2027+)**
 
-- **EU AI Act:** AI used for recruitment, candidate selection and *task allocation* is **high-risk** (Annex III). The Digital Omnibus on AI (Regulation (EU) 2026/1744, in force 27 July 2026) moved those obligations to **2 December 2027**. A product launching in 2027 lands right as they apply, so human oversight, logging and explainability are features, not overhead.
+- **EU AI Act:** AI used for recruitment, candidate selection and *task allocation* is **high-risk** (Annex III). The Digital Omnibus on AI (Regulation (EU) 2026/1744, in force 27 July 2026) moved those obligations to **2 December 2027**. A product released in 2027 arrives just when these obligations apply. Human oversight, logging and explainability are therefore features, not overhead.
 - **Mobley v. Workday (N.D. Cal.):** AI screening discrimination claims are proceeding, and the *vendor* can be held liable.
 - **GDPR:** transcripts are personal data. Significant automated decisions require human involvement and an explanation.
 
@@ -110,21 +110,21 @@ The single-candidate output also had structural flaws, even though its averages 
 
 - Industry-based guest lecturer running a one-week project course with about 60 Master's students.
 - Has to form 12 balanced teams of 5 on day 1 and explain the method to students.
-- Uses AI daily, but got burned when an LLM made up cohort statistics in front of the class.
+- Uses AI daily. An LLM made up cohort statistics in front of the class. That moment was embarrassing.
 - **Goal:** fair, complementary teams in under an hour, with reasoning he can defend.
-- **Fear:** looking unprofessional because of a number he can't explain.
+- **Fear:** looking unprofessional because of a number he cannot explain.
 
 ### P2: Lena Petrova, Student / Candidate
 
-- M.Sc. Computer Science student with a TypeScript/Node full-stack background and strong in LLM orchestration. Just starting Java/Spring.
-- Felt her AI-generated profile undersold her strengths and mislabelled skills that were never tested.
-- **Goal:** be assessed fairly, land in a team where she can contribute and learn.
-- **Fear:** a black-box score following her around.
+- M.Sc. Computer Science student with a TypeScript/Node full-stack background. She is strong in LLM orchestration. She is just starting Java/Spring.
+- She felt her AI-generated profile undersold her strengths. It also mislabelled skills that nobody tested.
+- **Goal:** be assessed fairly and join a team where she can contribute and learn.
+- **Fear:** a black-box score that follows her around.
 
 ### P3: Tobias Krämer, Reviewer / Teaching Assistant
 
-- Supports the professor and works through flagged scores and edge cases.
-- **Goal:** clear only the items that need a human, quickly, with the evidence in front of him.
+- Supports the professor. Reviews flagged scores and edge cases.
+- **Goal:** resolve only the items that need a human, quickly, with the evidence in front of him.
 - **Fear:** a review queue of 960 items with no way to sort it.
 
 ### P4: Sarah Lindqvist, Technical Recruiter *(future scope)*
@@ -150,7 +150,7 @@ The single-candidate output also had structural flaws, even though its averages 
 |---|---|
 | Writes a project vision and the competencies he needs | Embarrassed after the made-up results in class |
 | Pastes results into an LLM and asks for teams | Pressed for time at the start of each block week |
-| Checks results by hand when something looks off | Curious, open to AI, but sceptical now |
+| Verifies results by hand when something looks wrong | Curious, open to AI, but sceptical now |
 | Adjusts teams manually after complaints | Responsible for students' grades and experience |
 
 **Pains:** time pressure, unverifiable AI output, reading transcripts by hand, explaining decisions.
@@ -167,11 +167,11 @@ The single-candidate output also had structural flaws, even though its averages 
 | **Does** | **Feels** |
 |---|---|
 | Answers a long interview, sometimes skipping a domain | Misjudged and powerless |
-| Compares results with classmates | Anxious about being compared |
-| Over-explains in areas they're good at | Motivated when the questions match real work |
+| Compares results with classmates | Anxious when others compare them |
+| Over-explains in areas they are good at | Motivated when the questions match real work |
 
 **Pains:** opaque scoring, untested skills scored low, no way to dispute.
-**Gains:** a fair, explainable profile; a team where strengths are used; a clear learning path.
+**Gains:** a fair and explainable profile, a team that uses their strengths, a clear learning path.
 
 ### 4.3 P3: Reviewer / TA
 
@@ -182,8 +182,8 @@ The single-candidate output also had structural flaws, even though its averages 
 
 | **Does** | **Feels** |
 |---|---|
-| Scans long lists, spot-checks | Overwhelmed by volume |
-| Re-reads transcripts for disputed scores | Unsure whether overrides are recorded anywhere |
+| Scans long lists and samples items to verify | Overwhelmed by volume |
+| Re-reads transcripts for disputed scores | Unsure whether the system records overrides anywhere |
 
 **Pains:** too many items, no prioritisation, evidence is hard to find.
 **Gains:** a queue limited to flagged items, one-click evidence, an audit trail of decisions.
@@ -194,7 +194,7 @@ The single-candidate output also had structural flaws, even though its averages 
 
 1. **HMW** make every skill score traceable to the exact moment in the conversation that justifies it?
 2. **HMW** let the professor shape what the interviewer asks without needing prompt-engineering skills?
-3. **HMW** tell "not tested" apart from "tested and weak," so candidates aren't penalised for gaps in the interview?
+3. **HMW** tell "not tested" apart from "tested and weak," so the system does not penalise candidates for gaps in the interview?
 4. **HMW** keep candidate results comparable while still letting the interviewer adapt to each answer?
 5. **HMW** make the evaluation formula visible and editable, for the professor during setup and for the candidate afterwards?
 6. **HMW** focus human attention only on the decisions that are uncertain or high-impact?
@@ -210,10 +210,10 @@ What should let our solution beat the market. Each item has a quick test for the
 
 | # | Assumption | How we test it in the block week |
 |---|---|---|
-| A1 | Professors will trust AI scores **if** each score opens to verified evidence. | Show the skills matrix plus evidence drawer to the lecturer; ask him to find the reason for 3 scores in under 30 s. |
-| A2 | An explicit **N/A + confidence** model produces fewer disputed profiles than a forced 0–4. | Re-score 5 real transcripts both ways; ask the students which profile they agree with. |
+| A1 | Professors will trust AI scores **if** each score opens to verified evidence. | Show the lecturer the skills matrix and evidence drawer. Ask him to find the reason for 3 scores in under 30 s. |
+| A2 | An explicit **N/A + confidence** model produces fewer disputed profiles than a forced 0–4. | Re-score 5 real transcripts both ways. Ask the students which profile they agree with. |
 | A3 | Professors want to **configure the interviewer themselves** (vision, core questions, toggles) rather than use a fixed prompt. | Lecturer builds one configuration in Interviewer Studio without help. |
-| A4 | Deterministic team formation with reasoning beats LLM-generated teams on perceived fairness. | Compare solver teams vs. LLM teams on the same data; count mistakes and invented facts. |
+| A4 | Deterministic team formation with reasoning beats LLM-generated teams on perceived fairness. | Compare solver teams vs. LLM teams on the same data. Count mistakes and invented facts. |
 | A5 | Showing the formula to candidates after approval reduces complaints. | Candidate results page walkthrough with 2–3 classmates. |
 | A6 | Confidence-bound flagging cuts review effort by more than 70% compared with reviewing everything. | Count flagged vs. total scores on the demo cohort. |
 
@@ -236,16 +236,16 @@ What should let our solution beat the market. Each item has a quick test for the
 └────────────────────────────┘        └───────────────────────────────────────┘
 ```
 
-The **Ranking View is the core of the product.** It owns the configuration that drives the interviewer, the extractor, the scorer and the balancer. It's also where every human approval happens.
+The **Ranking View is the core of the product.** It owns the configuration that drives the interviewer, the extractor, the scorer and the balancer. It is also where every human approval happens.
 
-> **Key design rule:** the configuration controls the *interviewer as well*, not just the scoring steps. Evidence that was never collected can't be extracted later.
+> **Key design rule:** the configuration controls the *interviewer as well*, not just the scoring steps. The system cannot extract evidence that it never collected.
 
 ---
 
 ## 8. Unique UX Features
 
 ### UX-01: Interviewer Studio
-The professor sets up how the LLM interviewer behaves:
+The professor configures how the LLM interviewer behaves:
 
 - **Vision input:** project vision, team vision, job posting, or free-text requirements.
 - **Core questions:** required questions every candidate must answer, each with a weight and linked skills/tags.
@@ -258,20 +258,20 @@ The professor sets up how the LLM interviewer behaves:
 - Nothing goes live until the professor **approves** the configuration (a versioned snapshot).
 
 ### UX-02: Skills & Tags Taxonomy
-- The professor defines the **skills** (closed list) and **tags** used for calibration.
-- The extractor may **suggest new tags** it finds in answers. Suggestions appear as pending chips the professor accepts, merges (e.g., "containers" → "Docker") or rejects. Inferred tags never enter scoring without approval.
+- The professor defines the **skills** (closed list) and the **tags** for calibration.
+- The extractor may **suggest new tags** it finds in answers. Suggestions appear as pending chips. The professor accepts, merges (e.g., "containers" → "Docker") or rejects each one. Inferred tags never enter scoring without approval.
 
 ### UX-03: Weights & Formula Editor
-- Weights **per core question** and **per skill**, adjusted with sliders.
-- Formula presets (weighted mean, minimum-coverage-gated, must-have skills) plus an **expression editor** for overrides, limited to a fixed set of variables and functions.
-- **Live preview:** see how a change reorders sample candidates *before* applying it (what-if).
-- Every formula version is stored. Scores always record which version produced them.
-- The formula is **shown to the candidate** on their results page after approval, never during the interview.
+- The professor sets weights **per core question** and **per skill** with sliders.
+- Formula presets (weighted mean, minimum-coverage-gated, must-have skills) plus an **expression editor** for overrides. The editor allows only a fixed set of variables and functions.
+- **Live preview:** shows how a change reorders sample candidates *before* the professor applies it (what-if).
+- The system stores every formula version. Each score records which version produced it.
+- The system **shows the formula to the candidate** on their results page after approval, never during the interview.
 
 ### UX-04: Confidence Bounds & Attention Flags
 - The professor sets **lower and upper confidence bounds**.
 - Scores below the lower bound, or other configured triggers, get a **red border or shadow** and go into a **"Needs attention"** lane.
-- Scores above the upper bound can be **bulk-approved**. Everything in between is approved per candidate.
+- The professor can **bulk-approve** scores above the upper bound. The professor approves everything in between per candidate.
 - **Review queue order** (most important first):
   1. Flagged by confidence bounds.
   2. Scores that **decide a team placement**, where changing the score would move the candidate to another team.
@@ -283,42 +283,42 @@ The professor sets up how the LLM interviewer behaves:
 - A heatmap of candidates × skills.
 - Visual encoding: colour = level, **hatched = N/A (not enough evidence)**, red border = flagged, opacity = confidence.
 - Sort and filter by overall fit, coverage, single skill or flag state.
-- **Hover** → short summary. **Click** → evidence drawer. Details stay hidden until requested.
+- **Hover** → short summary. **Click** → evidence drawer. The matrix hides details until the user asks for them.
 
 ### UX-06: Evidence Drawer
-- Shows one score broken down step by step: **formula → weighted parts → evidence items → verified quotes**, each linked to its exact position in the transcript.
+- Shows one score step by step: **formula → weighted parts → evidence items → verified quotes**, each linked to its exact position in the transcript.
 - Shows whether evidence came from a *core*, *follow-up* or *invented* question.
 - Actions: **Approve**, **Override** (reason required), **Request re-probe**.
 
 ### UX-07: Approval Workflow & Audit Log
 - The professor always gives the final approval for configuration, scores and teams.
-- Bulk-approve within bounds; flagged items must be approved one by one.
-- Every approval and override is logged (who, what, when, why). This supports EU AI Act human-oversight and logging expectations.
+- The professor can bulk-approve within bounds. The professor must approve flagged items one by one.
+- The system logs every approval and override (who, what, when, why). This supports EU AI Act expectations for human oversight and logging.
 
 ### UX-08: Team Builder
 - Visual team cards with balance indicators (skill coverage per domain, average strength, and so on).
 - **Three modes:**
   - **A, Formula/solver:** the professor picks constraint presets (team size, one strong member per key domain, balanced averages).
-  - **B, Text criteria → constraints:** the professor writes criteria in plain language. An LLM in a **fresh, empty context** turns them into solver constraints, the professor confirms them, and the solver computes the teams.
-  - **C, LLM proposal (optional):** an LLM in a fresh context proposes teams from *computed* scores only. A **deterministic validator** checks the proposal (everyone assigned exactly once, sizes correct, no invented candidates or scores) and shows it next to the solver result.
-- Drag and drop to adjust; the balance indicators recalculate live.
+  - **B, Text criteria → constraints:** the professor writes criteria in plain language. An LLM in a **fresh, empty context** turns them into solver constraints. The professor approves them. The solver computes the teams.
+  - **C, LLM proposal (optional):** an LLM in a fresh context proposes teams from *computed* scores only. A **deterministic validator** verifies the proposal (it assigns everyone exactly once, the sizes are right, it has no invented candidates or scores). The system shows the proposal next to the solver result.
+- Drag and drop to adjust. The balance indicators recalculate live.
 - Click a team or member → **reasoning** (which constraints and scores drove the placement).
 
 ### UX-09: Candidate Assessment Chat
-- Clean chat with progress on core questions (e.g., "3 of 6 topics covered"), no scores shown during the interview.
+- Chat with progress on core questions (e.g., "3 of 6 topics covered"). The chat shows no scores during the interview.
 - Responses stream in. The candidate can pause and resume.
 
 ### UX-10: Candidate Results Page (after approval)
-- The candidate sees their own scores, linked evidence, confidence, the formula used and the weights.
+- The candidate sees their own scores, linked evidence, confidence, the formula that the system used and the weights.
 - **Dispute** button (MVP: mocked screen) sends the item to the reviewer queue.
 
 ### UX-11: Assessment Transcript Export
-- Every transcript can be exported in the documented Assessment Transcript format (§10), for audit, re-scoring or use by other tools.
+- The system can export every transcript in the documented Assessment Transcript format (§10), for audit, re-scoring or use by other tools.
 
 ### UX-12: Cohort Gap Overview
-- Calculated in SQL from **approved** scores only: the distribution of levels per skill across the cohort, the share of N/A, and the weakest domains.
+- SQL calculates the distribution of levels per skill across the cohort, the share of N/A, and the weakest domains. It uses **approved** scores only.
 - Helps the lecturer decide what to cover in introductory lectures (purpose 1 of the original baseline prompt).
-- Every bar opens to the candidates and evidence behind it. No cohort statistic is written by an LLM, which is what failed in the original demo.
+- Every bar opens to the candidates and evidence behind it. An LLM writes no cohort statistic. That is what failed in the original demo.
 
 ---
 
@@ -343,13 +343,13 @@ flowchart LR
 
 | Step | Who does it | Notes |
 |---|---|---|
-| 1. Interviewer | LLM | Driven by configuration; labels each Q/A pair with question type and target skills |
-| 2. Extractor | LLM (structured output, schema-validated) | Produces evidence items: quote, Q/A reference, skill, tags, suggested level. **No final scores.** |
-| 3. Quote verifier | Code | Rejects any quote not found word-for-word in the transcript |
+| 1. Interviewer | LLM | The configuration drives it. It labels each Q/A pair with question type and target skills. |
+| 2. Extractor | LLM (structured output, schema-verified) | Produces evidence items: quote, Q/A reference, skill, tags, suggested level. **No final scores.** |
+| 3. Quote verifier | Code | Rejects any quote that the transcript does not contain word-for-word |
 | 4. Scorer | Formula engine (code) + LLM judge for level boundaries | Missing evidence → **N/A**, never 0 or 1 |
-| 5. Confidence | Code | Built from measurable signals, not the LLM's own estimate (see §11.3) |
+| 5. Confidence | Code | Uses measurable signals, not the LLM's own estimate (see §11.3) |
 | 6. Review | Human | Ordered by flags and impact |
-| 7. Totals | SQL | The LLM never calculates numbers; it may only write text around numbers it is given |
+| 7. Totals | SQL | The LLM never calculates numbers. It may only write text around numbers that it receives. |
 | 8. Balancer | Timefold Solver (Java) | Constraint-based, with explainable scores |
 | 9. Team approval | Human | Final approval |
 
@@ -357,16 +357,16 @@ flowchart LR
 
 ## 10. Assessment Transcript Format
 
-**Decision:** we keep the "Assessment Transcript" concept, but use **JSON validated by a JSON Schema** instead of a newly invented `.ast` syntax.
+**Decision:** we keep the "Assessment Transcript" concept, but use **JSON that a JSON Schema verifies** instead of a newly invented `.ast` syntax.
 
 **Why not a custom format:**
 
 - `.ast` already widely means "abstract syntax tree" and would confuse tools and readers.
-- A new syntax needs its own parser, validator and editor support. That's a week we don't have.
+- A new syntax needs its own parser, validator and editor support. That would take a week that we do not have.
 - JSON maps directly to Jackson (Spring), TypeScript types, Postgres JSONB **and** LLM structured output.
 - YAML is error-prone for LLMs to write (indentation, implicit type conversion).
 
-**Convention:** file name `*.transcript.json`, stored as JSONB in the DB, exportable as a file. The format is identified by `"format": "assessment-transcript/v1"`.
+**Convention:** file name `*.transcript.json`. The system stores it as JSONB in the DB and can export it as a file. The format identifier is `"format": "assessment-transcript/v1"`.
 
 ```json
 {
@@ -415,7 +415,7 @@ flowchart LR
 }
 ```
 
-`origin` is one of `core | follow_up | invented`. `promptedTerms` vs. `unpromptedTerms` makes the "mentioned without being prompted" rule checkable.
+`origin` is one of `core | follow_up | invented`. `promptedTerms` vs. `unpromptedTerms` lets a reader verify the "mentioned without being prompted" rule.
 
 ---
 
@@ -429,7 +429,7 @@ $$
 \text{score}(s) = \frac{\sum_e w_q(e)\cdot \text{level}(e)\cdot c(e)}{\sum_e w_q(e)\cdot c(e)}
 $$
 
-- *w_q(e)*: weight of the question the evidence came from (set by the professor; invented questions can default to a lower weight).
+- *w_q(e)*: weight of the question the evidence came from. The professor sets it. Invented questions can default to a lower weight.
 - *level(e)*: approved level 0–4.
 - *c(e)*: evidence confidence.
 - **No evidence → `N/A`.**
@@ -442,27 +442,27 @@ $$
 \text{coverage} = \frac{\sum_{s \in \text{scored}} w_s}{\sum_{s \in \text{all}} w_s}
 $$
 
-Ranking defaults to *fit*, filtered by a professor-set minimum *coverage*. A candidate with low coverage is flagged, not quietly ranked lower or higher.
+The system ranks by *fit* by default and filters by a minimum *coverage* that the professor sets. The system flags a candidate with low coverage. It does not quietly rank the candidate lower or higher.
 
 ### 11.3 Confidence (calculated, not self-reported)
 
-LLM self-reported confidence is poorly calibrated, so confidence comes from measurable signals:
+LLM self-reported confidence is poorly calibrated. Confidence therefore comes from measurable signals:
 
 | Signal | Example |
 |---|---|
 | Evidence count vs. target | 1 item = weak, 3+ = strong |
-| Quote verification ratio | Unverified quotes are dropped |
+| Quote verification ratio | The system drops unverified quotes |
 | Judge agreement | Two independent judge runs agree or disagree |
 | Question origin | Core > follow-up > invented |
 | Prompted vs. unprompted | Unprompted concepts count more toward Level 4 |
 
-Combined into 0–1 by a documented function. The professor's **bounds** (UX-04) apply to this value.
+A documented function combines the signals into a 0–1 value. The professor's **bounds** (UX-04) apply to this value.
 
 ### 11.4 Formula overrides
 
-- Presets plus an expression editor with **only approved variables and functions** (e.g., `score(s)`, `w(s)`, `coverage`, `min`, `max`, `if`).
-- Evaluated on the server in a sandboxed expression engine (e.g., SpEL with `SimpleEvaluationContext`), **never** as free-form code.
-- Versioned. Changes are previewed on sample candidates before applying.
+- The system offers presets and an expression editor with **only approved variables and functions** (e.g., `score(s)`, `w(s)`, `coverage`, `min`, `max`, `if`).
+- The server evaluates formulas in a sandboxed expression engine (e.g., SpEL with `SimpleEvaluationContext`), **never** as free-form code.
+- The system versions formulas. The professor previews changes on sample candidates before applying them.
 
 ---
 
@@ -472,13 +472,13 @@ Combined into 0–1 by a documented function. The professor's **bounds** (UX-04)
 |---|---|---|
 | D1 | Skills from answers | Inferred tags are **suggestions** that the professor approves into a controlled list. This prevents tag sprawl ("Docker" vs. "containers") and keeps calibration consistent. |
 | D2 | One answer → several skills | Allowed, but each evidence item gets its own level and confidence. The default formula caps how much one Q/A pair can add per skill. |
-| D3 | Question weights × skill weights | Both exist (§11). The evidence drawer shows each multiplication step, so the professor sees exactly where a number came from. |
-| D4 | Invented questions | Allowed via toggle. Marked `origin: invented`, lower default weight, can be excluded from cross-candidate ranking to keep comparability. |
-| D5 | Turn budget vs. skill count | Core questions guarantee a minimum of coverage. Gaps show as N/A; a follow-up session is future scope. |
+| D3 | Question weights × skill weights | Both exist (§11). The evidence drawer shows each multiplication step. The professor sees exactly where a number came from. |
+| D4 | Invented questions | Allowed via toggle. The system marks them `origin: invented`, gives them a lower default weight and can exclude them from cross-candidate ranking to keep comparability. |
+| D5 | Turn budget vs. skill count | Core questions guarantee a minimum of coverage. Gaps show as N/A. A follow-up session is future scope. |
 | D6 | Changing the configuration after interviews | Weight and formula changes recompute instantly. Adding skills or core questions creates a new version and marks affected candidates "incomplete." |
 | D7 | Team formation by LLM | Only in a fresh context. Either it converts text into solver constraints (mode B) or its proposal must pass a deterministic validator (mode C). The LLM is a parser and proposer, never the final authority. |
 | D8 | Transcript format | JSON + JSON Schema (`assessment-transcript/v1`), not a custom `.ast` syntax. |
-| D9 | "Ranking" wording | The internal view name stays "Ranking View." The UI emphasises fit against the spec and teams over a single global leaderboard (lower legal risk; matters for the recruiter scope). |
+| D9 | "Ranking" wording | The internal view name stays "Ranking View." The UI emphasises fit against the spec and teams over a single global leaderboard. This lowers legal risk, which matters for the recruiter scope. |
 | D10 | Candidate transparency | Formula, weights and own evidence are visible **after** approval. A dispute path exists (mocked in MVP). |
 
 ---
@@ -491,7 +491,7 @@ Combined into 0–1 by a documented function. The professor's **bounds** (UX-04)
 | AI integration | **Spring AI 2.0** (ChatClient, provider-native structured output, self-correcting schema validation, MCP SDK 2.0) | Recommended |
 | Team formation | **Timefold Solver** (Java constraint solver) | Recommended |
 | Formula engine | SpEL in a restricted context (or a small custom expression parser) | Recommended |
-| Database | **PostgreSQL** (relational tables for scores and evidence, JSONB for transcripts; pgvector optional later), Flyway migrations | Recommended (DB was TBD) |
+| Database | **PostgreSQL** (relational tables for scores and evidence, JSONB for transcripts, pgvector optional later), Flyway migrations | Recommended (DB was TBD) |
 | Frontend | **Vue 3.5 + TypeScript + Vite 8**, Vue Router, Pinia, TanStack Query (Vue) | Decided (Vue) / recommended (rest) |
 | UI components | PrimeVue *or* shadcn-vue + Tailwind CSS v4 | To decide in team |
 | Visualisation | Apache ECharts (vue-echarts) for the skills-matrix heatmap and team balance charts | Recommended |
@@ -501,7 +501,7 @@ Combined into 0–1 by a documented function. The professor's **bounds** (UX-04)
 | Project management & docs | **Jira** (backlog, stories linked to Kiro specs), **Confluence** (Design Thinking artefacts: empathy canvas, domain vision) | From course checklist |
 | Local tooling | Java 21 SDK, Maven, Docker Desktop, IDE | From course checklist |
 
-**Frontend version note:** Vue 3.6 (Vapor Mode) is still a release candidate as of November 2026. Stay on 3.5 stable. Vapor can be tried later on specific components only.
+**Frontend version note:** Vue 3.6 (Vapor Mode) is still a release candidate as of November 2026. Stay on 3.5 stable. The team can try Vapor later on specific components only.
 
 **LLM provider:** TBD. Prefer EU-hosted endpoints (transcripts are personal data).
 
@@ -511,7 +511,7 @@ Combined into 0–1 by a documented function. The professor's **bounds** (UX-04)
 
 - **Kiro IDE:** spec-driven development. Each feature becomes a `.kiro/specs/<feature>/` folder with `requirements.md` (user stories + acceptance criteria in EARS notation), `design.md` and `tasks.md`. Humans review and approve each phase.
 - **Kiro Crew:** orchestrates multiple agents over longer, multi-session work. It reuses the existing `.kiro` configuration (steering files, skills, custom agents).
-- **Harness (team-owned):** steering files with coding rules, custom skills, hooks (lint, tests on save), and review gates. Human-in-the-loop applies to our *own* development too: agents propose, humans approve merges.
+- **Harness (team-owned):** steering files with coding rules, custom skills, hooks (lint, tests on save), and review gates. Human-in-the-loop applies to our *own* development too. Agents propose. Humans approve merges.
 
 ### 14.1 Suggested spec breakdown
 
@@ -542,17 +542,17 @@ Combined into 0–1 by a documented function. The professor's **bounds** (UX-04)
 
 | Risk | Mitigation |
 |---|---|
-| Config changes after interviews invalidate evidence | Versioned configs; block or flag structural changes (D6) |
-| Adaptive questions break comparability | Required core questions; invented questions marked and weighted down (D4) |
+| Config changes after interviews invalidate evidence | Versioned configs. Block or flag structural changes (D6). |
+| Adaptive questions break comparability | Required core questions. The system marks invented questions and weights them down (D4). |
 | Extractor invents quotes | Word-for-word quote verification (pipeline step 3) |
-| LLM judge bias at level boundaries | Two judge runs and agreement as a confidence signal; fixed rubric order; human review |
-| Keyword gaming / AI-assisted answers | Prompted vs. unprompted tracking; "why there?" follow-ups; reward reasoning that fits the scenario |
-| No ground truth for accuracy | Small set of human-rated transcripts; report agreement between humans and the pipeline |
-| N/A distorts rankings | Fit and coverage shown separately; minimum coverage filter |
+| LLM judge bias at level boundaries | Two judge runs and agreement as a confidence signal. Fixed rubric order. Human review. |
+| Keyword gaming / AI-assisted answers | Track prompted vs. unprompted terms. Ask "why there?" follow-ups. Reward reasoning that fits the scenario. |
+| No ground truth for accuracy | Small set of human-rated transcripts. Report agreement between humans and the pipeline. |
+| N/A distorts rankings | Fit and coverage shown separately. Minimum coverage filter. |
 | Review fatigue / rubber-stamping | Confidence bounds, bulk-approve within bounds, track override rate |
-| Unexplainable teams | Timefold constraint scores as reasoning; LLM output always validated |
+| Unexplainable teams | Timefold constraint scores as reasoning. The system always verifies LLM output. |
 | Legal / ethical (high-risk AI) | Human approval required, audit log, candidate transparency, no single global leaderboard in the recruiter scope |
-| LLM latency and cost | Background pipeline jobs with status in the UI; stream the chat |
+| LLM latency and cost | Background pipeline jobs with status in the UI. Stream the chat. |
 | Non-deterministic tests | Record and replay LLM responses |
 | Thin demo data | 15–25 synthetic candidates from deliberately varied personas, clearly labelled as synthetic |
 

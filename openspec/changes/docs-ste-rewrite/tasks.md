@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
-- **Current:** Tasks 1, 2, 4 done; Task 5 next (Task 3 waits for PR #13). Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
-- **Next action:** Task 5 (discovery canvas). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
+- **Current:** Tasks 1, 2, 4, 5 done; Task 6 next (Task 3 waits for PR #13). Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
+- **Next action:** Task 6 (domain specs). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -22,8 +22,8 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
   - [ ] Steps (a)–(f)
 - [x] **4. Architecture docs** — `docs/architecture.md`, `docs/api.md`, `docs/design_system.md`
   - [x] Steps (a)–(f)
-- [ ] **5. Product vision** — `docs/discovery-canvas.md`
-  - [ ] Steps (a)–(f)
+- [x] **5. Product vision** — `docs/discovery-canvas.md`
+  - [x] Steps (a)–(f)
 - [ ] **6. Domain specs** — `openspec/specs/*/spec.md`
   - [ ] Steps (a)–(f)
 - [ ] **7. Changelog**
@@ -59,3 +59,9 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 - **Did:** STE rewrite of `docs/architecture.md`, `docs/api.md`, `docs/design_system.md`; headings, anchors, tables, diagrams unchanged. Main session restored the past tense in the design-system source note and reworded the api.md maintenance rule.
 - **Verification:** RED: n/a (no behaviour). Obligations equal on all 3 files; ste-lint hard findings 19→0, 4→0, 3→0; `openspec validate --all` exit 0; harness tests 35/35.
 - **Next:** Task 5.
+
+### 2026-11-25 — Task 5 (Sonnet subagent, checked by main session)
+- **Did:** STE rewrite of `docs/discovery-canvas.md`; quotes, code, diagrams, tables, headings unchanged. Main session restored the 5 EARS requirements in §14.2 word for word (the subagent had split or shortened them), the concession in §1.1, and made the P1 line pronoun-free.
+- **Verification:** RED: n/a (no behaviour). Obligations equal; ste-lint hard findings 36→7. Accepted exceptions: 6 in the verbatim §14.2 EARS lines (EARS text is not rewritten), 1 synonym in the Spring AI feature name "self-correcting". `openspec validate --all` exit 0; harness tests 35/35.
+- **Rule for Task 6:** EARS requirement sentences stay verbatim; only surrounding prose and scenario text may change.
+- **Next:** Task 6.
