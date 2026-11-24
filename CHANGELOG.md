@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **PR-only `dev` (Decision 3.10):** every change, including `docs:` and `hotfix:` commits, now reaches `dev` through a PR, matching the GitHub `dev` ruleset. The harness upgrade board records the outcome and lessons, and the archived F1–F5 `tasks.md` Status blocks show the merges.
+
 ### Added
 - **AI context docs (Decisions 3.5, 3.6):** `docs/feature_history.md` (backfilled, kept complete by a harness test), `docs/feature_backlog.md` (status, blockers, blast radius), `docs/ai_docs/` notes for Spring Boot 4, Spring AI 2 with ki:connect NRW and Timefold 2.8, the vetted `asd-ste100` skill and linter, `spec-driven.md` rule 6 (plain writing) and three new `AGENTS.md` dispatch rows.
 - **Superpowers loops & archive gate (Decisions 3.7–3.9):** `.claude/settings.json` declares the Superpowers plugin and a `Stop` hook. The new `.claude/hooks/archive-gate.mjs` blocks Claude stops and feature-branch pushes (`.githooks/pre-push`) while a completed OpenSpec change is unarchived, and a repo-invariant test enforces this in CI. The role prompts and `spec-implementer` share one Build Loop (brainstorm → TDD → debug → verify) and require RED/GREEN Verification lines. `openspec/config.yaml` requires the resumable `tasks.md` layout (`## Status`, nested steps, `## Delivery`, `## Handoff Log`).

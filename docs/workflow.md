@@ -8,7 +8,7 @@ This repository is structured as a **tool-agnostic, spec-driven AI software fact
 feat/* | fix/* | refactor/* | chore/*
           │  PR (CI passes, 0 approvals required)
           ▼
-         dev  ◄── direct push allowed ONLY for docs: / hotfix: commits
+         dev  ◄── no direct pushes; docs: / hotfix: also go through a PR
           │  PR (CI passes, >= 2 approvals required)
           ▼
         alpha
@@ -18,7 +18,7 @@ feat/* | fix/* | refactor/* | chore/*
 ```
 
 - **Never push directly** to `master`/`main` or `alpha`.
-- **Direct pushes to `dev`** are blocked by `.githooks/pre-push` and flagged by CI unless every commit uses a `docs:` or `hotfix:` Conventional Commit prefix.
+- **Direct pushes to `dev`** are rejected by the GitHub `dev` ruleset, for every commit type (Decision 3.10). Open a `docs/<slug>` or `hotfix/<slug>` PR instead. The local `.githooks/pre-push` and CI still let `docs:`/`hotfix:` commits through; GitHub is the gate.
 - **Conventional Commits are mandatory** for every commit:
   `type(scope): short imperative summary` (e.g., `feat(evidence): add verbatim quote verifier`, `fix(frontend): render hatched pattern for N/A cells`, `chore(specs): update team-builder tasks`).
 - Keep Pull Requests **small, focused, and readable in under 60 seconds** — explain **What** changed and **Why** in plain language.
