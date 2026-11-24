@@ -14,3 +14,11 @@ description: Enforce spec-driven development via OpenSpec and core Evidence-Firs
    - Confidence MUST be computed from measurable signals, never LLM self-report.
 4. **Human Oversight:** Configurations, flagged/final scores, and team placements require explicit human approval; overrides require a reason and an immutable audit log entry.
 5. **Verify Before Checking Off:** Only check off a task in `tasks.md` after executing and verifying the relevant test/build command.
+6. **Plain Writing (Decision 3.5):**
+   - Write new or changed spec and doc prose in ASD-STE100 (use the `asd-ste100` skill).
+   - Keep instructions at 20 words or fewer per sentence. Keep descriptions at 25 words or fewer.
+   - Use active voice. Write one instruction per sentence. Define a term before you use it.
+   - Do not change EARS keywords (`WHEN`, `WHILE`, `WHERE`, `IF ... THEN`, `SHALL`).
+   - Do not rewrite unchanged text. The `docs-ste-rewrite` change does that.
+   - Check prose with `python3 .agents/skills/asd-ste100/scripts/ste-lint.py <file>`.
+   - *Reviewer level:* **Convention Candidate**.

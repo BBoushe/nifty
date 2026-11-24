@@ -39,6 +39,9 @@ Tools that do not auto-parse `.agents/rules/*.md` YAML frontmatter (Claude Code,
 | Editing `frontend/**` | `.agents/rules/frontend-vue.md` |
 | Branching, committing, pushing, or opening a PR/MR | `.agents/rules/git-workflow.md`, `.github/PULL_REQUEST_TEMPLATE.md` (mirrored in `.gitlab/merge_request_templates/Default.md`), `pr-memo` skill |
 | Answering a `question-round` or receiving a prompter direction change | `record-decision` skill (`node scripts/record-decision.mjs`) |
+| Using a library API from the pinned stack | `docs/ai_docs/<lib>.md` (index: `docs/ai_docs/README.md`). Read the note before you write the code. |
+| Proposing or archiving an OpenSpec change | `docs/feature_backlog.md` + `docs/feature_history.md`. When you propose a change, set its backlog row to `in progress`. When you archive it, remove the row and add a history entry (the harness test fails without it). |
+| Writing or editing docs/specs | `asd-ste100` skill (`.agents/skills/asd-ste100/`), `.agents/rules/spec-driven.md` rule 6 |
 
 ## 4. Git, Forge Switch (`gh` / `glab`) & Commit Rules
 
