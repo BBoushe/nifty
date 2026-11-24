@@ -21,6 +21,8 @@ import {
 } from './lib.mjs';
 
 const PROTECTED_NO_DIRECT = new Set(['master', 'main', 'alpha']);
+// `--no-verify` skips .githooks/pre-push; `-n` is `--dry-run` for push and stays allowed.
+const PROTECTED_HOOKED = new Set([...PROTECTED_NO_DIRECT, 'dev']);
 const DEV_ALLOWED_COMMIT_RE = /^(docs|hotfix)(\([a-z0-9._/-]+\))?!?: /;
 const MAX_COMMAND_DEPTH = 3;
 const SHELLS = new Set(['sh', 'bash', 'zsh']);
@@ -347,6 +349,15 @@ export function evaluateBashCommand(command, options = {}) {
         return {
           blocked: true,
           reason: `BLOCKED: Force pushes ('--force' / '-f') are forbidden by repository policy.`,
+        };
+      }
+
+      const skipsHooks = gitInfo.args.some((t) => t.value === '--no-verify');
+      const hookedTarget = targetBranches.find((b) => PROTECTED_HOOKED.has(b));
+      if (skipsHooks && hookedTarget) {
+        return {
+          blocked: true,
+          reason: `BLOCKED: 'git push --no-verify' to '${hookedTarget}' skips the repository's push hooks. Drop '--no-verify'.`,
         };
       }
 

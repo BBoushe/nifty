@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-hardening`
 - **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Task 3 done (command-string recursion)
-- **Next action:** Task 4, first step (`--no-verify` push block)
+- **Current:** Task 4 done (`--no-verify` push block; all tests green)
+- **Next action:** Task 5, first step (replace `shortcut:` comment in `lib.mjs`)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -27,10 +27,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
   - [x] Implement design §2 in `guard-bash.mjs`.
   - [x] Run the tests. Expect: the `-c`, `eval` and depth rows pass.
   - [x] Commit `fix(hooks): evaluate sh -c, rtk run -c, env -S and eval strings`.
-- [ ] **4. Block `--no-verify` pushes to protected targets** — REQ-BG-04
-  - [ ] Implement design §3.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-  - [ ] Commit `fix(hooks): block git push --no-verify to protected branches`.
+- [x] **4. Block `--no-verify` pushes to protected targets** — REQ-BG-04
+  - [x] Implement design §3.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+  - [x] Commit `fix(hooks): block git push --no-verify to protected branches`.
 - [ ] **5. Comment and docs**
   - [ ] Replace the wrong `shortcut:` comment in `lib.mjs` with design §4.
   - [ ] Update `README.md` (Optional: RTK) and `docs/setup.md` per design §5, including the "Guard Layers" subsection.
@@ -73,4 +73,11 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (only the `git push --no-verify origin dev` row left); `-c`/`eval`/`env -S`/depth rows probed → blocked, 3 levels allowed, 4 levels blocked with `depth 3` reason
 - Contracts/Migrations added: none
 - Decisions: inner evaluation reuses the outer `currentBranch` so nested strings never re-query git.
+- Open Questions: none
+
+### Task 4 — `--no-verify` push block
+- Commits: `fix(hooks): block git push --no-verify to protected branches`
+- Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (`git push --no-verify origin dev` row); GREEN `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (29/29)
+- Contracts/Migrations added: none
+- Decisions: `-n` stays allowed (`--dry-run`), per proposal deviation.
 - Open Questions: none
