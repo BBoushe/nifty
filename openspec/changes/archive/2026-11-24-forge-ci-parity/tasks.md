@@ -4,11 +4,11 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Delivery: GitHub rulesets applied (3 new required checks verified live + on PR #10)
-- **Next action:** cold review (reviewer agent) → GitLab MR pipeline green → ask user, then merge PR #10 on GitHub
+- **Current:** Delivery: rulesets applied; cold review APPROVE (0 Blocking)
+- **Next action:** GitLab MR !9 pipeline green, then `gh pr checks 10` green → ask user → `gh pr merge 10 --merge` → `forge.mjs sync dev`
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/10 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/9
-- **Open review findings:** —
+- **Open review findings:** none blocking. Convention Candidates: drift-test keyword filter ignores new toolchains (pnpm, docker compose build); line parser skips `run: |` blocks (none today).
 
 ## Tasks
 
@@ -50,7 +50,7 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - [x] `node scripts/forge.mjs push`
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "ci: gate GitHub on the same jobs as GitLab" --body-file <file>`. Record the links in Status.
 - [x] **Apply GitHub rulesets (ops — ask the user first)** once the two image jobs have reported on this PR: `scripts/apply-github-rulesets.sh`. Verify: `gh pr checks <n>` lists `Backend Image (Docker)`, `Frontend Image (Docker)` and `Hook Tests (Node)` as required.
-- [ ] Cold review session: verdict has no Blocking items.
+- [x] Cold review session: verdict has no Blocking items.
 - [ ] **GitLab first:** MR pipeline green (`glab api projects/6748/merge_requests/<iid>/pipelines`), then `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [ ] `node scripts/forge.mjs sync dev` (Maintainer), then `node scripts/forge.mjs status` prints 0/0 for every branch. The GitLab MR flips to merged by itself.
@@ -105,4 +105,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** `scripts/apply-github-rulesets.sh BBoushe/nifty` → exit 0 (updated ids 27855088/27855090/27855091); `gh pr checks 10 --required` lists `Backend Image (Docker)`, `Frontend Image (Docker)`, `Hook Tests (Node)` (all pass).
 - **Contracts/Migrations added:** live GitHub rulesets (server-side)
 - **Decisions:** user approved applying after both image jobs reported green on PR #10.
+- **Open Questions:** none
+
+### Delivery — cold review
+- **Commits:** `chore(specs): record forge-ci-parity cold review`
+- **Verification:** reviewer agent on `git diff origin/dev...HEAD` → Verdict APPROVE, 0 Blocking; `node --test scripts/harness-scripts.test.mjs` 14/14.
+- **Contracts/Migrations added:** none
+- **Decisions:** Convention Candidates left as-is (no multi-line `run: |` or other toolchains in CI today).
 - **Open Questions:** none
