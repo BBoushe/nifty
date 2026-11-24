@@ -18,10 +18,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
   - [x] Add `describe('feature history')` per design §2.
   - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: FAIL naming the 4 archived folders (no history file yet).
   - [x] Commit `test(harness): require a history entry for every archived change`.
-- [ ] **2. Backfill the history (GREEN)** — REQ-CD-01
-  - [ ] Write `docs/feature_history.md` per design §1 for the 4 changes archived on 2026-11-24.
-  - [ ] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
-  - [ ] Commit `docs(history): add feature history backfilled from archived changes`.
+- [x] **2. Backfill the history (GREEN)** — REQ-CD-01
+  - [x] Write `docs/feature_history.md` per design §1 for the 4 changes archived on 2026-11-24.
+  - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
+  - [x] Commit `docs(history): add feature history backfilled from archived changes`.
 - [ ] **3. Backlog** — REQ-CD-03
   - [ ] Write `docs/feature_backlog.md` per design §3.
   - [ ] Commit `docs(backlog): add feature backlog with blast radius and blockers`.
@@ -61,4 +61,11 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (names the 4 archived folders); GREEN n/a (task 2)
 - **Contracts/Migrations added:** none
 - **Decisions:** none new (3.5, 3.6 already recorded)
+- **Open Questions:** none
+
+### Task 2 — Backfill the history (GREEN)
+- **Commits:** `docs(history): add feature history backfilled from archived changes`
+- **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (task 1); GREEN same cmd → exit 0
+- **Contracts/Migrations added:** `docs/feature_history.md` (heading format `## YYYY-MM-DD — <change>`)
+- **Decisions:** none new; PR mapping from `git log`: project-setup + docker-and-kiconnect → #1, harness-v2-upgrade + decisions-coding-rules-gitlab → #2
 - **Open Questions:** none
