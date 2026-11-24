@@ -85,7 +85,7 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - **Open Questions:** none
 
 ### Task 4 — Quiet Maven output
-- **Commits:** `build(backend): cut maven and spring test log noise`
+- **Commits:** `build(backend): cut maven and spring test log noise`, `build(backend): copy maven.config into the docker build` (design §5 promised `-ntp` there; Dockerfile only copied `pom.xml`/`src`; `docker build` → exit 0)
 - **Verification:** RED `./mvnw -B test 2>&1 | wc -l` → 236 lines, 2 Spring banners, 41 framework INFO lines (warm cache, 0 downloads); GREEN `cd backend && ./mvnw -B test` → exit 0, 59 lines, 0 `Downloading from|Downloaded from`, 0 banners, 0 INFO framework logs
 - **Contracts/Migrations added:** `backend/.mvn/maven.config` (`-ntp`), `application-test.yml` (banner off, root WARN), `src/test/resources/logback-test.xml` (root WARN before Boot reads the profile; console only)
 - **Decisions:** `GlobalExceptionHandlerTest` activates profile `test` and turns off only the handler logger, which otherwise prints its expected ~110-line stack trace; remaining output is JVM/Mockito agent and framework WARN lines

@@ -7,6 +7,7 @@ WORKDIR /app
 ENV MAVEN_OPTS="-Djava.net.preferIPv4Stack=true"
 
 COPY pom.xml .
+COPY .mvn/maven.config .mvn/maven.config
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -Dmaven.resolver.transport=wagon dependency:go-offline
 
