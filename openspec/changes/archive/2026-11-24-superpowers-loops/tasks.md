@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Delivery: cold review APPROVE (0 Blocking); gate narrowed to `refs/heads/*`
-- **Next action:** Delivery: wait for green CI on GitHub PR #9 + GitLab MR !8, then merge on GitHub (ask the user first)
+- **Current:** Delivery: CI green on 6ae2982 (GitHub PR #9 5/5, GitLab pipeline 8716 7/7)
+- **Next action:** WAIT. The user said not to merge until they say so. Then: `gh pr merge 9 --merge`, `node scripts/forge.mjs sync dev`, `node scripts/forge.mjs status`, then cleanup
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/9 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/8
 - **Open review findings:** Convention Candidates only (not fixed, outside owned files): `docs/workflow.md:48` Handoff step lacks the RED/GREEN format; `docs/setup.md:66` `.githooks/` row omits the archive gate; Delivery template runs tests before archive
@@ -53,7 +53,7 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - [x] `node scripts/forge.mjs push` (the new pre-push gate runs here for the first time).
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "chore: superpowers loops, resumable tasks and archive gate" --body-file <file>`. Record the links in Status.
 - [x] Cold review session: verdict has no Blocking items.
-- [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
+- [x] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
 - [ ] After `git merge-base --is-ancestor chore/superpowers-loops origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-superpowers-loops`.
