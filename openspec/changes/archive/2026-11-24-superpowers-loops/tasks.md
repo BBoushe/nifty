@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Task 6 committed (not pushed: the archive gate blocks until the change is archived)
-- **Next action:** Delivery step 1 (rebase on origin/dev), then archive, then push
+- **Current:** Delivery: rebased (no-op), archived to `openspec/changes/archive/2026-11-24-superpowers-loops/`, tests green
+- **Next action:** Delivery step 4: `node scripts/forge.mjs push` (Task 6 + archive commits not pushed yet)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -47,9 +47,9 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 
 ## Delivery
 
-- [ ] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `hooks.test.mjs`, `AGENTS.md` and `docs/setup.md`, keep both sides.
-- [ ] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0. The repo-invariant test now also guards `dev`.
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive superpowers-loops -y --skip-specs`. Continue in `openspec/changes/archive/*-superpowers-loops/tasks.md`. If `docs/feature_history.md` exists, add this change's entry. Commit `chore(specs): archive superpowers-loops`.
+- [x] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `hooks.test.mjs`, `AGENTS.md` and `docs/setup.md`, keep both sides.
+- [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0. The repo-invariant test now also guards `dev`.
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive superpowers-loops -y --skip-specs`. Continue in `openspec/changes/archive/*-superpowers-loops/tasks.md`. If `docs/feature_history.md` exists, add this change's entry. Commit `chore(specs): archive superpowers-loops`.
 - [ ] `node scripts/forge.mjs push` (the new pre-push gate runs here for the first time).
 - [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "chore: superpowers loops, resumable tasks and archive gate" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session: verdict has no Blocking items.
@@ -101,3 +101,10 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Contracts/Migrations added:** AGENTS.md §6 archive-gate row; `docs/setup.md` rows for `archive-gate.mjs`, `hooks.Stop`, `enabledPlugins` (includes the per-clone install command)
 - **Decisions:** 3.7, 3.8
 - **Open Questions:** none
+
+### Delivery — rebase + archive (2026-11-24)
+- **Commits:** `chore(specs): archive superpowers-loops`
+- **Verification:** before archive, `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → FAIL (repo invariant lists `superpowers-loops`, so the gate works); after archive, same cmd → exit 0 (30/30); `OPENSPEC_TELEMETRY=0 openspec validate --all` → exit 0
+- **Contracts/Migrations added:** none; `docs/feature_history.md` does not exist, so no entry
+- **Decisions:** 3.8. The Delivery order has "re-run tests, expect exit 0" before "archive", but that can only pass after archiving. Ran the re-run again after the archive
+- **Open Questions:** fix that ordering in the next tasks.md template?
