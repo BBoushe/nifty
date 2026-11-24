@@ -14,6 +14,7 @@ import {
   commandStringFlag,
   findSecretsInDiff,
   getGitSubcommand,
+  globMatchesEnv,
   isBlockedEnvPath,
   readStdinJson,
   splitShellSegments,
@@ -44,11 +45,21 @@ function defaultRunGit(args, cwd = process.cwd()) {
   }
 }
 
+/** `$( ... )` and backtick substitutions the shell runs; single-quoted text is data and is skipped. */
 function extractCommandSubstitutions(segment) {
   const subs = [];
-  // Extract $( ... ) substitutions respecting nested parentheses
-  for (let i = 0; i < segment.length - 1; i += 1) {
-    if (segment[i] === '$' && segment[i + 1] === '(') {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < segment.length; i += 1) {
+    const ch = segment[i];
+    if (ch === '\\' && !inSingle) {
+      i += 1;
+      continue;
+    }
+    if (ch === "'" && !inDouble) inSingle = !inSingle;
+    else if (ch === '"' && !inSingle) inDouble = !inDouble;
+    else if (inSingle) continue;
+    else if (ch === '$' && segment[i + 1] === '(') {
       let depth = 1;
       let j = i + 2;
       while (j < segment.length && depth > 0) {
@@ -60,15 +71,21 @@ function extractCommandSubstitutions(segment) {
         subs.push(segment.slice(i + 2, j - 1));
         i = j - 1;
       }
+    } else if (ch === '`') {
+      const end = segment.indexOf('`', i + 1);
+      if (end === -1) break;
+      if (end > i + 1) subs.push(segment.slice(i + 1, end));
+      i = end;
     }
   }
-  // Extract backtick `...` substitutions
-  const backtickRe = /`([^`]+)`/g;
-  let m;
-  while ((m = backtickRe.exec(segment)) !== null) {
-    subs.push(m[1]);
-  }
   return subs;
+}
+
+/** A path argument that names a secret env file, or an unquoted glob that matches one. */
+function envArgument(token) {
+  if (isBlockedEnvPath(token.value)) return token.value;
+  if (!token.quoted && globMatchesEnv(token.value)) return token.value;
+  return null;
 }
 
 function segmentTouchesBlockedEnv(segment, depth = 0) {
@@ -102,7 +119,8 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
 
     for (const tok of gitInfo.args) {
       if (tok.value.startsWith('-')) continue;
-      if (isBlockedEnvPath(tok.value)) return tok.value;
+      const hit = envArgument(tok);
+      if (hit) return hit;
     }
     return null;
   }
@@ -123,9 +141,8 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
       }
       continue;
     }
-    if (isBlockedEnvPath(val)) {
-      return val;
-    }
+    const hit = envArgument(tokens[i]);
+    if (hit) return hit;
   }
   return null;
 }
@@ -336,9 +353,15 @@ export function evaluateBashCommand(command, options = {}) {
   const currentBranch =
     options.currentBranch ?? runGit(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
   const depth = options._depth ?? 0;
+  // Shared by nested calls, so `git add . && sh -c "git commit"` still counts as chained.
+  const chain = options._chain ?? { add: false, commit: false };
+  const nested = { ...options, currentBranch, _depth: depth + 1, _chain: chain };
+  const tooDeep = {
+    blocked: true,
+    reason: `BLOCKED: command nesting exceeds depth ${MAX_COMMAND_DEPTH}. Run the inner command directly.`,
+  };
 
   const segments = splitShellSegments(command);
-  let hasGitAdd = false;
   let hasGitCommit = false;
 
   for (const segment of segments) {
@@ -353,9 +376,16 @@ export function evaluateBashCommand(command, options = {}) {
       };
     }
 
+    // 2. Evaluate `$( ... )` and backtick substitutions as commands of their own
+    for (const sub of extractCommandSubstitutions(segment)) {
+      if (depth + 1 > MAX_COMMAND_DEPTH) return tooDeep;
+      const subResult = evaluateBashCommand(sub, nested);
+      if (subResult.blocked) return subResult;
+    }
+
     const tokens = tokenizeSegment(segment);
 
-    // 2. Evaluate command strings (`sh -c`, `rtk run -c`, `env -S`, `eval`) with the same rules
+    // 3. Evaluate command strings (`sh -c`, `rtk run -c`, `env -S`, `eval`) with the same rules
     const inner = extractCommandString(stripLeadingEnvAssignments(tokens));
     if (inner === STDIN) {
       return {
@@ -364,13 +394,8 @@ export function evaluateBashCommand(command, options = {}) {
       };
     }
     if (inner !== null) {
-      if (depth + 1 > MAX_COMMAND_DEPTH) {
-        return {
-          blocked: true,
-          reason: `BLOCKED: command nesting exceeds depth ${MAX_COMMAND_DEPTH}. Run the inner command directly.`,
-        };
-      }
-      const innerResult = evaluateBashCommand(inner, { ...options, currentBranch, _depth: depth + 1 });
+      if (depth + 1 > MAX_COMMAND_DEPTH) return tooDeep;
+      const innerResult = evaluateBashCommand(inner, nested);
       if (innerResult.blocked) return innerResult;
       continue;
     }
@@ -379,7 +404,7 @@ export function evaluateBashCommand(command, options = {}) {
     if (!gitInfo) continue;
 
     if (gitInfo.subcommand === 'add') {
-      hasGitAdd = true;
+      chain.add = true;
     }
 
     if (gitInfo.subcommand === 'commit') {
@@ -396,9 +421,10 @@ export function evaluateBashCommand(command, options = {}) {
         };
       }
       hasGitCommit = true;
+      chain.commit = true;
     }
 
-    // 3. Protected branch push checks
+    // 4. Protected branch push checks
     if (gitInfo.subcommand === 'push') {
       const { hasForce, hasAllOrMirror, skipsHooks, targetBranches } = parseGitPushTargets(
         gitInfo.args,
@@ -443,8 +469,8 @@ export function evaluateBashCommand(command, options = {}) {
     }
   }
 
-  // 4. Block chaining `git add ... && git commit` so staged diffs are always scanned cleanly
-  if (hasGitAdd && hasGitCommit) {
+  // 5. Block chaining `git add ... && git commit` (also across command strings) so staged diffs are scanned cleanly
+  if (depth === 0 && chain.add && chain.commit) {
     return {
       blocked: true,
       reason:
@@ -453,7 +479,7 @@ export function evaluateBashCommand(command, options = {}) {
     };
   }
 
-  // 5. On `git commit`, enforce protected branch + staged secret scan
+  // 6. On `git commit`, enforce protected branch + staged secret scan
   if (hasGitCommit) {
     return evaluatePreCommit({
       runGit,

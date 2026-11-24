@@ -68,7 +68,12 @@ const WRAPPER_VALUE_FLAGS = {
   time: [],
   sudo: ['-u', '-g', '-C', '-h', '-p', '-r', '-t', '-U', '-D'],
   xargs: ['-I', '-n', '-P', '-L', '-s', '-d', '-E', '-a'],
+  exec: ['-a'],
+  nohup: [],
+  timeout: ['-s', '--signal', '-k', '--kill-after'], // then one duration operand
 };
+// Shell grouping tokens and keywords that only introduce the command after them.
+const SHELL_PREFIX_WORDS = new Set(['(', '{', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until']);
 // `proxy` is the deprecated alias of `bypass`; all of these run the command that follows.
 const RTK_PASSTHROUGH = ['proxy', 'bypass', 'err', 'test', 'summary'];
 
@@ -110,10 +115,14 @@ export function stripLeadingEnvAssignments(tokens) {
   for (;;) {
     const t = idx < tokens.length ? tokens[idx].value : '';
     const name = t.split('/').pop();
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) idx += 1;
-    else if (Object.hasOwn(WRAPPER_VALUE_FLAGS, name)) {
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t) || (!tokens[idx]?.quoted && SHELL_PREFIX_WORDS.has(t))) idx += 1;
+    else if (!tokens[idx]?.quoted && /^[({]+./.test(t)) {
+      // `(git push ...)`: drop the group opener stuck to the command and look again.
+      tokens = [...tokens.slice(0, idx), { ...tokens[idx], value: t.replace(/^[({]+/, '') }, ...tokens.slice(idx + 1)];
+    } else if (Object.hasOwn(WRAPPER_VALUE_FLAGS, name)) {
       const stop = name === 'env' ? (v) => commandStringFlag(v, 'env') : undefined;
       idx = skipFlags(tokens, idx + 1, WRAPPER_VALUE_FLAGS[name], stop);
+      if (name === 'timeout') idx += 1;
     } else if (name === 'rtk') {
       idx = skipFlags(tokens, idx + 1, []);
       const sub = tokens[idx]?.value;
@@ -121,7 +130,13 @@ export function stripLeadingEnvAssignments(tokens) {
       else if (sub === 'run') idx = skipFlags(tokens, idx + 1, ['--shell'], (v) => commandStringFlag(v, 'rtk-run'));
     } else break;
   }
-  return tokens.slice(idx);
+  const out = tokens.slice(idx);
+  const last = out[out.length - 1];
+  // `(git push origin master)`: an unquoted trailing `)` closes the group, it is not part of the argument.
+  if (last && !last.quoted && /[^)]\)+$/.test(last.value)) {
+    out[out.length - 1] = { ...last, value: last.value.replace(/\)+$/, '') };
+  }
+  return out;
 }
 
 /**
@@ -163,6 +178,28 @@ export function getGitSubcommand(tokens) {
  * Returns true if a file path or glob pattern targets `.env` or `.env.*`
  * while explicitly allowing `.env.example` (and `*.env.example`).
  */
+/**
+ * True when an unquoted glob argument (`.en?`, `.e*`, `.[e]nv`, `.*`) would match a secret env file.
+ * The example file stays allowed.
+ */
+export function globMatchesEnv(input) {
+  if (typeof input !== 'string' || !/[*?[]/.test(input) || /\.env\.example$/i.test(input)) return false;
+  return input.split('/').some((seg) => {
+    // Only a literal leading `.` can match a dotfile (default shell globbing).
+    if (!seg.startsWith('.') || !/[*?[]/.test(seg)) return false;
+    const body = seg
+      .replace(/[.+^${}()|\\]/g, '\\$&')
+      .replace(/\*/g, '[^/]*')
+      .replace(/\?/g, '[^/]');
+    try {
+      const re = new RegExp(`^${body}$`, 'i');
+      return re.test('.env') || re.test('.env.local');
+    } catch {
+      return false; // not a valid glob class, so the shell passes it literally
+    }
+  });
+}
+
 export function isBlockedEnvPath(input) {
   if (typeof input !== 'string' || !input.trim()) return false;
   const cleaned = normalizePath(input).replace(/^['"]|['"]$/g, '');
@@ -227,6 +264,13 @@ export function splitShellSegments(command) {
         if (current.trim()) segments.push(current.trim());
         current = '';
         i += 1;
+        continue;
+      }
+      // A single `&` runs the left side in the background; `2>&1`, `>&2`, `&>` are redirections.
+      const prev = command[i - 1] ?? '';
+      if (ch === '&' && prev !== '>' && prev !== '<' && next !== '>') {
+        if (current.trim()) segments.push(current.trim());
+        current = '';
         continue;
       }
       if (ch === ';' || ch === '|' || ch === '\n') {
