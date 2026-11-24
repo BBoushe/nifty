@@ -22,9 +22,9 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
   - [x] Write `docs/feature_history.md` per design §1 for the 4 changes archived on 2026-11-24.
   - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
   - [x] Commit `docs(history): add feature history backfilled from archived changes`.
-- [ ] **3. Backlog** — REQ-CD-03
-  - [ ] Write `docs/feature_backlog.md` per design §3.
-  - [ ] Commit `docs(backlog): add feature backlog with blast radius and blockers`.
+- [x] **3. Backlog** — REQ-CD-03
+  - [x] Write `docs/feature_backlog.md` per design §3.
+  - [x] Commit `docs(backlog): add feature backlog with blast radius and blockers`.
 - [ ] **4. Library notes** — REQ-CD-04
   - [ ] Write `docs/ai_docs/README.md` and the three notes per design §4. Each note has `Version:`, `Sources:` and `Retrieved:`, and is ≤150 lines.
   - [ ] Check: `wc -l docs/ai_docs/*.md` (each ≤150); every version matches `backend/pom.xml`.
@@ -69,3 +69,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Contracts/Migrations added:** `docs/feature_history.md` (heading format `## YYYY-MM-DD — <change>`)
 - **Decisions:** none new; PR mapping from `git log`: project-setup + docker-and-kiconnect → #1, harness-v2-upgrade + decisions-coding-rules-gitlab → #2
 - **Open Questions:** none
+
+### Task 3 — Backlog
+- **Commits:** `docs(backlog): add feature backlog with blast radius and blockers`
+- **Verification:** RED n/a (docs only, no test in tasks.md); GREEN `node --test scripts/harness-scripts.test.mjs` → exit 0
+- **Contracts/Migrations added:** `docs/feature_backlog.md`; migration column lists planned tables only
+- **Decisions:** none new; O-item → row mapping is my reading of `docs/decisions/index.md` (review it)
+- **Open Questions:** `#feature-slice-map` anchor arrives with `backend-architecture-baseline`
