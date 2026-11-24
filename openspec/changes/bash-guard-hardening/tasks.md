@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `fix/bash-guard-hardening` (not created)
-- **Worktree:** —
-- **Current:** not started
-- **Next action:** Task 1, first step
+- **Branch:** `fix/bash-guard-hardening`
+- **Worktree:** `../nifty-bash-guard-hardening`
+- **Current:** Task 1 done (RED probes committed)
+- **Next action:** Task 2, first step (wrapper peeling in `lib.mjs`)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -14,11 +14,11 @@
 
 Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/`guard-bash` describe blocks in `.claude/hooks/hooks.test.mjs`, the README "Optional: RTK" section, and the RTK paragraphs + "Guard Layers" in `docs/setup.md`. Read `design.md` first.
 
-- [ ] **1. Must-block and must-allow tests (RED)** — REQ-BG-01..05
-  - [ ] In the `guard-bash` describe of `hooks.test.mjs`, add `it('blocks guarded commands hidden behind wrappers and command strings')`. Use `cleanOpts` (`currentBranch: 'feat/x'`) and assert `blocked === true` for every row of the proposal table, plus `bash -lc "git push origin master"`, `sudo -u x git push origin master`, `nice -n 5 git push origin master`, `env -S "git push origin master"`, and four nested `sh -c` levels around `echo hi`.
-  - [ ] Add `it('allows harmless commands behind wrappers')`: assert `blocked === false` for `rtk git status`, `rtk err npm run build`, `rtk test ./mvnw -B test`, `sh -c "npm run lint"`, `time ./mvnw -B test`, `git push origin feat/x`, `git push --no-verify origin feat/x`, `git push -n origin dev`, and `git commit -m "docs: mention sh -c and .env"`.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the new must-block test FAILS; all existing tests pass.
-  - [ ] Commit `test(hooks): add wrapper and command-string guard probes`.
+- [x] **1. Must-block and must-allow tests (RED)** — REQ-BG-01..05
+  - [x] In the `guard-bash` describe of `hooks.test.mjs`, add `it('blocks guarded commands hidden behind wrappers and command strings')`. Use `cleanOpts` (`currentBranch: 'feat/x'`) and assert `blocked === true` for every row of the proposal table, plus `bash -lc "git push origin master"`, `sudo -u x git push origin master`, `nice -n 5 git push origin master`, `env -S "git push origin master"`, and four nested `sh -c` levels around `echo hi`.
+  - [x] Add `it('allows harmless commands behind wrappers')`: assert `blocked === false` for `rtk git status`, `rtk err npm run build`, `rtk test ./mvnw -B test`, `sh -c "npm run lint"`, `time ./mvnw -B test`, `git push origin feat/x`, `git push --no-verify origin feat/x`, `git push -n origin dev`, and `git commit -m "docs: mention sh -c and .env"`.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the new must-block test FAILS; all existing tests pass.
+  - [x] Commit `test(hooks): add wrapper and command-string guard probes`.
 - [ ] **2. Wrapper peeling (GREEN part 1)** — REQ-BG-01
   - [ ] Extend `stripLeadingEnvAssignments` per the design §1 table.
   - [ ] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the wrapper rows pass; only the command-string and `--no-verify` rows still fail; the `guard-agent` tests stay green.
@@ -53,3 +53,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - [ ] After `git merge-base --is-ancestor fix/bash-guard-hardening origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-bash-guard-hardening`.
 
 ## Handoff Log
+
+### Task 1 — RED probes
+- Commits: `test(hooks): add wrapper and command-string guard probes`
+- Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (16/17, only the must-block test); GREEN n/a (RED-only task)
+- Contracts/Migrations added: none
+- Decisions: `bash -c "git commit -m x"` is probed on `master`, because a plain commit on `feat/x` is allowed when run directly (REQ-BG-01 equivalence); probes pass `pushCommitSubjects: ['docs: x']` so dev pushes are deterministic.
+- Open Questions: none

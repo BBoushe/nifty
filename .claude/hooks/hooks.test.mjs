@@ -212,6 +212,62 @@ describe('guard-bash.mjs', () => {
     assert.equal(allowedDev.blocked, false);
   });
 
+  // REQ-BG-01..05: `pushCommitSubjects` keeps dev pushes deterministic, so only the guard under test decides.
+  const wrapOpts = { ...cleanOpts, currentBranch: 'feat/x', pushCommitSubjects: ['docs: x'] };
+  const shQuote = (s) => `'${s.replaceAll("'", "'\\''")}'`;
+
+  it('blocks guarded commands hidden behind wrappers and command strings', () => {
+    let nested = 'echo hi';
+    for (let i = 0; i < 4; i += 1) nested = `sh -c ${shQuote(nested)}`;
+    for (const cmd of [
+      'rtk err git push origin master',
+      'rtk test git push origin master',
+      'rtk summary git push origin master',
+      'rtk run git push origin master',
+      'rtk run -- git push origin master',
+      'rtk run -c "git push origin master"',
+      'sh -c "git push origin master"',
+      'sh -c "cat .env"',
+      'rtk run -c "cat .env"',
+      'eval git push origin master',
+      'xargs git push origin master',
+      'nice git push origin master',
+      'time git push origin master',
+      'sudo git push origin master',
+      'env -u VAR git push origin master',
+      'git push --no-verify origin dev',
+      'bash -lc "git push origin master"',
+      'sudo -u x git push origin master',
+      'nice -n 5 git push origin master',
+      'env -S "git push origin master"',
+      nested,
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
+    }
+    // A plain commit is only blocked on a protected branch, so probe the hidden commit there.
+    assert.equal(
+      evaluateBashCommand('bash -c "git commit -m x"', { ...wrapOpts, currentBranch: 'master' }).blocked,
+      true
+    );
+    assert.match(evaluateBashCommand(nested, wrapOpts).reason, /depth 3/);
+  });
+
+  it('allows harmless commands behind wrappers', () => {
+    for (const cmd of [
+      'rtk git status',
+      'rtk err npm run build',
+      'rtk test ./mvnw -B test',
+      'sh -c "npm run lint"',
+      'time ./mvnw -B test',
+      'git push origin feat/x',
+      'git push --no-verify origin feat/x',
+      'git push -n origin dev',
+      'git commit -m "docs: mention sh -c and .env"',
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, false, `expected allow for '${cmd}'`);
+    }
+  });
+
   it('blocks staged secrets and staged .env files in pre-commit', () => {
     const secretCommit = evaluatePreCommit({
       currentBranch: 'feat/new-harness-tools',
