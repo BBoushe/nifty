@@ -4,11 +4,11 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`; change now at `openspec/changes/archive/2026-11-24-backend-architecture-baseline/`
-- **Current:** PR/MR open; cold review + CI pending
-- **Next action:** cold review (reviewer + backend-spring-check), then CI green on both forges
+- **Current:** cold review APPROVE (0 Blocking); CI re-running after review follow-ups
+- **Next action:** GitLab MR pipeline + `gh pr checks 8` green, then ask the user before merging
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/8 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/7
-- **Open review findings:** —
+- **Open review findings:** non-blocking only: composite ArchUnit sub-rules (layout packages/persistence/services, repository→service/web) lack their own fixtures; catch-all handler turns `@ResponseStatus` exceptions into 500 (use `DomainException`). Fixed: empty-import guard, `errors` wording in `docs/api.md` §3
 
 ## Tasks
 
@@ -55,7 +55,7 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - [x] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit. — n/a: file absent after rebase
 - [x] `node scripts/forge.mjs push`
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "refactor(backend): package-by-feature baseline with ArchUnit and ProblemDetail" --body-file <file>`. Record the links in Status.
-- [ ] Cold review session (also run the `backend-spring-check` skill): verdict has no Blocking items.
+- [x] Cold review session (also run the `backend-spring-check` skill): verdict has no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.

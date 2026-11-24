@@ -29,7 +29,7 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 | `status` | HTTP status code |
 | `detail` | Human-readable explanation, safe for clients |
 | `instance` | Request path that failed |
-| `errors` | Only on `400` validation failures: list of `{ "field", "message" }` |
+| `errors` | Only on `400` for an invalid `@Valid` request body: list of `{ "field", "message" }` |
 
 ```json
 {
