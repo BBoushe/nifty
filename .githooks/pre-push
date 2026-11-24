@@ -12,7 +12,7 @@ ARCHIVE_GATE_DONE=""
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ -z "${remote_ref:-}" ] && continue
 
-  # Archive gate (REQ-SL-04, Decision 3.9): once per push, only for feature-branch updates.
+  # Archive gate (REQ-SL-04, Decision 3.8): once per push, only for feature-branch updates.
   # Protected targets and mirror syncs (`forge.mjs sync` uses --no-verify) never run it.
   case "$remote_ref" in
     refs/heads/dev|refs/heads/alpha|refs/heads/master|refs/heads/main) ;;

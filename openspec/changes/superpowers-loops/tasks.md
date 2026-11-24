@@ -64,14 +64,14 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Commits:** `feat(hooks): add archive gate for completed openspec changes`
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (ERR_MODULE_NOT_FOUND archive-gate.mjs); GREEN: `node --test .claude/hooks/hooks.test.mjs` → exit 0 (17/17, repo invariant passes)
 - **Contracts/Migrations added:** `findCompletedUnarchivedChanges(repoRoot)` in `.claude/hooks/archive-gate.mjs`
-- **Decisions:** 3.9; test imports kept inside the `archive gate` block to stay in owned lines
+- **Decisions:** 3.8; test imports kept inside the `archive gate` block to stay in owned lines
 - **Open Questions:** none
 
 ### Task 2 — Stop hook and pre-push wiring (2026-11-24)
 - **Commits:** `feat(hooks): run archive gate on Claude stop and feature-branch pre-push`
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (stop-hook stdout empty: "Unexpected end of JSON input"); GREEN: `node --test .claude/hooks/hooks.test.mjs` → exit 0 (18/18). Manual: `git push --dry-run origin HEAD:refs/heads/scratch/archive-gate-check` with an all-`[x]` fixture → blocked; same with `NIFTY_SKIP_GATE=1` → passes; `dev` target → gate not run; fixture removed, no remote ref created
 - **Contracts/Migrations added:** `archive-gate.mjs --stop-hook | --pre-push`; `NIFTY_REPO_ROOT` (tests only)
-- **Decisions:** 3.9; pre-push skips branch deletions (zero local sha) and used `--dry-run` instead of a real scratch push
+- **Decisions:** 3.8; pre-push skips branch deletions (zero local sha) and used `--dry-run` instead of a real scratch push
 - **Open Questions:** none
 
 ### Task 3 — Settings (2026-11-24)

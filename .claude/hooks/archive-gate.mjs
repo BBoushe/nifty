@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Archive gate (REQ-SL-04, Decision 3.9): reports OpenSpec changes whose tasks above
+ * Archive gate (REQ-SL-04, Decision 3.8): reports OpenSpec changes whose tasks above
  * `## Delivery` are all checked but which still sit outside `openspec/changes/archive/`.
  */
 import fs from 'node:fs';
