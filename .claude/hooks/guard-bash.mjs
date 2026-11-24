@@ -174,14 +174,42 @@ function shellCommandString(tokens) {
   return sawC ? null : STDIN;
 }
 
-function parseGitPushTargets(args, currentBranch) {
+// git accepts any unambiguous prefix of a long option; `min` is the shortest unambiguous length.
+function isLongOptionPrefix(value, full, min) {
+  const name = value.split('=')[0];
+  return name.length >= min && full.startsWith(name);
+}
+
+const FORCE_OPTIONS = ['--force', '--force-with-lease', '--force-if-includes'];
+
+function isForceFlag(val) {
+  if (/^-[A-Za-z]*f[A-Za-z]*$/.test(val)) return true; // -f, -fu
+  // `--fo` is ambiguous with `--follow-tags`, so 5 characters is the floor.
+  return FORCE_OPTIONS.some((full) => isLongOptionPrefix(val, full, 5));
+}
+
+/** True when `git -c core.hooksPath=…` or `--config-env=core.hooksPath=…` replaces the hooks. */
+function overridesHooksPath(globals) {
+  const isHooksPath = (kv) => (kv ?? '').split('=')[0].toLowerCase() === 'core.hookspath';
+  for (let i = 0; i < globals.length; i += 1) {
+    const v = globals[i].value;
+    if (v === '-c' && isHooksPath(globals[i + 1]?.value)) return true;
+    if (v.startsWith('--config-env=') && isHooksPath(v.slice('--config-env='.length))) return true;
+  }
+  return false;
+}
+
+function parseGitPushTargets(args, currentBranch, globals = []) {
   let hasForce = false;
   let hasAllOrMirror = false;
+  // `--no-ve` is ambiguous with `--no-verbose`, so 9 characters is the floor.
+  const skipsHooks =
+    overridesHooksPath(globals) || args.some((t) => isLongOptionPrefix(t.value, '--no-verify', 9));
   const positional = [];
 
   for (let i = 0; i < args.length; i += 1) {
     const val = args[i].value;
-    if (val === '-f' || val === '--force' || val === '--force-with-lease') {
+    if (isForceFlag(val)) {
       hasForce = true;
       continue;
     }
@@ -205,14 +233,17 @@ function parseGitPushTargets(args, currentBranch) {
     if (currentBranch) targetBranches.push(currentBranch);
   } else {
     for (const spec of refspecs) {
+      if (spec.startsWith('+')) hasForce = true; // `+src:dst` forces that ref
       const cleaned = spec.replace(/^\+/, '');
       const dst = cleaned.includes(':') ? cleaned.split(':').pop() : cleaned;
       const branch = dst.replace(/^refs\/heads\//, '');
-      if (branch) targetBranches.push(branch);
+      if (branch === 'HEAD' || branch === '@') {
+        if (currentBranch) targetBranches.push(currentBranch);
+      } else if (branch) targetBranches.push(branch);
     }
   }
 
-  return { hasForce, hasAllOrMirror, targetBranches };
+  return { hasForce, hasAllOrMirror, skipsHooks, targetBranches };
 }
 
 function checkStagedChanges({ runGit, stagedDiff, stagedFiles }) {
@@ -369,9 +400,10 @@ export function evaluateBashCommand(command, options = {}) {
 
     // 3. Protected branch push checks
     if (gitInfo.subcommand === 'push') {
-      const { hasForce, hasAllOrMirror, targetBranches } = parseGitPushTargets(
+      const { hasForce, hasAllOrMirror, skipsHooks, targetBranches } = parseGitPushTargets(
         gitInfo.args,
-        currentBranch
+        currentBranch,
+        gitInfo.globals
       );
 
       if (hasAllOrMirror) {
@@ -388,7 +420,6 @@ export function evaluateBashCommand(command, options = {}) {
         };
       }
 
-      const skipsHooks = gitInfo.args.some((t) => t.value === '--no-verify');
       const hookedTarget = targetBranches.find((b) => PROTECTED_HOOKED.has(b));
       if (skipsHooks && hookedTarget) {
         return {

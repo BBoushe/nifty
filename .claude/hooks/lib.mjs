@@ -125,8 +125,9 @@ export function stripLeadingEnvAssignments(tokens) {
 }
 
 /**
- * Extract `{ subcommand, args }` from tokenized git command, skipping global
+ * Extract `{ subcommand, args, globals }` from tokenized git command, skipping global
  * flags that take a separate value (`-C`, `-c`, `--git-dir`, `--work-tree`, `--namespace`).
+ * `globals` holds the tokens between `git` and the subcommand (for `-c core.hooksPath=…`).
  */
 export function getGitSubcommand(tokens) {
   const cleaned = stripLeadingEnvAssignments(tokens);
@@ -153,7 +154,7 @@ export function getGitSubcommand(tokens) {
       i += 1;
       continue;
     }
-    return { subcommand: tok, args: cleaned.slice(i + 1) };
+    return { subcommand: tok, args: cleaned.slice(i + 1), globals: cleaned.slice(1, i) };
   }
   return null;
 }
