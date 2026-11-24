@@ -10,6 +10,12 @@ workflow:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "alpha" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
     - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "alpha" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
 
+# Runner tags from the FH Dortmund GitLab: untagged jobs stay "pending, stuck" there.
+default:
+  tags:
+    - docker
+    - dind
+
 backend:
   stage: verify
   image: eclipse-temurin:21-jdk
@@ -137,6 +143,7 @@ branch-policy:
 
 # Smoke-build both images with their own multi-stage Dockerfiles (they compile inside Docker,
 # so no jar/dist hand-off from the verify jobs). Needs a privileged runner for docker:dind.
+# Local image names on purpose: the project's Container Registry is off, so $CI_REGISTRY_IMAGE is empty.
 .docker-build:
   stage: package
   image: docker:27-cli
@@ -154,9 +161,9 @@ branch-policy:
 backend-image:
   extends: .docker-build
   script:
-    - docker build --pull -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA" backend
+    - docker build --pull -t "nifty-backend:$CI_COMMIT_SHORT_SHA" backend
 
 frontend-image:
   extends: .docker-build
   script:
-    - docker build --pull --target prod -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA" frontend
+    - docker build --pull --target prod -t "nifty-frontend:$CI_COMMIT_SHORT_SHA" frontend

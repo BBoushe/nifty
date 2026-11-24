@@ -125,6 +125,25 @@ describe('guard-bash.mjs', () => {
     }
   });
 
+  it('sees through the rtk wrapper so rewritten commands stay guarded', () => {
+    for (const cmd of [
+      'rtk git push origin master',
+      'rtk proxy git push origin master',
+      'rtk -v bypass git push --force origin x',
+      '/opt/homebrew/bin/rtk git add a && rtk git commit -m "docs: x"',
+      'rtk read .env',
+      'rtk git commit -am "docs: bypass"',
+      'rtk FOO=1 git push origin master',
+      'command git push origin master',
+      'env git push origin master',
+      'env rtk git push origin master',
+      'command rtk -v git push origin master',
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, cleanOpts).blocked, true, `expected block for '${cmd}'`);
+    }
+    assert.equal(evaluateBashCommand('rtk git status', cleanOpts).blocked, false);
+  });
+
   it('allows reading .env.example, plain echo text, and commit messages mentioning .env', () => {
     assert.equal(evaluateBashCommand('cat .env.example', cleanOpts).blocked, false);
     assert.equal(evaluateBashCommand('echo "Copy .env.example to .env"', cleanOpts).blocked, false);

@@ -35,6 +35,7 @@ Install the following tools before starting (follow each official download page 
 | **OpenSpec CLI** *(optional)* | Validating and managing specs (`npm install -g @fission-ai/openspec@latest`) | https://github.com/Fission-AI/OpenSpec |
 | **GitHub CLI (`gh`)** *(when `GIT_FORGE=github` or `both`)* | Opening GitHub PRs & applying GitHub rulesets | https://cli.github.com/ |
 | **GitLab CLI (`glab`)** *(when `GIT_FORGE=gitlab` or `both`)* | Opening GitLab MRs & checking GitLab pipelines | https://gitlab.com/gitlab-org/cli |
+| **RTK (Rust Token Killer)** *(optional, Claude Code users)* | Shrinks shell output before it reaches the LLM context — see [Optional: RTK](#optional-rtk-token-savings-for-claude-code) | https://github.com/rtk-ai/rtk |
 
 ---
 
@@ -124,6 +125,25 @@ All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/
 | **OpenAI Codex (`codex`)** | `AGENTS.md`, `.agents/skills/` | Run `codex` in repo root against `openspec/changes/<feature>/` tasks. |
 | **Kiro Crew / Kiro IDE (optional)** | `.kiro/steering/nifty-core.md` (bridges to `AGENTS.md` & `openspec/`) | Connect existing **Claude Code** / **Codex** CLI subscriptions as Conductor + parallel Builder + cold Reviewer workers on isolated branches (see [`docs/workflow.md`](docs/workflow.md)). |
 | **T3 Code (optional UI)** | Reads `AGENTS.md`, `CLAUDE.md`, and `openspec/` via attached CLI backend | Optional multi-agent UI; works identically alongside direct CLI teammates. |
+
+### Optional: RTK Token Savings for Claude Code
+
+[RTK](https://github.com/rtk-ai/rtk) is a per-developer CLI proxy that compresses noisy command output (`git`, `gh`, `npm run ...`, test runs) before Claude reads it. Nothing in the repo requires it, and it adds no files to the repo. It is a one-time setup on your own machine:
+
+```sh
+brew install rtk            # or: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+rtk gain                    # must print savings stats; "command not found" means the wrong package (Rust Type Kit)
+rtk init -g --hook-only     # adds one Bash PreToolUse hook to ~/.claude/settings.json; no RTK.md, no CLAUDE.md edits
+```
+
+Do **not** use `cargo install rtk` from crates.io (wrong package). Then run **one extra step**, because RTK rewrites `./mvnw` to the system `mvn` and would bypass our pinned Maven wrapper. Run `rtk config` to print your config file path, and add to it:
+
+```toml
+[hooks]
+exclude_commands = ["./mvnw", "mvnw", "mvnw.cmd"]
+```
+
+Restart Claude Code afterwards. Our safety guards still apply: `.claude/hooks/guard-bash.mjs` strips a leading `rtk` before checking, so `rtk git push origin master` is blocked exactly like `git push origin master`. Undo anytime with `rtk init -g --uninstall`. Details for agents: [`docs/setup.md`](docs/setup.md).
 
 ### Branch & Commit Rules (Summary)
 

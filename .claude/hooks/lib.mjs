@@ -61,12 +61,22 @@ export function toRepoRelative(input, repoRoot = process.cwd()) {
 }
 
 /**
- * Strip leading shell environment variable assignments (e.g. `CI=true npm run build`).
+ * Strip leading env assignments (`CI=true npm run build`) and pass-through wrappers
+ * (`env`, `command`, RTK's `rtk [-v] [proxy|bypass]`) in any order, so every guard sees the
+ * real command. RTK's PreToolUse hook rewrites `git ...` to `rtk git ...`.
+ * shortcut: wrapper flags that take a separate value (`env -u VAR`) are not skipped; extend if a wrapper needs it.
  */
 export function stripLeadingEnvAssignments(tokens) {
   let idx = 0;
-  while (idx < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[idx].value)) {
-    idx += 1;
+  for (;;) {
+    const t = idx < tokens.length ? tokens[idx].value : '';
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) idx += 1;
+    else if (['env', 'command', 'rtk'].includes(t.split('/').pop())) {
+      idx += 1;
+      while (idx < tokens.length && tokens[idx].value.startsWith('-')) idx += 1;
+      // `proxy` is the deprecated alias of `bypass`; both run the command unfiltered.
+      if (t.endsWith('rtk') && ['proxy', 'bypass'].includes(tokens[idx]?.value)) idx += 1;
+    } else break;
   }
   return tokens.slice(idx);
 }
