@@ -81,3 +81,21 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** One origin with two push URLs (gh/glab cannot tell the host, failures are silent); GitLab push mirroring or a GitHub Action mirror (tier and network access to the uni GitLab unknown); merging on both sides (guaranteed drift).
 - **Rationale / Justification:** Two named remotes keep gh and glab unambiguous, GitHub-first ordering stops GitLab from getting ahead, and merge-only-on-GitHub plus fast-forward sync removes divergence without force-pushes.
 - **Affected Files / Pointers:** scripts/forge.mjs, scripts/apply-gitlab-protections.sh, scripts/check-setup.mjs, .agents/skills/pr-memo/SKILL.md, docs/workflow.md
+
+## 1.9 — CI parity: GitHub CI gates the same jobs as GitLab CI
+- **Date:** 2026-11-24
+- **Triggered By:** prompter-change
+- **Context:** Merges happen only on GitHub, but GitLab CI also builds both Docker images. A Dockerfile regression can pass GitHub, merge, and fail on GitLab after it is in dev. Hook Tests (Node) is not a required GitHub check.
+- **Decision:** GitHub CI runs the same docker build commands as GitLab (jobs Backend Image (Docker), Frontend Image (Docker)). Rulesets for dev, alpha and main require these two checks and Hook Tests (Node). A zero-dependency drift test in scripts/harness-scripts.test.mjs fails when the command sets of the two CI files differ.
+- **Alternatives Considered:** Wait for GitLab manually before merging (error-prone); move merges to GitLab (contradicts Decision 1.8).
+- **Rationale / Justification:** A green GitHub run must mean a green GitLab run, without a human remembering to wait for GitLab.
+- **Affected Files / Pointers:** openspec/changes/forge-ci-parity/, .github/workflows/ci.yml, .github/rulesets/*.json
+
+## 1.10 — Backend package-by-feature with ArchUnit-enforced boundaries
+- **Date:** 2026-11-24
+- **Triggered By:** prompter-change
+- **Context:** The course guide (Spring Boot Architecture Best Practices) recommends package-by-feature, strict DTOs, RFC 9457 errors, commit-safe events and layered tests. The backend is still a skeleton (config/, health/), so the layout is cheap to fix now.
+- **Decision:** Backend code lives in de.fhdortmund.nifty.shared.{config,exception} or de.fhdortmund.nifty.<feature>.{web,service,repository}. ArchUnit tests enforce layer and cross-feature rules (no foreign repository access, web never touches repository, shared never depends on a feature, no @Entity in controller signatures). One GlobalExceptionHandler returns RFC 9457 ProblemDetail. Tests stay on H2 for the context smoke test; PostgreSQL Testcontainers arrive with the first @Entity. Domain events use @TransactionalEventListener(AFTER_COMMIT) when a feature first needs them.
+- **Alternatives Considered:** Rules in backend-java.md only (not enforced); switch tests to Testcontainers now (couples to CI changes before any entity exists).
+- **Rationale / Justification:** Feature slices keep the blast radius local and let agents read one folder. ArchUnit turns written rules into a failing test, which raises first-time quality for AI-written code.
+- **Affected Files / Pointers:** openspec/changes/backend-architecture-baseline/, .agents/rules/backend-java.md, docs/architecture.md
