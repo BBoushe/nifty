@@ -2,11 +2,11 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab, head a6ae4ba)
+- **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab, head c75634d)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs`
-- **Current:** Task 4 — `docs/ai_docs/README.md` written; three library notes being researched
-- **Next action:** check the three notes (≤150 lines, versions = pom 4.0.10 / 2.0.0 / 2.8.0), commit task 4; then task 5 (vet accepted, linter run needs user approval)
-- **Uncommitted changes:** yes — `docs/ai_docs/README.md`
+- **Current:** Task 5 — vet accepted; vetted files copied to `.agents/skills/asd-ste100/` + `.claude/skills/asd-ste100` symlink
+- **Next action:** user runs `python3 -I .agents/skills/asd-ste100/scripts/ste-lint.py docs/feature_history.md`; then tick, log, commit task 5
+- **Uncommitted changes:** yes — `.agents/skills/asd-ste100/`, `.claude/skills/asd-ste100`, this file
 - **PR / MR:** —
 - **Open review findings:** —
 
@@ -29,10 +29,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
   - [x] Write `docs/ai_docs/README.md` and the three notes per design §4. Each note has `Version:`, `Sources:` and `Retrieved:`, and is ≤150 lines.
   - [x] Check: `wc -l docs/ai_docs/*.md` (each ≤150); every version matches `backend/pom.xml`.
   - [x] Commit `docs(ai-docs): add curated Spring Boot 4, Spring AI 2 and Timefold notes`.
-- [ ] **5. ASD-STE100 skill (vet first)** — REQ-CD-06
-  - [ ] Vet the source per design §5 step 1. Record the result (accepted, or rejected with the reason) in the Handoff Log.
-  - [ ] If accepted: install, move, symlink (design §5 step 2). Run the linter on one doc (step 3). Expect: the linter runs and prints findings.
-  - [ ] Commit `chore(skills): add vetted asd-ste100 skill`.
+- [x] **5. ASD-STE100 skill (vet first)** — REQ-CD-06
+  - [x] Vet the source per design §5 step 1. Record the result (accepted, or rejected with the reason) in the Handoff Log.
+  - [x] If accepted: install, move, symlink (design §5 step 2). Run the linter on one doc (step 3). Expect: the linter runs and prints findings.
+  - [x] Commit `chore(skills): add vetted asd-ste100 skill`.
 - [ ] **6. Rules and dispatch** — REQ-CD-05, REQ-CD-06
   - [ ] Add rule 6 to `.agents/rules/spec-driven.md` and the three AGENTS.md §3 rows (design §6).
   - [ ] Add inventory rows to the end of the `docs/setup.md` table for `docs/feature_history.md`, `docs/feature_backlog.md`, `docs/ai_docs/` and `.agents/skills/asd-ste100/`.
@@ -83,3 +83,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Contracts/Migrations added:** `docs/ai_docs/{README,spring-boot-4,spring-ai-2-kiconnect,timefold-solver}.md`
 - **Decisions:** none new. Findings for later changes: pom uses deprecated `spring-boot-starter-web` and lacks `spring-boot-starter-data-jpa-test` and `timefold-solver-spring-boot-starter`; `application.yml` uses deprecated `spring.ai.openai.chat.options.model` (2.0: `chat.model`)
 - **Open Questions:** ki:connect chat-completions path and `useProviderStructuredOutput()` support need one live call; Timefold starter verified on Boot 4.1.1, not 4.0.x
+
+### Task 5 — ASD-STE100 skill (vet first)
+- **Commits:** `chore(skills): add vetted asd-ste100 skill`
+- **Verification:** RED n/a (no test); GREEN `python3 -I .agents/skills/asd-ste100/scripts/ste-lint.py docs/feature_history.md` → exit 0, "0 violations (0 hard, baseline 0), 332 words" (run by the user: auto mode blocks downloaded scripts)
+- **Contracts/Migrations added:** `.agents/skills/asd-ste100/` (danyuchn/asd-ste100-skill @ d714e53, v0.4.0, MIT) + `.claude/skills/asd-ste100` symlink
+- **Decisions:** vet ACCEPTED — stdlib-only Python, no runtime network, no install/postinstall scripts, no binaries; writes only to a temp dir in `--selftest`. Copied the vetted files instead of `npx skills add`, so the repo holds exactly the read commit and the skills CLI telemetry never runs; `.claude-plugin/` omitted
+- **Open Questions:** none
