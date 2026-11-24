@@ -34,6 +34,12 @@ class ArchitectureTest {
                 Arguments.of("entityexposure", (Function<String, ArchRule>) ArchitectureRules::noEntityInControllers));
     }
 
+    @Test
+    void productionImportIsNotEmpty() {
+        // allowEmptyShould(true) below would otherwise pass silently on a wrong ROOT.
+        assertThat(PRODUCTION.containPackage(ROOT + ".shared.config")).isTrue();
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("rules")
     void productionCodeFollowsRule(String name, Function<String, ArchRule> rule) {
