@@ -29,4 +29,4 @@ The `.env` rows leak secrets into the model context. GitHub rejects direct pushe
 
 - Interpreter one-liners (`python -c`, `node -e`), `find -exec`, and the content of scripts run by path. These stay in the `shortcut:` comment in `lib.mjs`.
 - A full shell parser. The guard stays a token-level check; GitHub rulesets and GitLab protections stay the server gate.
-- Any change to `guard-files.mjs` or `guard-agent.mjs` behaviour.
+- Any change to `guard-files.mjs` or `guard-agent.mjs` rules. `guard-agent.mjs` shares the `lib.mjs` parser, so it also splits on `&` and peels groups and keywords now; that only makes it stricter.

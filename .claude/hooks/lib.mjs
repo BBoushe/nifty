@@ -176,10 +176,6 @@ export function getGitSubcommand(tokens) {
 }
 
 /**
- * Returns true if a file path or glob pattern targets `.env` or `.env.*`
- * while explicitly allowing `.env.example` (and `*.env.example`).
- */
-/**
  * True when an unquoted glob argument (`.en?`, `.e*`, `.[e]nv`, `.*`) would match a secret env file.
  * The example file stays allowed.
  */
@@ -191,7 +187,9 @@ export function globMatchesEnv(input) {
     const body = seg
       .replace(/[.+^${}()|\\]/g, '\\$&')
       .replace(/\*/g, '[^/]*')
-      .replace(/\?/g, '[^/]');
+      .replace(/\?/g, '[^/]')
+      .replace(/\[!/g, '[^')
+      .replace(/\[:[a-z]+:\]/g, '\\s\\S');
     try {
       const re = new RegExp(`^${body}$`, 'i');
       return re.test('.env') || re.test('.env.local');
@@ -201,6 +199,10 @@ export function globMatchesEnv(input) {
   });
 }
 
+/**
+ * Returns true if a file path or glob pattern targets `.env` or `.env.*`
+ * while explicitly allowing `.env.example` (and `*.env.example`).
+ */
 export function isBlockedEnvPath(input) {
   if (typeof input !== 'string' || !input.trim()) return false;
   const cleaned = normalizePath(input).replace(/^['"]|['"]$/g, '');
@@ -289,6 +291,42 @@ export function splitShellSegments(command) {
 }
 
 /**
+ * Remove the bodies of quoted heredocs (`<<'X'`, `<<"X"`, `<<\X`): the shell passes them as literal
+ * text, so their lines are not commands. Returns `{ text, bodies }`; callers still scan `bodies` as data.
+ * Unquoted heredocs stay in place, because the shell expands `$( … )` inside them.
+ */
+export function stripQuotedHeredocBodies(command) {
+  const re = /(?<!<)<<(?!<)-?[ \t]*(?:'([^'\n]+)'|"([^"\n]+)"|\\([A-Za-z0-9_]+))/g;
+  const bodies = [];
+  let out = '';
+  let pos = 0;
+  let m;
+  while ((m = re.exec(command)) !== null) {
+    const delim = m[1] ?? m[2] ?? m[3];
+    const lineEnd = command.indexOf('\n', re.lastIndex);
+    if (lineEnd === -1) break;
+    let start = lineEnd + 1;
+    let end = -1;
+    while (start <= command.length) {
+      const nl = command.indexOf('\n', start);
+      const stop = nl === -1 ? command.length : nl;
+      if (command.slice(start, stop).replace(/^\t+/, '').trimEnd() === delim) {
+        end = start;
+        break;
+      }
+      if (nl === -1) break;
+      start = nl + 1;
+    }
+    if (end === -1) break; // unterminated: leave the rest untouched
+    bodies.push(command.slice(lineEnd + 1, end));
+    out += command.slice(pos, lineEnd + 1);
+    pos = end;
+    re.lastIndex = end + delim.length;
+  }
+  return { text: out + command.slice(pos), bodies };
+}
+
+/**
  * Tokenize a single shell segment respecting single and double quotes.
  * Each token keeps `{ value, quoted }` so message flags can be distinguished cleanly.
  */
@@ -299,6 +337,7 @@ export function tokenizeSegment(segment) {
   let inDouble = false;
   let escaped = false;
   let quoted = false;
+  let globUnquoted = false;
   let hasToken = false;
 
   for (let i = 0; i < segment.length; i += 1) {
@@ -328,19 +367,21 @@ export function tokenizeSegment(segment) {
     }
     if (!inSingle && !inDouble && /\s/.test(ch)) {
       if (hasToken) {
-        tokens.push({ value: current, quoted });
+        tokens.push({ value: current, quoted, globUnquoted });
         current = '';
         quoted = false;
+        globUnquoted = false;
         hasToken = false;
       }
       continue;
     }
+    if (!inSingle && !inDouble && (ch === '*' || ch === '?' || ch === '[')) globUnquoted = true;
     current += ch;
     hasToken = true;
   }
 
   if (hasToken) {
-    tokens.push({ value: current, quoted });
+    tokens.push({ value: current, quoted, globUnquoted });
   }
   return tokens;
 }

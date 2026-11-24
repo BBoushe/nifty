@@ -18,12 +18,13 @@ import {
   isBlockedEnvPath,
   readStdinJson,
   splitShellSegments,
+  stripQuotedHeredocBodies,
   stripLeadingEnvAssignments,
   tokenizeSegment,
 } from './lib.mjs';
 
 const PROTECTED_NO_DIRECT = new Set(['master', 'main', 'alpha']);
-// `--no-verify` skips .githooks/pre-push; `-n` is `--dry-run` for push and stays allowed.
+// `--no-verify` skips .githooks/pre-push. `-n` is `--dry-run`, so it is not a hook skip (the branch rules still apply).
 const PROTECTED_HOOKED = new Set([...PROTECTED_NO_DIRECT, 'dev']);
 const DEV_ALLOWED_COMMIT_RE = /^(docs|hotfix)(\([a-z0-9._/-]+\))?!?: /;
 const MAX_COMMAND_DEPTH = 3;
@@ -84,7 +85,7 @@ function extractCommandSubstitutions(segment) {
 /** A path argument that names a secret env file, or an unquoted glob that matches one. */
 function envArgument(token) {
   if (isBlockedEnvPath(token.value)) return token.value;
-  if (!token.quoted && globMatchesEnv(token.value)) return token.value;
+  if (token.globUnquoted && globMatchesEnv(token.value)) return token.value;
   return null;
 }
 
@@ -95,7 +96,7 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
   const redirRe = /<\s*([^\s;&|)"'`]+)/g;
   let redirMatch;
   while ((redirMatch = redirRe.exec(segment)) !== null) {
-    if (isBlockedEnvPath(redirMatch[1])) {
+    if (isBlockedEnvPath(redirMatch[1]) || globMatchesEnv(redirMatch[1])) {
       return redirMatch[1];
     }
   }
@@ -361,20 +362,27 @@ export function evaluateBashCommand(command, options = {}) {
     reason: `BLOCKED: command nesting exceeds depth ${MAX_COMMAND_DEPTH}. Run the inner command directly.`,
   };
 
-  const segments = splitShellSegments(command);
+  const envBlocked = (path) => ({
+    blocked: true,
+    reason:
+      `BLOCKED: Shell command accesses secret file '${path}'. ` +
+      `Never read, print, or stage '.env' files via shell commands.`,
+  });
+
+  // Quoted heredoc bodies are text, not commands; they still must not name a secret env file.
+  const heredoc = stripQuotedHeredocBodies(command);
+  for (const line of heredoc.bodies.join('\n').split('\n')) {
+    const hit = line.trim() && segmentTouchesBlockedEnv(line);
+    if (hit) return envBlocked(hit);
+  }
+
+  const segments = splitShellSegments(heredoc.text);
   let hasGitCommit = false;
 
   for (const segment of segments) {
     // 1. Block .env shell reads/prints/staging
     const blockedEnv = segmentTouchesBlockedEnv(segment);
-    if (blockedEnv) {
-      return {
-        blocked: true,
-        reason:
-          `BLOCKED: Shell command accesses secret file '${blockedEnv}'. ` +
-          `Never read, print, or stage '.env' files via shell commands.`,
-      };
-    }
+    if (blockedEnv) return envBlocked(blockedEnv);
 
     // 2. Evaluate `$( ... )` and backtick substitutions as commands of their own
     for (const sub of extractCommandSubstitutions(segment)) {

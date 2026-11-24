@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-gaps` (based on `docs/harness-upgrade-closeout`, PR #12; merge `origin/dev` in after #12 merges)
 - **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
-- **Current:** Tasks 1-5 done; cold review REQUEST_CHANGES; RED tests for its findings committed (3 tests fail on purpose). PR #12 is merged.
-- **Next action:** make the 3 failing tests GREEN: (1) tokenizer flag for a glob char outside quotes, used by `envArgument` (`cat ''.en?`); (2) glob check on `<` redirection targets (`cat <.en?`); (3) `globMatchesEnv`: `[!` → `[^`, `[:class:]` → any char; (4) `stripQuotedHeredocBodies` at the top of `evaluateBashCommand` (drop `<<'X'`/`<<"X"`/`<<\X` bodies; skip `<<<`), but still run the env check on the dropped body lines. Then: docs limits list ("other shell syntax"), fix the stranded `isBlockedEnvPath` JSDoc, proposal note that guard-agent parsing gets stricter. Then Delivery (archive before push: the repo-invariant test fails until the change is archived).
+- **Current:** Tasks 1-6 done (second review fixed)
+- **Next action:** Delivery: merge origin/dev in, archive, push, PR/MR, new cold review
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -36,11 +36,11 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
   - [x] Correct `README.md` and `docs/setup.md` (design §6); update the `lib.mjs` `shortcut:` comment and pointer; CHANGELOG `[Unreleased]` entry; backlog row 9 → `in progress`.
   - [x] Run the tests. Expect: exit 0.
   - [x] Commit `docs(setup): state exactly what the bash guard covers`.
-- [ ] **6. Second review fixes (GREEN)** — REQ-BG-13, regression
-  - [ ] Make the 3 failing tests from `2a2fa81` pass (Status lists the four code fixes).
-  - [ ] Docs limits list, stranded JSDoc, proposal note on guard-agent.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: only the repo-invariant test may fail until the archive step.
-  - [ ] Commit `fix(hooks): close the second review's guard gaps`.
+- [x] **6. Second review fixes (GREEN)** — REQ-BG-13, regression
+  - [x] Make the 3 failing tests from `2a2fa81` pass (Status lists the four code fixes).
+  - [x] Docs limits list, stranded JSDoc, proposal note on guard-agent.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: only the repo-invariant test may fail until the archive step.
+  - [x] Commit `fix(hooks): close the second review's guard gaps`.
 
 ## Delivery
 
@@ -59,4 +59,9 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (all 42 probes allowed, new block test fails); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (37/37). Also 18 everyday commands probed: all allowed.
 - **Decisions:** none new; guard stays a token-level check (proposal Out of Scope).
 - **Note:** the live guard blocked a heredoc edit command whose text named the secret env file; edits with such text now go through a script file.
+- **Next:** Delivery.
+
+### 2026-11-25 — Task 6 (main session)
+- **Did:** second cold review fixes: tokenizer records a glob character outside quotes; `<` redirection targets get the glob check; `[!x]` and POSIX classes in globs; `stripQuotedHeredocBodies` drops quoted heredoc bodies (still scanned for the secret env file); limits listed in README and setup; proposal note on guard-agent; `-n` comment.
+- **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (3 new tests, commit 2a2fa81); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (39/39). Everyday commands re-probed: allowed.
 - **Next:** Delivery.
