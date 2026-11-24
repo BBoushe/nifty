@@ -2,13 +2,13 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `fix/bash-guard-hardening` (pushed to `origin` + `gitlab`)
-- **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Tasks 1-5 done; archived; PR/MR open
-- **Next action:** Cold review in a fresh session (board review prompt); then wait for green CI on both forges; then merge on GitHub only (ask the user first)
+- **Branch:** `fix/bash-guard-hardening` merged into `dev` (f436a48); deleted on origin, gitlab and locally
+- **Worktree:** removed
+- **Current:** done: PR #7 merged on GitHub, `forge.mjs sync dev` ran, MR !6 shows merged, `forge.mjs status` 0/0
+- **Next action:** none
 - **Uncommitted changes:** no
-- **PR / MR:** https://github.com/BBoushe/nifty/pull/7 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/6
-- **Open review findings:** — (cold review not run yet)
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/7 (merged) · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/6 (merged)
+- **Open review findings:** cold review after the merge (2026-11-24): REQUEST_CHANGES, 4 Blocking, all still allowed by `evaluateBashCommand`: (1) `-c` search stops at the first non-flag and misses `bash -euo pipefail -c …`, `bash -Ec …`, `sh -c -- …`; (2) attached or `=` forms `env -S"…"`, `env --split-string=…`, `rtk run --command=…`, `rtk run -c"cat .env"`; (3) shortened `--no-veri`; (4) `HEAD`/`@` destinations are not mapped to the current branch. These go to a follow-up `fix/` change (backlog row 9); the cold-review Delivery box stays open until then
 
 ## Tasks
 
@@ -47,10 +47,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - [x] `node scripts/forge.mjs push`
 - [x] PR/MR body via the `pr-memo` skill, then `node scripts/forge.mjs pr --title "fix(hooks): harden bash guard against wrappers and command strings" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session (board review prompt): verdict has no Blocking items.
-- [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
-- [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
-- [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
-- [ ] After `git merge-base --is-ancestor fix/bash-guard-hardening origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-bash-guard-hardening`.
+- [x] GitLab MR pipeline green; `gh pr checks <n>` green.
+- [x] Merge on GitHub only: `gh pr merge <n> --merge`.
+- [x] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
+- [x] After `git merge-base --is-ancestor fix/bash-guard-hardening origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-bash-guard-hardening`.
 
 ## Handoff Log
 

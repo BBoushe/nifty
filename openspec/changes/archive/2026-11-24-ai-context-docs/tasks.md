@@ -2,12 +2,12 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/ai-context-docs` (origin/dev merged in, no rebase)
-- **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs` (keep until the user cleans up)
-- **Current:** Delivery — merged origin/dev twice (2nd: PRs #7, #8, #9 landed); history entries for #7/#8/#9 now say merged; waiting for CI
-- **Next action:** CI green on PR #11 and MR !10, then ask the user to merge (`gh pr merge 11 --merge`, `node scripts/forge.mjs sync dev`, `status`)
+- **Branch:** `chore/ai-context-docs` merged into `dev` (ce0a12b); deleted on origin, gitlab and locally
+- **Worktree:** removed
+- **Current:** done: PR #11 merged on GitHub, `forge.mjs sync dev` ran, MR !10 shows merged, `forge.mjs status` 0/0
+- **Next action:** none
 - **Uncommitted changes:** no
-- **PR / MR:** https://github.com/BBoushe/nifty/pull/11 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/10
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/11 (merged) · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/10 (merged)
 - **Open review findings:** 0 Blocking. Convention Candidates (deferred): backlog cites Decision 1.10 for Testcontainers (1.10 covers it) but not for GitLab dind; README `Version: index` line. Resolved by merge: `#feature-slice-map` anchor now exists; in-flight harness changes are archived, so no backlog rows needed
 
 ## Tasks
@@ -50,9 +50,9 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "docs: add feature history, backlog, ai_docs and STE rule" --body-file <file>`. Record the links in Status.
 - [x] Cold review session: verdict has no Blocking items.
 - [x] GitLab MR pipeline green; `gh pr checks <n>` green.
-- [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
-- [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
-- [ ] After `git merge-base --is-ancestor chore/ai-context-docs origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-ai-context-docs`.
+- [x] Merge on GitHub only: `gh pr merge <n> --merge`.
+- [x] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
+- [x] After `git merge-base --is-ancestor chore/ai-context-docs origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-ai-context-docs`.
 
 ## Handoff Log
 

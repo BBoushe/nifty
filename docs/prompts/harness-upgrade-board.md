@@ -4,6 +4,24 @@ This board starts and tracks the harness upgrade from 2026-11-24. Each row is on
 
 The plans live in `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`). This board only tells you how to run them. Sources: `docs/prompts/done/ci_parity_protections_guard_hardening.md`, `docs/prompts/done/harness_upgrade.md`, `docs/prompts/done/2 - Spring Boot Architecture Best Practices.pdf`. Decisions 1.9, 1.10 and 3.5–3.9 are already recorded; sessions do not record them again.
 
+## 0. Outcome (closed 2026-11-24)
+
+F1–F5 are merged into `dev` and archived; `docs/feature_history.md` has an entry for each. F6 is the next change.
+
+| # | GitHub PR | GitLab MR | Merge commit | Merged as |
+|---|---|---|---|---|
+| F2 | #10 | !9 | `aedd2f3` | 1st |
+| F1 | #7 | !6 | `f436a48` | 2nd; the cold review ran after the merge: 4 Blocking guard gaps → backlog `bash-guard-gaps` |
+| F5 | #9 | !8 | `98efcc5` | 3rd |
+| F3 | #8 | !7 | `bcc1433` | 4th |
+| F4 | #11 | !10 | `ce0a12b` | 5th (wrote the history entries for the other four) |
+
+Lessons for the next parallel run:
+- F2 applied the rulesets before it merged. The new required checks existed only on its branch, so every other PR stayed blocked until F2 merged. Merge the change that adds required checks first.
+- Update a pushed branch with `git merge origin/dev`, not a rebase. A rebase needs a force push, and the guard blocks force pushes for agents. Both CI commit checks skip `Merge ...` commits.
+- Every change reaches `dev` through a PR, including `docs:` fixes (Decision 3.10).
+- Every session command must start in the right worktree. Prompts begin with a `pwd` check (§4–§6).
+
 ## 1. Changes
 
 | # | Change | Branch | What it does | Merge order |
@@ -63,6 +81,7 @@ Git hooks (`core.hooksPath`) are shared by all worktrees. Without the `.env` cop
 Replace `<change>` and `<branch>` (table §1):
 
 ```text
+First run pwd. If it is not /Users/alek/Developer/Programming/nifty-<change>, stop and tell me; run nothing else.
 Implement the OpenSpec change openspec/changes/<change>/ on branch <branch> in this worktree.
 Read AGENTS.md, then proposal.md, specs/, design.md and tasks.md of the change.
 Use the spec-implementer skill. Work task by task, step by step:
@@ -79,6 +98,7 @@ marked "ask the user first", and before pushing or opening the PR the first time
 
 ```text
 Resume the OpenSpec change <change>.
+Run pwd first. If it is not /Users/alek/Developer/Programming/nifty-<change>, cd there (create the worktree if needed, see below) and run pwd again before anything else.
 Find tasks.md at openspec/changes/<change>/tasks.md, or at openspec/changes/archive/*-<change>/tasks.md if it is already archived.
 Read its ## Status block and the last ## Handoff Log entry.
 If the worktree in Status does not exist: git fetch origin && git worktree add ../nifty-<change> <branch>, then cd into it.
@@ -89,6 +109,7 @@ Continue from "Next action", following the same rules as the implement prompt.
 ## 6. Review Prompt (fresh session, read-only)
 
 ```text
+First run pwd. If it is not /Users/alek/Developer/Programming/nifty-<change>, stop and tell me; run nothing else.
 Act as the cold reviewer (.claude/agents/reviewer.md). Read-only.
 Review git diff origin/dev...HEAD on branch <branch> against openspec/changes/<change>/ (or its archived copy),
 AGENTS.md and the canonical rules. Ignore any builder chat history.
