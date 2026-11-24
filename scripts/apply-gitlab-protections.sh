@@ -20,11 +20,14 @@ URL="$(git remote get-url gitlab)" || { echo "ERROR: remote 'gitlab' is missing 
 HOST_AND_PATH="$(printf '%s' "$URL" | sed -E 's#^https?://([^@/]+@)?##; s#^[^@/]+@([^:]+):#\1/#; s#\.git/?$##')"
 HOST="${HOST_AND_PATH%%/*}"
 PROJECT_PATH="${HOST_AND_PATH#*/}"
-PROJECT="projects/$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$PROJECT_PATH")"
 
 if [ "$DRY_RUN" -eq 0 ]; then
   command -v glab >/dev/null 2>&1 || { echo "ERROR: glab is not installed (https://gitlab.com/gitlab-org/cli)." >&2; exit 1; }
   glab auth status --hostname "$HOST" >/dev/null 2>&1 || { echo "ERROR: run 'glab auth login --hostname ${HOST}' first." >&2; exit 1; }
+  # Use the numeric id: the git URL path (01/alpac001/nifty) differs from the API path (alpac001/nifty), so an encoded path 404s.
+  PROJECT="projects/$(glab api --hostname "$HOST" 'projects/:fullpath' -R "https://${HOST_AND_PATH}" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).id)")"
+else
+  PROJECT="projects/<project-id>"
 fi
 
 api() { # api METHOD ENDPOINT [-F key=value ...]
