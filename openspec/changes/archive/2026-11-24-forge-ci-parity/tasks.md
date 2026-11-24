@@ -4,10 +4,10 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Delivery: rebased (no-op), tests green, both changes archived
-- **Next action:** Delivery: `node scripts/forge.mjs push`, then PR/MR via pr-memo
+- **Current:** Delivery: GitHub rulesets applied (3 new required checks verified live + on PR #10)
+- **Next action:** cold review (reviewer agent) → GitLab MR pipeline green → ask user, then merge PR #10 on GitHub
 - **Uncommitted changes:** no
-- **PR / MR:** — (branch pushed to origin + gitlab)
+- **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/10 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/9
 - **Open review findings:** —
 
 ## Tasks
@@ -46,10 +46,10 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - [x] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `scripts/harness-scripts.test.mjs`, keep both describe blocks.
 - [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
 - [x] Archive both changes: `OPENSPEC_TELEMETRY=0 openspec archive forge-ci-parity -y --skip-specs` and `OPENSPEC_TELEMETRY=0 openspec archive dual-forge -y --skip-specs`. Continue in `openspec/changes/archive/*-forge-ci-parity/tasks.md`. Commit `chore(specs): archive forge-ci-parity and dual-forge`.
-- [ ] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit.
-- [ ] `node scripts/forge.mjs push`
-- [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "ci: gate GitHub on the same jobs as GitLab" --body-file <file>`. Record the links in Status.
-- [ ] **Apply GitHub rulesets (ops — ask the user first)** once the two image jobs have reported on this PR: `scripts/apply-github-rulesets.sh`. Verify: `gh pr checks <n>` lists `Backend Image (Docker)`, `Frontend Image (Docker)` and `Hook Tests (Node)` as required.
+- [x] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit.
+- [x] `node scripts/forge.mjs push`
+- [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "ci: gate GitHub on the same jobs as GitLab" --body-file <file>`. Record the links in Status.
+- [x] **Apply GitHub rulesets (ops — ask the user first)** once the two image jobs have reported on this PR: `scripts/apply-github-rulesets.sh`. Verify: `gh pr checks <n>` lists `Backend Image (Docker)`, `Frontend Image (Docker)` and `Hook Tests (Node)` as required.
 - [ ] Cold review session: verdict has no Blocking items.
 - [ ] **GitLab first:** MR pipeline green (`glab api projects/6748/merge_requests/<iid>/pipelines`), then `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
@@ -98,4 +98,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** `docker compose ps` → 0 services; `docker ps -a` → no nifty/fe-mvp containers, so nothing to stop.
 - **Contracts/Migrations added:** none
 - **Decisions:** user: leave tag `archive/fe-mvp` → `97cf21b` local (not pushed, not deleted).
+- **Open Questions:** none
+
+### Delivery — rulesets applied (ops)
+- **Commits:** `chore(specs): record forge-ci-parity delivery status`
+- **Verification:** `scripts/apply-github-rulesets.sh BBoushe/nifty` → exit 0 (updated ids 27855088/27855090/27855091); `gh pr checks 10 --required` lists `Backend Image (Docker)`, `Frontend Image (Docker)`, `Hook Tests (Node)` (all pass).
+- **Contracts/Migrations added:** live GitHub rulesets (server-side)
+- **Decisions:** user approved applying after both image jobs reported green on PR #10.
 - **Open Questions:** none
