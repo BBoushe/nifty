@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Task 3 done and committed
-- **Next action:** Task 4, first step (role prompts)
+- **Current:** Task 4 done and committed
+- **Next action:** Task 5, first step (openspec/config.yaml)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -31,9 +31,9 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
   - [x] Add `enabledPlugins` and `hooks.Stop` to `.claude/settings.json`.
   - [x] Run `node -e "JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8'))"`. Expect: exit 0.
   - [x] Commit `chore(claude): declare superpowers plugin and archive-gate stop hook`.
-- [ ] **4. Loop in role prompts** — REQ-SL-02, REQ-SL-03, REQ-SL-05, REQ-SL-06
-  - [ ] Update `spec-builder.md` (loop table + Verification format + Status/commit rule), `reviewer.md` (two checks), `test-writer.md` and `spec-implementer/SKILL.md` (point to the loop) per design §2.
-  - [ ] Commit `docs(agents): wire superpowers loop and RED evidence into roles`.
+- [x] **4. Loop in role prompts** — REQ-SL-02, REQ-SL-03, REQ-SL-05, REQ-SL-06
+  - [x] Update `spec-builder.md` (loop table + Verification format + Status/commit rule), `reviewer.md` (two checks), `test-writer.md` and `spec-implementer/SKILL.md` (point to the loop) per design §2.
+  - [x] Commit `docs(agents): wire superpowers loop and RED evidence into roles`.
 - [ ] **5. OpenSpec rules** — REQ-SL-05
   - [ ] Extend `openspec/config.yaml` per design §3.
   - [ ] Run `OPENSPEC_TELEMETRY=0 openspec validate --all`. Expect: exit 0.
@@ -80,3 +80,10 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Contracts/Migrations added:** `enabledPlugins["superpowers@claude-plugins-official"]`, `hooks.Stop` → `node .claude/hooks/archive-gate.mjs --stop-hook`
 - **Decisions:** 3.7. claude-code-guide (code.claude.com/docs/en/hooks.md, /plugins/install.md, /plugins/anthropic-marketplaces.md): Stop takes `{"decision":"block","reason"}` at exit 0, no matcher, input has `stop_hook_active`. Project `enabledPlugins` does **not** auto-install or prompt. Each teammate runs `claude plugin install superpowers@claude-plugins-official --scope project` once. `claude-plugins-official` is known by default, so no `extraKnownMarketplaces`
 - **Open Questions:** none (install step documented in docs/setup.md in Task 6)
+
+### Task 4 — Loop in role prompts (2026-11-24)
+- **Commits:** `docs(agents): wire superpowers loop and RED evidence into roles` (plus `docs(hooks): point archive gate at Decision 3.8`, a pointer fix for Tasks 1–2)
+- **Verification:** RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (30/30)
+- **Contracts/Migrations added:** none; Build Loop table is canonical in `spec-builder.md`, pointed to from `test-writer.md` and `spec-implementer/SKILL.md`
+- **Decisions:** 3.7
+- **Open Questions:** none
