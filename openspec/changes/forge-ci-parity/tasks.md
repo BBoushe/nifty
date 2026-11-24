@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Task 2 done (GitHub image jobs, drift test green)
-- **Next action:** Task 3, first step (required checks in rulesets)
+- **Current:** Task 3 done (rulesets require image + hook-test checks; not applied yet)
+- **Next action:** Task 4, first step (docs/workflow.md + CHANGELOG)
 - **Uncommitted changes:** no
 - **PR / MR:** — (branch pushed to origin + gitlab)
 - **Open review findings:** —
@@ -23,10 +23,10 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
   - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
   - [x] Locally (if Docker is running): `docker build --pull -t nifty-backend:local backend` and `docker build --pull --target prod -t nifty-frontend:local frontend`. Expect: exit 0.
   - [x] Commit `ci(github): build backend and frontend images like GitLab`.
-- [ ] **3. Required checks** — REQ-CP-02
-  - [ ] Add the three contexts to `dev.json`, `alpha.json`, `main.json` (design §2).
-  - [ ] Run `node -e "for (const f of ['dev','alpha','main']) JSON.parse(require('fs').readFileSync('.github/rulesets/'+f+'.json'))"`. Expect: exit 0.
-  - [ ] Commit `ci(github): require image and hook-test checks in rulesets`.
+- [x] **3. Required checks** — REQ-CP-02
+  - [x] Add the three contexts to `dev.json`, `alpha.json`, `main.json` (design §2).
+  - [x] Run `node -e "for (const f of ['dev','alpha','main']) JSON.parse(require('fs').readFileSync('.github/rulesets/'+f+'.json'))"`. Expect: exit 0.
+  - [x] Commit `ci(github): require image and hook-test checks in rulesets`.
 - [ ] **4. Docs**
   - [ ] `docs/workflow.md` per design §5. Add a `CHANGELOG.md` `[Unreleased]` entry.
   - [ ] Commit `docs(workflow): add CI parity table and Maintainer-only sync note`.
@@ -70,4 +70,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (Task 1); GREEN `node --test scripts/harness-scripts.test.mjs` → exit 0; local `docker build --pull -t nifty-backend:local backend` and `docker build --pull --target prod -t nifty-frontend:local frontend` → exit 0.
 - **Contracts/Migrations added:** none
 - **Decisions:** none; user approved pushing after every task; user is GitLab Maintainer of 6748; `archive/fe-mvp` stays local.
+- **Open Questions:** none
+
+### Task 3 — Required checks
+- **Commits:** `ci(github): require image and hook-test checks in rulesets`
+- **Verification:** RED n/a (config-only; the three contexts were absent before); GREEN `node -e "for (const f of ['dev','alpha','main']) JSON.parse(...)"` → exit 0; each file now lists `Backend Image (Docker)`, `Frontend Image (Docker)`, `Hook Tests (Node)`.
+- **Contracts/Migrations added:** none (rulesets not applied; Delivery step, after the image jobs report on the PR)
+- **Decisions:** `strict` left unchanged per file.
 - **Open Questions:** none
