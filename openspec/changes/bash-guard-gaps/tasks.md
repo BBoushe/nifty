@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-gaps` (based on `docs/harness-upgrade-closeout`, PR #12; merge `origin/dev` in after #12 merges)
 - **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
-- **Current:** Tasks 1-5 done; Delivery next
-- **Next action:** wait for PR #12 to merge, then Delivery step 1 (merge `origin/dev` in)
+- **Current:** Tasks 1-5 done; cold review REQUEST_CHANGES; RED tests for its findings committed (3 tests fail on purpose). PR #12 is merged.
+- **Next action:** make the 3 failing tests GREEN: (1) tokenizer flag for a glob char outside quotes, used by `envArgument` (`cat ''.en?`); (2) glob check on `<` redirection targets (`cat <.en?`); (3) `globMatchesEnv`: `[!` → `[^`, `[:class:]` → any char; (4) `stripQuotedHeredocBodies` at the top of `evaluateBashCommand` (drop `<<'X'`/`<<"X"`/`<<\X` bodies; skip `<<<`), but still run the env check on the dropped body lines. Then: docs limits list ("other shell syntax"), fix the stranded `isBlockedEnvPath` JSDoc, proposal note that guard-agent parsing gets stricter. Then Delivery (archive before push: the repo-invariant test fails until the change is archived).
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —

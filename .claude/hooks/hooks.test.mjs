@@ -340,6 +340,36 @@ describe('guard-bash.mjs', () => {
     }
   });
 
+  // Second cold review of bash-guard-gaps: partly quoted globs, glob redirections, bracket classes, heredocs.
+  it('blocks the forms found by the second review', () => {
+    for (const cmd of [
+      "cat ''.en?",
+      'cat ""/.en?',
+      'cat "$PWD"/.en?',
+      'cat <.en?',
+      'echo "$(<.en?)"',
+      'cat .[!x]nv',
+      'cat .[[:alpha:]]nv',
+      'cat .en[[:alpha:]]',
+      "sh <<'EOF'\ngit push origin master\nEOF",
+      "cat <<'EOF'\ncat .env\nEOF",
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
+    }
+  });
+
+  it('treats quoted heredoc bodies as text', () => {
+    const body = 'fix: add `sh` support\n\nNever run `git push origin master` or `zsh -c x` here.';
+    for (const cmd of [
+      `git commit -m "$(cat <<'EOF'\n${body}\nEOF\n)"`,
+      `gh pr create --title x --body "$(cat <<'EOF'\n${body}\nEOF\n)"`,
+      `git commit -F - <<'EOF'\n${body}\nEOF`,
+      `git commit -F - <<"EOF"\n${body}\nEOF`,
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, false, `expected allow for '${cmd}'`);
+    }
+  });
+
   it('blocks staged secrets and staged .env files in pre-commit', () => {
     const secretCommit = evaluatePreCommit({
       currentBranch: 'feat/new-harness-tools',
