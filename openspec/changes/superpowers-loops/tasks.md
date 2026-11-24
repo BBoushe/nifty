@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Task 4 done and committed
-- **Next action:** Task 5, first step (openspec/config.yaml)
+- **Current:** Task 5 done and committed
+- **Next action:** Task 6, first step (AGENTS.md §6 parity row)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -34,10 +34,10 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - [x] **4. Loop in role prompts** — REQ-SL-02, REQ-SL-03, REQ-SL-05, REQ-SL-06
   - [x] Update `spec-builder.md` (loop table + Verification format + Status/commit rule), `reviewer.md` (two checks), `test-writer.md` and `spec-implementer/SKILL.md` (point to the loop) per design §2.
   - [x] Commit `docs(agents): wire superpowers loop and RED evidence into roles`.
-- [ ] **5. OpenSpec rules** — REQ-SL-05
-  - [ ] Extend `openspec/config.yaml` per design §3.
-  - [ ] Run `OPENSPEC_TELEMETRY=0 openspec validate --all`. Expect: exit 0.
-  - [ ] Commit `chore(specs): require resumable tasks.md layout and RED/GREEN evidence`.
+- [x] **5. OpenSpec rules** — REQ-SL-05
+  - [x] Extend `openspec/config.yaml` per design §3.
+  - [x] Run `OPENSPEC_TELEMETRY=0 openspec validate --all`. Expect: exit 0.
+  - [x] Commit `chore(specs): require resumable tasks.md layout and RED/GREEN evidence`.
 - [ ] **6. Parity docs**
   - [ ] AGENTS.md §6: add a row "Archive completed OpenSpec changes" → Claude: `archive-gate.mjs` Stop hook; others: `.githooks/pre-push` + CI test.
   - [ ] Add rows to the end of the `docs/setup.md` inventory table for `archive-gate.mjs` and the Stop hook.
@@ -86,4 +86,11 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Verification:** RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (30/30)
 - **Contracts/Migrations added:** none; Build Loop table is canonical in `spec-builder.md`, pointed to from `test-writer.md` and `spec-implementer/SKILL.md`
 - **Decisions:** 3.7
+- **Open Questions:** none
+
+### Task 5 — OpenSpec rules (2026-11-24)
+- **Commits:** `chore(specs): require resumable tasks.md layout and RED/GREEN evidence`
+- **Verification:** RED: n/a (config only); GREEN: `OPENSPEC_TELEMETRY=0 openspec validate --all` → exit 0 (14/14); YAML parses (6 `rules.tasks`, 6 `apply.guidance`)
+- **Contracts/Migrations added:** `rules.tasks` layout + RED/GREEN line; `operations.apply.guidance` loop/Status/Delivery
+- **Decisions:** 3.7, 3.8, 3.9
 - **Open Questions:** none
