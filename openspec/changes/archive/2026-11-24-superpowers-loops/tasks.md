@@ -4,10 +4,10 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Delivery: rebased (no-op), archived to `openspec/changes/archive/2026-11-24-superpowers-loops/`, tests green
-- **Next action:** Delivery step 4: `node scripts/forge.mjs push` (Task 6 + archive commits not pushed yet)
+- **Current:** Delivery: pushed (pre-push archive gate passed), PR/MR opened
+- **Next action:** Delivery: cold review session (reviewer agent on `git diff dev...HEAD`)
 - **Uncommitted changes:** no
-- **PR / MR:** —
+- **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/9 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/8
 - **Open review findings:** —
 
 ## Tasks
@@ -50,8 +50,8 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - [x] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `hooks.test.mjs`, `AGENTS.md` and `docs/setup.md`, keep both sides.
 - [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0. The repo-invariant test now also guards `dev`.
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive superpowers-loops -y --skip-specs`. Continue in `openspec/changes/archive/*-superpowers-loops/tasks.md`. If `docs/feature_history.md` exists, add this change's entry. Commit `chore(specs): archive superpowers-loops`.
-- [ ] `node scripts/forge.mjs push` (the new pre-push gate runs here for the first time).
-- [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "chore: superpowers loops, resumable tasks and archive gate" --body-file <file>`. Record the links in Status.
+- [x] `node scripts/forge.mjs push` (the new pre-push gate runs here for the first time).
+- [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "chore: superpowers loops, resumable tasks and archive gate" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session: verdict has no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
