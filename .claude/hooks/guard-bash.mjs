@@ -21,7 +21,13 @@ import {
 } from './lib.mjs';
 
 const PROTECTED_NO_DIRECT = new Set(['master', 'main', 'alpha']);
+// `--no-verify` skips .githooks/pre-push; `-n` is `--dry-run` for push and stays allowed.
+const PROTECTED_HOOKED = new Set([...PROTECTED_NO_DIRECT, 'dev']);
 const DEV_ALLOWED_COMMIT_RE = /^(docs|hotfix)(\([a-z0-9._/-]+\))?!?: /;
+const MAX_COMMAND_DEPTH = 3;
+const SHELLS = new Set(['sh', 'bash', 'zsh']);
+// `stripLeadingEnvAssignments` stops on these (`env -S`, `rtk run -c|--command`) and leaves them first.
+const COMMAND_STRING_FLAGS = new Set(['-c', '--command', '-S', '--split-string']);
 
 function defaultRunGit(args, cwd = process.cwd()) {
   try {
@@ -117,6 +123,23 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
     if (isBlockedEnvPath(val)) {
       return val;
     }
+  }
+  return null;
+}
+
+/**
+ * Return the command string a peeled segment runs (`sh|bash|zsh -c`, `rtk run -c`, `env -S`, `eval`),
+ * or null. Values come from tokenizeSegment, so quotes are already removed (design.md §2).
+ */
+function extractCommandString(tokens) {
+  if (!tokens.length) return null;
+  const first = tokens[0].value;
+  if (COMMAND_STRING_FLAGS.has(first)) return tokens[1]?.value ?? null;
+  const name = first.split('/').pop();
+  if (name === 'eval') return tokens.slice(1).map((t) => t.value).join(' ');
+  if (!SHELLS.has(name)) return null;
+  for (let i = 1; i < tokens.length && tokens[i].value.startsWith('-'); i += 1) {
+    if (/^-[a-z]*c[a-z]*$/.test(tokens[i].value)) return tokens[i + 1]?.value ?? null;
   }
   return null;
 }
@@ -251,6 +274,7 @@ export function evaluateBashCommand(command, options = {}) {
   const runGit = options.runGit ?? defaultRunGit;
   const currentBranch =
     options.currentBranch ?? runGit(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+  const depth = options._depth ?? 0;
 
   const segments = splitShellSegments(command);
   let hasGitAdd = false;
@@ -269,6 +293,21 @@ export function evaluateBashCommand(command, options = {}) {
     }
 
     const tokens = tokenizeSegment(segment);
+
+    // 2. Evaluate command strings (`sh -c`, `rtk run -c`, `env -S`, `eval`) with the same rules
+    const inner = extractCommandString(stripLeadingEnvAssignments(tokens));
+    if (inner !== null) {
+      if (depth + 1 > MAX_COMMAND_DEPTH) {
+        return {
+          blocked: true,
+          reason: `BLOCKED: command nesting exceeds depth ${MAX_COMMAND_DEPTH}. Run the inner command directly.`,
+        };
+      }
+      const innerResult = evaluateBashCommand(inner, { ...options, currentBranch, _depth: depth + 1 });
+      if (innerResult.blocked) return innerResult;
+      continue;
+    }
+
     const gitInfo = getGitSubcommand(tokens);
     if (!gitInfo) continue;
 
@@ -292,7 +331,7 @@ export function evaluateBashCommand(command, options = {}) {
       hasGitCommit = true;
     }
 
-    // 2. Protected branch push checks
+    // 3. Protected branch push checks
     if (gitInfo.subcommand === 'push') {
       const { hasForce, hasAllOrMirror, targetBranches } = parseGitPushTargets(
         gitInfo.args,
@@ -313,6 +352,15 @@ export function evaluateBashCommand(command, options = {}) {
         };
       }
 
+      const skipsHooks = gitInfo.args.some((t) => t.value === '--no-verify');
+      const hookedTarget = targetBranches.find((b) => PROTECTED_HOOKED.has(b));
+      if (skipsHooks && hookedTarget) {
+        return {
+          blocked: true,
+          reason: `BLOCKED: 'git push --no-verify' to '${hookedTarget}' skips the repository's push hooks. Drop '--no-verify'.`,
+        };
+      }
+
       for (const branch of targetBranches) {
         if (PROTECTED_NO_DIRECT.has(branch)) {
           return {
@@ -328,7 +376,7 @@ export function evaluateBashCommand(command, options = {}) {
     }
   }
 
-  // 3. Block chaining `git add ... && git commit` so staged diffs are always scanned cleanly
+  // 4. Block chaining `git add ... && git commit` so staged diffs are always scanned cleanly
   if (hasGitAdd && hasGitCommit) {
     return {
       blocked: true,
@@ -338,7 +386,7 @@ export function evaluateBashCommand(command, options = {}) {
     };
   }
 
-  // 4. On `git commit`, enforce protected branch + staged secret scan
+  // 5. On `git commit`, enforce protected branch + staged secret scan
   if (hasGitCommit) {
     return evaluatePreCommit({
       runGit,

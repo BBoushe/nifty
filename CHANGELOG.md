@@ -28,5 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Governance & CI:** Added declarative branch protection rulesets in `.github/rulesets/` (`main.json`, `alpha.json`, `dev.json` — applied to `BBoushe/nifty`), `scripts/apply-github-rulesets.sh`, `.github/workflows/ci.yml` (Backend, Frontend, Hook Tests, Conventional Commits, and Branch Promotion Policy), and `.github/PULL_REQUEST_TEMPLATE.md`.
 
 ### Changed
+- **Bash guard hardening:** `guard-bash.mjs` now sees through `nice`, `time`, `sudo`, `xargs`, `env -u`, `eval` and `rtk err|test|summary|run` wrappers, re-evaluates `sh|bash|zsh -c`, `rtk run -c` and `env -S` strings up to depth 3 (deeper nesting is blocked), and blocks `git push --no-verify` to `dev`/`alpha`/`master`/`main`; `README.md` and `docs/setup.md` correct the RTK `./mvnw` note and add a "Guard Layers" section.
 - Hardened root `.gitignore` for Java/Maven, Node/Vite, Docker overrides, `.env` secrets, IDEs, OS clutter, and local-only AI agent caches.
 - Replaced placeholder `README.md` with a cross-platform (Windows, macOS, Linux) onboarding and AI agent collaboration guide.
