@@ -4,10 +4,10 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Task 1 done (RED drift test committed)
-- **Next action:** Task 2, first step (add GitHub image jobs)
+- **Current:** Task 2 done (GitHub image jobs, drift test green)
+- **Next action:** Task 3, first step (required checks in rulesets)
 - **Uncommitted changes:** no
-- **PR / MR:** —
+- **PR / MR:** — (branch pushed to origin + gitlab)
 - **Open review findings:** —
 
 ## Tasks
@@ -18,11 +18,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
   - [x] Add `describe('CI parity')` with `it('runs the same build, test and image commands on GitHub and GitLab')` per design §3, and `it('names the missing command')`, which feeds two small inline YAML strings to the same helper and asserts the message.
   - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: FAIL naming `docker build --pull -t "nifty-backend:<SHA>" backend` and the frontend line as missing on GitHub.
   - [x] Commit `test(harness): add CI parity drift test`.
-- [ ] **2. GitHub image jobs (GREEN)** — REQ-CP-01
-  - [ ] Add the two jobs per design §1.
-  - [ ] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
-  - [ ] Locally (if Docker is running): `docker build --pull -t nifty-backend:local backend` and `docker build --pull --target prod -t nifty-frontend:local frontend`. Expect: exit 0.
-  - [ ] Commit `ci(github): build backend and frontend images like GitLab`.
+- [x] **2. GitHub image jobs (GREEN)** — REQ-CP-01
+  - [x] Add the two jobs per design §1.
+  - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
+  - [x] Locally (if Docker is running): `docker build --pull -t nifty-backend:local backend` and `docker build --pull --target prod -t nifty-frontend:local frontend`. Expect: exit 0.
+  - [x] Commit `ci(github): build backend and frontend images like GitLab`.
 - [ ] **3. Required checks** — REQ-CP-02
   - [ ] Add the three contexts to `dev.json`, `alpha.json`, `main.json` (design §2).
   - [ ] Run `node -e "for (const f of ['dev','alpha','main']) JSON.parse(require('fs').readFileSync('.github/rulesets/'+f+'.json'))"`. Expect: exit 0.
@@ -63,4 +63,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (13 pass, 1 fail: missing on GitHub `docker build --pull -t "nifty-backend:<SHA>" backend` + frontend line); GREEN → pending Task 2.
 - **Contracts/Migrations added:** none
 - **Decisions:** none (1.9 already recorded); helpers stay local to the test file.
+- **Open Questions:** none
+
+### Task 2 — GitHub image jobs (GREEN)
+- **Commits:** `ci(github): build backend and frontend images like GitLab`
+- **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (Task 1); GREEN `node --test scripts/harness-scripts.test.mjs` → exit 0; local `docker build --pull -t nifty-backend:local backend` and `docker build --pull --target prod -t nifty-frontend:local frontend` → exit 0.
+- **Contracts/Migrations added:** none
+- **Decisions:** none; user approved pushing after every task; user is GitLab Maintainer of 6748; `archive/fe-mvp` stays local.
 - **Open Questions:** none
