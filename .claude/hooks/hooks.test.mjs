@@ -133,6 +133,11 @@ describe('guard-bash.mjs', () => {
       '/opt/homebrew/bin/rtk git add a && rtk git commit -m "docs: x"',
       'rtk read .env',
       'rtk git commit -am "docs: bypass"',
+      'rtk FOO=1 git push origin master',
+      'command git push origin master',
+      'env git push origin master',
+      'env rtk git push origin master',
+      'command rtk -v git push origin master',
     ]) {
       assert.equal(evaluateBashCommand(cmd, cleanOpts).blocked, true, `expected block for '${cmd}'`);
     }
