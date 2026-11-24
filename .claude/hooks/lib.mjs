@@ -103,12 +103,13 @@ function skipFlags(tokens, idx, valueFlags, isStop = () => false) {
 }
 
 /**
- * Strip leading env assignments (`CI=true npm run build`) and pass-through wrappers
- * (`env`, `command`, `nice`, `time`, `sudo`, `xargs`, `rtk [flags] [proxy|bypass|err|test|summary|run]`)
- * in any order, so every guard sees the real command. RTK's PreToolUse hook rewrites `git ...` to
- * `rtk git ...`. Peeling stops on a command-string flag (`env -S`, `rtk run -c|--command`) and
- * leaves it first, so guard-bash can evaluate the string (Decision: design.md §1-§2).
- * shortcut: interpreter one-liners (python -c, node -e), here-docs into a shell, find -exec, and scripts run by path are not inspected; extend the command-string table in guard-bash.mjs if agents start using them.
+ * Strip leading env assignments (`CI=true npm run build`), shell group/keyword prefixes (`(`, `{`, `if`, `!`, …)
+ * and pass-through wrappers (`env`, `command`, `nice`, `time`, `sudo`, `xargs`, `exec`, `timeout`, `nohup`,
+ * `rtk [flags] [proxy|bypass|err|test|summary|run]`) in any order, so every guard sees the real command.
+ * RTK's PreToolUse hook rewrites `git ...` to `rtk git ...`. Peeling stops on a command-string flag
+ * (`commandStringFlag`) and leaves it first, so guard-bash can evaluate the string.
+ * See openspec/changes/archive/*-bash-guard-hardening/design.md and *-bash-guard-gaps/design.md.
+ * shortcut: interpreter one-liners (python -c, node -e), find -exec, and scripts run by path are not inspected; extend extractCommandString in guard-bash.mjs if agents start using them.
  */
 export function stripLeadingEnvAssignments(tokens) {
   let idx = 0;
