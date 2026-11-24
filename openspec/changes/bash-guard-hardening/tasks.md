@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-hardening`
 - **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Task 2 done (wrapper peeling)
-- **Next action:** Task 3, first step (command-string recursion in `guard-bash.mjs`)
+- **Current:** Task 3 done (command-string recursion)
+- **Next action:** Task 4, first step (`--no-verify` push block)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -23,10 +23,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
   - [x] Extend `stripLeadingEnvAssignments` per the design §1 table.
   - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: the wrapper rows pass; only the command-string and `--no-verify` rows still fail; the `guard-agent` tests stay green.
   - [x] Commit `fix(hooks): peel nice, time, sudo, xargs, env -u and rtk run wrappers`.
-- [ ] **3. Command-string recursion with a cap** — REQ-BG-02, REQ-BG-03
-  - [ ] Implement design §2 in `guard-bash.mjs`.
-  - [ ] Run the tests. Expect: the `-c`, `eval` and depth rows pass.
-  - [ ] Commit `fix(hooks): evaluate sh -c, rtk run -c, env -S and eval strings`.
+- [x] **3. Command-string recursion with a cap** — REQ-BG-02, REQ-BG-03
+  - [x] Implement design §2 in `guard-bash.mjs`.
+  - [x] Run the tests. Expect: the `-c`, `eval` and depth rows pass.
+  - [x] Commit `fix(hooks): evaluate sh -c, rtk run -c, env -S and eval strings`.
 - [ ] **4. Block `--no-verify` pushes to protected targets** — REQ-BG-04
   - [ ] Implement design §3.
   - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
@@ -66,4 +66,11 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (must-block test; only `-c`/`eval`/`env -S`/`--no-verify` rows still allowed, probed per row); GREEN n/a until Task 3/4; guard-agent tests stay green
 - Contracts/Migrations added: none
 - Decisions: peeling stops on `env -S|--split-string` and `rtk run -c|--command`, leaving the flag first for guard-bash (design §1-§2); unknown `-…` flags after `rtk run` are skipped like other wrappers.
+- Open Questions: none
+
+### Task 3 — Command-string recursion
+- Commits: `fix(hooks): evaluate sh -c, rtk run -c, env -S and eval strings`
+- Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (only the `git push --no-verify origin dev` row left); `-c`/`eval`/`env -S`/depth rows probed → blocked, 3 levels allowed, 4 levels blocked with `depth 3` reason
+- Contracts/Migrations added: none
+- Decisions: inner evaluation reuses the outer `currentBranch` so nested strings never re-query git.
 - Open Questions: none
