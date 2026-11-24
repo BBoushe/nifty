@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/forge-ci-parity` (not created)
-- **Worktree:** —
-- **Current:** not started
-- **Next action:** Task 1, first step
+- **Branch:** `chore/forge-ci-parity`
+- **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
+- **Current:** Task 1 done (RED drift test committed)
+- **Next action:** Task 2, first step (add GitHub image jobs)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -14,10 +14,10 @@
 
 Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.yml` (only if parity needs it), `docs/workflow.md`, the `CI parity` describe in `scripts/harness-scripts.test.mjs`, `openspec/changes/dual-forge/`. Decision 1.9 is already recorded; do not re-record it. Read `design.md` first.
 
-- [ ] **1. Drift test (RED)** — REQ-CP-03
-  - [ ] Add `describe('CI parity')` with `it('runs the same build, test and image commands on GitHub and GitLab')` per design §3, and `it('names the missing command')`, which feeds two small inline YAML strings to the same helper and asserts the message.
-  - [ ] Run `node --test scripts/harness-scripts.test.mjs`. Expect: FAIL naming `docker build --pull -t "nifty-backend:<SHA>" backend` and the frontend line as missing on GitHub.
-  - [ ] Commit `test(harness): add CI parity drift test`.
+- [x] **1. Drift test (RED)** — REQ-CP-03
+  - [x] Add `describe('CI parity')` with `it('runs the same build, test and image commands on GitHub and GitLab')` per design §3, and `it('names the missing command')`, which feeds two small inline YAML strings to the same helper and asserts the message.
+  - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: FAIL naming `docker build --pull -t "nifty-backend:<SHA>" backend` and the frontend line as missing on GitHub.
+  - [x] Commit `test(harness): add CI parity drift test`.
 - [ ] **2. GitHub image jobs (GREEN)** — REQ-CP-01
   - [ ] Add the two jobs per design §1.
   - [ ] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
@@ -57,3 +57,10 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - [ ] After `git merge-base --is-ancestor chore/forge-ci-parity origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-forge-ci-parity`. Only `master`, `alpha`, `dev` remain on both forges.
 
 ## Handoff Log
+
+### Task 1 — Drift test (RED)
+- **Commits:** `test(harness): add CI parity drift test`
+- **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (13 pass, 1 fail: missing on GitHub `docker build --pull -t "nifty-backend:<SHA>" backend` + frontend line); GREEN → pending Task 2.
+- **Contracts/Migrations added:** none
+- **Decisions:** none (1.9 already recorded); helpers stay local to the test file.
+- **Open Questions:** none
