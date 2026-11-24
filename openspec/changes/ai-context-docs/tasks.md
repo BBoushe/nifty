@@ -14,10 +14,10 @@
 
 Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `docs/feature_history.md`, `docs/feature_backlog.md`, `docs/ai_docs/**`, `.agents/skills/asd-ste100/` + `.claude/skills/asd-ste100` symlink, new rows at the end of the `docs/setup.md` inventory table, the `feature history` describe in `scripts/harness-scripts.test.mjs`. Decisions 3.5 and 3.6 are already recorded. Read `design.md` first.
 
-- [ ] **1. History test (RED)** — REQ-CD-02
-  - [ ] Add `describe('feature history')` per design §2.
-  - [ ] Run `node --test scripts/harness-scripts.test.mjs`. Expect: FAIL naming the 4 archived folders (no history file yet).
-  - [ ] Commit `test(harness): require a history entry for every archived change`.
+- [x] **1. History test (RED)** — REQ-CD-02
+  - [x] Add `describe('feature history')` per design §2.
+  - [x] Run `node --test scripts/harness-scripts.test.mjs`. Expect: FAIL naming the 4 archived folders (no history file yet).
+  - [x] Commit `test(harness): require a history entry for every archived change`.
 - [ ] **2. Backfill the history (GREEN)** — REQ-CD-01
   - [ ] Write `docs/feature_history.md` per design §1 for the 4 changes archived on 2026-11-24.
   - [ ] Run `node --test scripts/harness-scripts.test.mjs`. Expect: exit 0.
@@ -55,3 +55,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - [ ] After `git merge-base --is-ancestor chore/ai-context-docs origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-ai-context-docs`.
 
 ## Handoff Log
+
+### Task 1 — History test (RED)
+- **Commits:** `test(harness): require a history entry for every archived change`
+- **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (names the 4 archived folders); GREEN n/a (task 2)
+- **Contracts/Migrations added:** none
+- **Decisions:** none new (3.5, 3.6 already recorded)
+- **Open Questions:** none

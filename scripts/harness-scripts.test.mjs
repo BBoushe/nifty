@@ -263,3 +263,26 @@ describe('scripts/forge.mjs', () => {
     assert.throws(() => repoUrl('not a url'), /Unsupported/);
   });
 });
+
+describe('feature history', () => {
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+
+  function missingHistoryEntries() {
+    const archiveDir = path.join(root, 'openspec/changes/archive');
+    const historyPath = path.join(root, 'docs/feature_history.md');
+    const history = fs.existsSync(historyPath) ? fs.readFileSync(historyPath, 'utf8') : '';
+    const missing = [];
+    for (const entry of fs.readdirSync(archiveDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const match = /^(\d{4}-\d{2}-\d{2})-(.+)$/.exec(entry.name);
+      const heading = match && new RegExp(`^## \\d{4}-\\d{2}-\\d{2} — ${match[2]}$`, 'm');
+      if (!heading || !heading.test(history)) missing.push(entry.name);
+    }
+    return missing;
+  }
+
+  it('has a history entry for every archived change', () => {
+    const missing = missingHistoryEntries();
+    assert.deepEqual(missing, [], `docs/feature_history.md lacks entries for: ${missing.join(', ')}`);
+  });
+});
