@@ -10,7 +10,7 @@ description: Apply when creating branches, writing commit messages, pushing code
    - Promotion path: `feat/* -> dev -> alpha -> master` (rules also cover `main`).
 2. **Protected Branches:**
    - NEVER push directly to `master`, `main`, or `alpha`.
-   - NEVER push directly to `dev` unless every commit being pushed is a `docs:` or `hotfix:` commit.
+   - NEVER push directly to `dev`. Every change, including `docs:` and `hotfix:` commits, reaches `dev` through a PR (Decision 3.10). The GitHub `dev` ruleset rejects direct pushes.
 3. **Conventional Commits:**
    - Format: `type(scope): imperative summary` (types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`).
    - Keep commits atomic and logically revertible per milestone.

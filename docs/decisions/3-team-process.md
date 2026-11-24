@@ -84,3 +84,12 @@ Engineering workflow, AI harness governance, coding standards, and review polici
 - **Alternatives Considered:** One large harness PR; progress kept only in chat history.
 - **Rationale / Justification:** Disjoint ownership avoids merge conflicts and gives each PR a focused review. Progress stored in the repo survives usage limits and tool switches.
 - **Affected Files / Pointers:** docs/prompts/harness-upgrade-board.md, openspec/config.yaml
+
+## 3.10 — All changes reach dev through a pull request
+- **Date:** 2026-11-24
+- **Triggered By:** prompter-change
+- **Context:** forge-ci-parity applied a GitHub dev ruleset with a pull_request rule and no bypass actors, so GitHub rejects direct pushes to dev, including docs: and hotfix: commits that git-workflow.md still allowed.
+- **Decision:** Every change reaches dev through a PR (GitHub) / MR (GitLab mirror). Small docs or status fixes go in a docs/<slug> PR. The local hooks keep their docs:/hotfix: exemption; GitHub is the gate that rejects the push.
+- **Alternatives Considered:** Add a ruleset bypass for docs: pushes (needs an admin bypass actor and a second policy layer); tighten the local hooks too (more code and tests for no extra safety, since GitHub already rejects).
+- **Rationale / Justification:** Matches the server behaviour that already exists, keeps one rule, and needs no ruleset or hook change.
+- **Affected Files / Pointers:** .agents/rules/git-workflow.md, AGENTS.md, docs/workflow.md, .github/rulesets/dev.json

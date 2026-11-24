@@ -2,12 +2,12 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/forge-ci-parity`
-- **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Delivery: rulesets applied; cold review APPROVE (0 Blocking)
-- **Next action:** GitLab MR !9 pipeline green, then `gh pr checks 10` green → ask user → `gh pr merge 10 --merge` → `forge.mjs sync dev`
+- **Branch:** `chore/forge-ci-parity` merged into `dev` (aedd2f3); deleted on origin, gitlab and locally
+- **Worktree:** removed
+- **Current:** done: PR #10 merged on GitHub, `forge.mjs sync dev` ran, MR !9 shows merged, `forge.mjs status` 0/0
+- **Next action:** none
 - **Uncommitted changes:** no
-- **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/10 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/9
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/10 (merged) · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/9 (merged)
 - **Open review findings:** none blocking. Convention Candidates: drift-test keyword filter ignores new toolchains (pnpm, docker compose build); line parser skips `run: |` blocks (none today).
 
 ## Tasks
@@ -51,10 +51,10 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "ci: gate GitHub on the same jobs as GitLab" --body-file <file>`. Record the links in Status.
 - [x] **Apply GitHub rulesets (ops — ask the user first)** once the two image jobs have reported on this PR: `scripts/apply-github-rulesets.sh`. Verify: `gh pr checks <n>` lists `Backend Image (Docker)`, `Frontend Image (Docker)` and `Hook Tests (Node)` as required.
 - [x] Cold review session: verdict has no Blocking items.
-- [ ] **GitLab first:** MR pipeline green (`glab api projects/6748/merge_requests/<iid>/pipelines`), then `gh pr checks <n>` green.
-- [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
-- [ ] `node scripts/forge.mjs sync dev` (Maintainer), then `node scripts/forge.mjs status` prints 0/0 for every branch. The GitLab MR flips to merged by itself.
-- [ ] After `git merge-base --is-ancestor chore/forge-ci-parity origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-forge-ci-parity`. Only `master`, `alpha`, `dev` remain on both forges.
+- [x] **GitLab first:** MR pipeline green (`glab api projects/6748/merge_requests/<iid>/pipelines`), then `gh pr checks <n>` green.
+- [x] Merge on GitHub only: `gh pr merge <n> --merge`.
+- [x] `node scripts/forge.mjs sync dev` (Maintainer), then `node scripts/forge.mjs status` prints 0/0 for every branch. The GitLab MR flips to merged by itself.
+- [x] After `git merge-base --is-ancestor chore/forge-ci-parity origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-forge-ci-parity`. Only `master`, `alpha`, `dev` remain on both forges.
 
 ## Handoff Log
 

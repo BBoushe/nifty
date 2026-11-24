@@ -2,12 +2,12 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
-- **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Delivery: merged origin/dev into the branch (no rebase, per user). CHANGELOG conflict resolved by keeping both entries. `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (32/32)
-- **Next action:** wait for all 7 GitHub checks + the GitLab pipeline to go green, then ask the user to merge PR #9. After the merge: `forge.mjs sync dev`, then delete the remote branches only (no Delivery ticks, keep the local branch and worktree)
+- **Branch:** `chore/superpowers-loops` merged into `dev` (98efcc5); deleted on origin, gitlab and locally
+- **Worktree:** removed
+- **Current:** done: PR #9 merged on GitHub, `forge.mjs sync dev` ran, MR !8 shows merged, `forge.mjs status` 0/0
+- **Next action:** none
 - **Uncommitted changes:** no
-- **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/9 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/8
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/9 (merged) · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/8 (merged)
 - **Open review findings:** Convention Candidates only (not fixed, outside owned files): `docs/workflow.md:48` Handoff step lacks the RED/GREEN format; `docs/setup.md:66` `.githooks/` row omits the archive gate; Delivery template runs tests before archive
 
 ## Tasks
@@ -54,9 +54,9 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "chore: superpowers loops, resumable tasks and archive gate" --body-file <file>`. Record the links in Status.
 - [x] Cold review session: verdict has no Blocking items.
 - [x] GitLab MR pipeline green; `gh pr checks <n>` green.
-- [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
-- [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
-- [ ] After `git merge-base --is-ancestor chore/superpowers-loops origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-superpowers-loops`.
+- [x] Merge on GitHub only: `gh pr merge <n> --merge`.
+- [x] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
+- [x] After `git merge-base --is-ancestor chore/superpowers-loops origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-superpowers-loops`.
 
 ## Handoff Log
 
