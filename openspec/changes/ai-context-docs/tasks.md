@@ -2,11 +2,11 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/ai-context-docs` (not created)
-- **Worktree:** —
-- **Current:** not started
-- **Next action:** Task 1, first step
-- **Uncommitted changes:** no
+- **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab, head a6ae4ba)
+- **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs`
+- **Current:** Task 4 — `docs/ai_docs/README.md` written; three library notes being researched
+- **Next action:** check the three notes (≤150 lines, versions = pom 4.0.10 / 2.0.0 / 2.8.0), commit task 4; then task 5 (vet accepted, linter run needs user approval)
+- **Uncommitted changes:** yes — `docs/ai_docs/README.md`
 - **PR / MR:** —
 - **Open review findings:** —
 
@@ -25,10 +25,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - [x] **3. Backlog** — REQ-CD-03
   - [x] Write `docs/feature_backlog.md` per design §3.
   - [x] Commit `docs(backlog): add feature backlog with blast radius and blockers`.
-- [ ] **4. Library notes** — REQ-CD-04
-  - [ ] Write `docs/ai_docs/README.md` and the three notes per design §4. Each note has `Version:`, `Sources:` and `Retrieved:`, and is ≤150 lines.
-  - [ ] Check: `wc -l docs/ai_docs/*.md` (each ≤150); every version matches `backend/pom.xml`.
-  - [ ] Commit `docs(ai-docs): add curated Spring Boot 4, Spring AI 2 and Timefold notes`.
+- [x] **4. Library notes** — REQ-CD-04
+  - [x] Write `docs/ai_docs/README.md` and the three notes per design §4. Each note has `Version:`, `Sources:` and `Retrieved:`, and is ≤150 lines.
+  - [x] Check: `wc -l docs/ai_docs/*.md` (each ≤150); every version matches `backend/pom.xml`.
+  - [x] Commit `docs(ai-docs): add curated Spring Boot 4, Spring AI 2 and Timefold notes`.
 - [ ] **5. ASD-STE100 skill (vet first)** — REQ-CD-06
   - [ ] Vet the source per design §5 step 1. Record the result (accepted, or rejected with the reason) in the Handoff Log.
   - [ ] If accepted: install, move, symlink (design §5 step 2). Run the linter on one doc (step 3). Expect: the linter runs and prints findings.
@@ -76,3 +76,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Contracts/Migrations added:** `docs/feature_backlog.md`; migration column lists planned tables only
 - **Decisions:** none new; O-item → row mapping is my reading of `docs/decisions/index.md` (review it)
 - **Open Questions:** `#feature-slice-map` anchor arrives with `backend-architecture-baseline`
+
+### Task 4 — Library notes
+- **Commits:** `docs(ai-docs): add curated Spring Boot 4, Spring AI 2 and Timefold notes`
+- **Verification:** RED n/a (docs only); GREEN `wc -l docs/ai_docs/*.md` → 28/149/136/149 (all ≤150); versions match `backend/pom.xml` (4.0.10, 2.0.0, 2.8.0)
+- **Contracts/Migrations added:** `docs/ai_docs/{README,spring-boot-4,spring-ai-2-kiconnect,timefold-solver}.md`
+- **Decisions:** none new. Findings for later changes: pom uses deprecated `spring-boot-starter-web` and lacks `spring-boot-starter-data-jpa-test` and `timefold-solver-spring-boot-starter`; `application.yml` uses deprecated `spring.ai.openai.chat.options.model` (2.0: `chat.model`)
+- **Open Questions:** ki:connect chat-completions path and `useProviderStructuredOutput()` support need one live call; Timefold starter verified on Boot 4.1.1, not 4.0.x
