@@ -323,6 +323,7 @@ describe('test-gate.mjs', () => {
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import { findCompletedUnarchivedChanges } from './archive-gate.mjs';
 import { getRepoRoot } from './lib.mjs';
@@ -348,6 +349,26 @@ describe('archive gate', () => {
       'no-tasks': null,
     });
     assert.deepEqual(findCompletedUnarchivedChanges(root), ['delivery-open', 'done']);
+  });
+
+  it('--stop-hook blocks with a reason naming the change, and allows stop when already active', () => {
+    const root = makeChangesRepo({ foo: '- [x] **1. A**\n' });
+    const run = (input) =>
+      spawnSync(process.execPath, ['.claude/hooks/archive-gate.mjs', '--stop-hook'], {
+        input,
+        encoding: 'utf8',
+        env: { ...process.env, NIFTY_REPO_ROOT: root },
+      });
+
+    const blocked = run('{}');
+    assert.equal(blocked.status, 0);
+    const out = JSON.parse(blocked.stdout);
+    assert.equal(out.decision, 'block');
+    assert.match(out.reason, /foo/);
+
+    const active = run('{"stop_hook_active":true}');
+    assert.equal(active.status, 0);
+    assert.equal(active.stdout, '');
   });
 
   it('repo invariant: no completed change is left unarchived', () => {

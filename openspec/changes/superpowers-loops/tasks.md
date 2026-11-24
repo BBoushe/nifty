@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/superpowers-loops` (local; not pushed yet)
+- **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Task 1 done and committed
-- **Next action:** push branch (awaiting user OK), then Task 2, first step
+- **Current:** Task 2 done and committed
+- **Next action:** Task 3, first step (plugin key = `superpowers@claude-plugins-official`; semantics lookup pending)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -20,12 +20,12 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
   - [x] Implement `findCompletedUnarchivedChanges` (design §4).
   - [x] Run the tests. Expect: exit 0, including the repo-invariant test.
   - [x] Commit `feat(hooks): add archive gate for completed openspec changes`.
-- [ ] **2. Stop hook and pre-push wiring** — REQ-SL-04
-  - [ ] Add the `--stop-hook` tests (design §5). Run them. Expect: FAIL.
-  - [ ] Implement `main()` with `--stop-hook` and `--pre-push`, then wire `.githooks/pre-push` (design §4).
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: exit 0.
-  - [ ] Manual check: push a scratch branch with a fixture change whose tasks are all `[x]`. Expect: blocked; `NIFTY_SKIP_GATE=1` passes. Remove the fixture afterwards.
-  - [ ] Commit `feat(hooks): run archive gate on Claude stop and feature-branch pre-push`.
+- [x] **2. Stop hook and pre-push wiring** — REQ-SL-04
+  - [x] Add the `--stop-hook` tests (design §5). Run them. Expect: FAIL.
+  - [x] Implement `main()` with `--stop-hook` and `--pre-push`, then wire `.githooks/pre-push` (design §4).
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs`. Expect: exit 0.
+  - [x] Manual check: push a scratch branch with a fixture change whose tasks are all `[x]`. Expect: blocked; `NIFTY_SKIP_GATE=1` passes. Remove the fixture afterwards.
+  - [x] Commit `feat(hooks): run archive gate on Claude stop and feature-branch pre-push`.
 - [ ] **3. Settings** — REQ-SL-01
   - [ ] Settle the plugin key and semantics (design §1).
   - [ ] Add `enabledPlugins` and `hooks.Stop` to `.claude/settings.json`.
@@ -65,4 +65,11 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (ERR_MODULE_NOT_FOUND archive-gate.mjs); GREEN: `node --test .claude/hooks/hooks.test.mjs` → exit 0 (17/17, repo invariant passes)
 - **Contracts/Migrations added:** `findCompletedUnarchivedChanges(repoRoot)` in `.claude/hooks/archive-gate.mjs`
 - **Decisions:** 3.9; test imports kept inside the `archive gate` block to stay in owned lines
+- **Open Questions:** none
+
+### Task 2 — Stop hook and pre-push wiring (2026-11-24)
+- **Commits:** `feat(hooks): run archive gate on Claude stop and feature-branch pre-push`
+- **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (stop-hook stdout empty: "Unexpected end of JSON input"); GREEN: `node --test .claude/hooks/hooks.test.mjs` → exit 0 (18/18). Manual: `git push --dry-run origin HEAD:refs/heads/scratch/archive-gate-check` with an all-`[x]` fixture → blocked; same with `NIFTY_SKIP_GATE=1` → passes; `dev` target → gate not run; fixture removed, no remote ref created
+- **Contracts/Migrations added:** `archive-gate.mjs --stop-hook | --pre-push`; `NIFTY_REPO_ROOT` (tests only)
+- **Decisions:** 3.9; pre-push skips branch deletions (zero local sha) and used `--dry-run` instead of a real scratch push
 - **Open Questions:** none

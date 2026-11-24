@@ -7,9 +7,22 @@
 set -eu
 
 ZERO_OID="0000000000000000000000000000000000000000"
+ARCHIVE_GATE_DONE=""
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ -z "${remote_ref:-}" ] && continue
+
+  # Archive gate (REQ-SL-04, Decision 3.9): once per push, only for feature-branch updates.
+  # Protected targets and mirror syncs (`forge.mjs sync` uses --no-verify) never run it.
+  case "$remote_ref" in
+    refs/heads/dev|refs/heads/alpha|refs/heads/master|refs/heads/main) ;;
+    *)
+      if [ -z "$ARCHIVE_GATE_DONE" ] && [ "$local_sha" != "$ZERO_OID" ] && command -v node >/dev/null 2>&1; then
+        ARCHIVE_GATE_DONE=1
+        node "$(git rev-parse --show-toplevel)/.claude/hooks/archive-gate.mjs" --pre-push </dev/null || exit 1
+      fi
+      ;;
+  esac
 
   case "$remote_ref" in
     refs/heads/master|refs/heads/main|refs/heads/alpha)
