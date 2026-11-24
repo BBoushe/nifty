@@ -90,3 +90,17 @@ All backend Java enums, PostgreSQL columns/JSONB payloads, OpenAPI schemas, and 
 | `db` (PostgreSQL 17 Alpine) | `5432` | Persistent volume `postgres_data`, healthchecked via `pg_isready`. |
 | `backend` (Spring Boot 4 / Java 21) | `8080` | Depends on healthy `db`; runs Flyway migrations on startup; exposes `/actuator/health`, `/api/**`, and `/v3/api-docs`. |
 | `frontend` (Vue 3.5 / Vite 8 / Nginx) | `5173` (dev) / `3000` (Docker) | Proxies `/api` and `/actuator` requests to `backend`. |
+
+## Feature Slice Map
+
+The backend is package-by-feature (Decision 1.10; rules and enforcement in [`.agents/rules/backend-java.md`](../.agents/rules/backend-java.md) §8). Each OpenSpec spec maps to one backend package `de.fhdortmund.nifty.<package>` with `web/`, `service/` and `repository/` layers as needed; cross-cutting code lives in `shared/{config,exception}`.
+
+| OpenSpec spec | Backend package | Frontend views |
+|---|---|---|
+| `interviewer-studio` | `studio` | `views/studio/` |
+| `assessment-chat` | `assessment` | `views/assessment/` |
+| `evidence-pipeline` | `evidence` | — (backend only) |
+| `formula-engine` | `formula` | `views/ranking/` (formula editor) |
+| `skills-matrix-review` | `matrix` | `views/ranking/` |
+| `team-builder` | `teams` | `views/teams/` |
+| `candidate-results` | `results` | `views/assessment/` (results page) |

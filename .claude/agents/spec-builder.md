@@ -17,11 +17,24 @@ You implement unchecked tasks in `openspec/changes/<change>/tasks.md` cleanly an
    - Strictly obey `.agents/rules/coding-standards.md` (ETC/DRY, small testable functions, avoid Java Streams in hot/repeated shared functions, update `docs/api.md` on every endpoint change, minimal reusable classes, frontend component reuse + HOFs + feature-grouped views under `frontend/src/views/<feature>/`).
    - Leave concise inline decision pointers (`// Decision X.Y: <short why>`) for non-obvious behavior and cite them in `design.md` and `## Handoff Log`.
 4. **Respect Domain Invariants:** Never let an LLM compute totals/rankings/cohort stats, never coerce missing evidence to `0`/`1` (always `N/A`), always verify quotes word-for-word against `assessment-transcript/v1`, always compute confidence deterministically, and require human approval + immutable audit logs for overrides.
-5. **Verify Every Claim:** Run real build and test commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`, `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`, `OPENSPEC_TELEMETRY=0 openspec validate --all`) before checking off any task `[x]`.
-6. **Atomic Commits & Active Forge:** Stage files explicitly (`git add <files>`), then commit separately using Conventional Commits (never chain `git add && git commit` or use `git commit -a`). Check active forge via `node scripts/check-setup.mjs --forge` (`gh`, `glab`, or `both` -> push/open PRs with `node scripts/forge.mjs`).
+5. **Verify Every Claim:** Follow the Build Loop below. Run real build and test commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`, `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`, `OPENSPEC_TELEMETRY=0 openspec validate --all`) before checking off any task `[x]`.
+6. **Atomic Commits & Active Forge:** Commit with the task's Conventional Commit and push the feature branch after **every** task. Stage files explicitly (`git add <files>`), then commit separately (never chain `git add && git commit` or use `git commit -a`). Check active forge via `node scripts/check-setup.mjs --forge` (`gh`, `glab`, or `both` -> push/open PRs with `node scripts/forge.mjs`).
 7. **Handoff Log:** After each completed milestone, append a compact 5-line entry to `## Handoff Log` at the bottom of `openspec/changes/<change>/tasks.md`:
    - `Commits:` `<sha> <subject>`
-   - `Verification:` `<command> -> exit 0`
+   - `Verification:` `RED: <cmd> → FAIL (<one-line reason>); GREEN: <cmd> → exit 0`. Doc-only or config-only tasks write `RED: n/a (no behaviour)`.
    - `Contracts/Migrations added:` `<files or none>`
    - `Decisions:` `<X.Y or none>`
    - `Open Questions:` `<O-id / blockers or none>`
+8. **Status Block:** Before you stop for any reason (task done, usage limit, blocker), overwrite `## Status` in `tasks.md` (Branch, Worktree, Current, Next action, Uncommitted changes, PR / MR, Open review findings). Another tool must be able to resume from the repo alone.
+
+## Build Loop (Decision 3.7)
+
+Canonical loop for every builder, test writer, and `spec-implementer` run. Claude Code loads the Superpowers skill. Other tools (Antigravity, Codex, Kiro) follow the inline fallback.
+
+| Step | Claude Code skill | Inline fallback (all tools) |
+|---|---|---|
+| Before proposing a change | `superpowers:brainstorming` / `openspec-explore` | Ask clarifying questions. List edge cases. Compare 2 options. |
+| Each code task | `superpowers:test-driven-development` | Write the failing test, run it, and paste the failure (RED). Write the minimal code and run it green (GREEN). Refactor, then run it again. |
+| Any build/test failure | `superpowers:systematic-debugging` | Read the error, trace the callers, state a hypothesis, write a reproducing test, then fix the root cause. Do not edit production code before you have a hypothesis. |
+| Before ticking `[x]` | `superpowers:verification-before-completion` | Run the task's verification command and check its exit code. |
+| Every stop | — | Overwrite `## Status`. Commit and push after each finished task. After the **last** task, run the `## Delivery` archive step **before** pushing (the pre-push archive gate blocks the push otherwise). |

@@ -4,11 +4,11 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/ai-context-docs` (origin/dev merged in, no rebase)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs` (keep until the user cleans up)
-- **Current:** Delivery — merged origin/dev (forge-ci-parity, dual-forge archived); history now has 10 entries incl. open PRs #7, #8, #9; waiting for CI
+- **Current:** Delivery — merged origin/dev twice (2nd: PRs #7, #8, #9 landed); history entries for #7/#8/#9 now say merged; waiting for CI
 - **Next action:** CI green on PR #11 and MR !10, then ask the user to merge (`gh pr merge 11 --merge`, `node scripts/forge.mjs sync dev`, `status`)
 - **Uncommitted changes:** no
 - **PR / MR:** https://github.com/BBoushe/nifty/pull/11 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/10
-- **Open review findings:** 0 Blocking. Convention Candidates (deferred): `#feature-slice-map` anchor arrives with `backend-architecture-baseline`; backlog cites Decision 1.10 for Testcontainers (1.10 covers it) but not for GitLab dind; README `Version: index` line; in-flight harness changes have no backlog rows (design lists only domain specs + `docs-ste-rewrite`)
+- **Open review findings:** 0 Blocking. Convention Candidates (deferred): backlog cites Decision 1.10 for Testcontainers (1.10 covers it) but not for GitLab dind; README `Version: index` line. Resolved by merge: `#feature-slice-map` anchor now exists; in-flight harness changes are archived, so no backlog rows needed
 
 ## Tasks
 
@@ -103,5 +103,12 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (lacks dual-forge, forge-ci-parity); GREEN same cmd → exit 0; full `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0; `openspec validate --all` → 11/11
 - **Contracts/Migrations added:** none. Conflicts in `CHANGELOG.md` and `scripts/harness-scripts.test.mjs` resolved by keeping both sides; `AGENTS.md`, `docs/setup.md` auto-merged with both sides
 - **Decisions:** history entries added ahead of merge for open PRs #7/#8/#9 (user request) and for dual-forge (test requires it); corrected backfilled GitLab links (MRs !1, !2 exist)
+- **Open Questions:** none
+
+### Delivery — second merge of origin/dev (PRs #7, #8, #9 merged meanwhile)
+- **Commits:** merge commit `chore(merge): merge origin/dev again after PRs #7, #8 and #9`
+- **Verification:** `gh pr merge 11` refused (merge conflicts). After merge: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → 35/35, exit 0; `openspec validate --all` → 8/8
+- **Contracts/Migrations added:** none. Conflicts in `CHANGELOG.md` and `docs/setup.md` resolved by keeping both sides
+- **Decisions:** none new
 - **Open Questions:** none
 

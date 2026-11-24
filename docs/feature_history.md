@@ -19,19 +19,19 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-24 — superpowers-loops
 - **What:** Declared the Superpowers plugin in `.claude/settings.json`. Added the brainstorm, TDD, debug and verify loop to the role prompts, RED/GREEN evidence, the resumable `tasks.md` layout, and an archive gate hook.
 - **Why:** Nothing proved that a test failed before the fix. Progress lived only in chat, and finished changes stayed active.
-- **PR/MR:** GitHub #9, GitLab !8 (open when this entry was written)
+- **PR/MR:** GitHub #9, GitLab !8
 - **Specs:** REQ-SL-01 to REQ-SL-06   **Decisions:** 3.7, 3.8, 3.9
 
 ## 2026-11-24 — backend-architecture-baseline
 - **What:** Moved the backend to package-by-feature (`shared/` and `<feature>/{web,service,repository}`), with ArchUnit tests for the dependency rules. Added `DomainException` and a global RFC 9457 `ProblemDetail` handler. Added the feature slice map to `docs/architecture.md`.
 - **Why:** The course guide sets these rules. The backend is still a skeleton, so the change costs little now. Feature slices keep the blast radius of each PR small.
-- **PR/MR:** GitHub #8, GitLab !7 (open when this entry was written)
+- **PR/MR:** GitHub #8, GitLab !7
 - **Specs:** REQ-BA-01 to REQ-BA-08   **Decisions:** 1.10
 
 ## 2026-11-24 — bash-guard-hardening
 - **What:** The Bash guard now removes more command wrappers and checks shell `-c` strings recursively, with a depth limit. It blocks `git push --no-verify` to protected branches on any remote.
 - **Why:** Wrappers such as `sh -c "cat .env"` or `rtk run` hid commands from the guard. Some of these could leak `KICONNECT_API_KEY` into the model context.
-- **PR/MR:** GitHub #7, GitLab !6 (open when this entry was written)
+- **PR/MR:** GitHub #7, GitLab !6
 - **Specs:** REQ-BG-01 to REQ-BG-05   **Decisions:** none recorded
 
 ## 2026-11-24 — dual-forge

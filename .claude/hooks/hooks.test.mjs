@@ -212,6 +212,62 @@ describe('guard-bash.mjs', () => {
     assert.equal(allowedDev.blocked, false);
   });
 
+  // REQ-BG-01..05: `pushCommitSubjects` keeps dev pushes deterministic, so only the guard under test decides.
+  const wrapOpts = { ...cleanOpts, currentBranch: 'feat/x', pushCommitSubjects: ['docs: x'] };
+  const shQuote = (s) => `'${s.replaceAll("'", "'\\''")}'`;
+
+  it('blocks guarded commands hidden behind wrappers and command strings', () => {
+    let nested = 'echo hi';
+    for (let i = 0; i < 4; i += 1) nested = `sh -c ${shQuote(nested)}`;
+    for (const cmd of [
+      'rtk err git push origin master',
+      'rtk test git push origin master',
+      'rtk summary git push origin master',
+      'rtk run git push origin master',
+      'rtk run -- git push origin master',
+      'rtk run -c "git push origin master"',
+      'sh -c "git push origin master"',
+      'sh -c "cat .env"',
+      'rtk run -c "cat .env"',
+      'eval git push origin master',
+      'xargs git push origin master',
+      'nice git push origin master',
+      'time git push origin master',
+      'sudo git push origin master',
+      'env -u VAR git push origin master',
+      'git push --no-verify origin dev',
+      'bash -lc "git push origin master"',
+      'sudo -u x git push origin master',
+      'nice -n 5 git push origin master',
+      'env -S "git push origin master"',
+      nested,
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
+    }
+    // A plain commit is only blocked on a protected branch, so probe the hidden commit there.
+    assert.equal(
+      evaluateBashCommand('bash -c "git commit -m x"', { ...wrapOpts, currentBranch: 'master' }).blocked,
+      true
+    );
+    assert.match(evaluateBashCommand(nested, wrapOpts).reason, /depth 3/);
+  });
+
+  it('allows harmless commands behind wrappers', () => {
+    for (const cmd of [
+      'rtk git status',
+      'rtk err npm run build',
+      'rtk test ./mvnw -B test',
+      'sh -c "npm run lint"',
+      'time ./mvnw -B test',
+      'git push origin feat/x',
+      'git push --no-verify origin feat/x',
+      'git push -n origin dev',
+      'git commit -m "docs: mention sh -c and .env"',
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, false, `expected allow for '${cmd}'`);
+    }
+  });
+
   it('blocks staged secrets and staged .env files in pre-commit', () => {
     const secretCommit = evaluatePreCommit({
       currentBranch: 'feat/new-harness-tools',
@@ -316,5 +372,62 @@ describe('test-gate.mjs', () => {
     const winPlan = planGateCommands(['backend/pom.xml'], 'win32');
     assert.equal(winPlan.length, 1);
     assert.equal(winPlan[0].cmd, 'mvnw.cmd');
+  });
+});
+
+// archive gate (superpowers-loops, REQ-SL-04). Imports kept local to this block to avoid merge conflicts.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+
+import { findCompletedUnarchivedChanges } from './archive-gate.mjs';
+import { getRepoRoot } from './lib.mjs';
+
+function makeChangesRepo(changes) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'archive-gate-'));
+  for (const [name, tasks] of Object.entries(changes)) {
+    const dir = path.join(root, 'openspec', 'changes', name);
+    fs.mkdirSync(dir, { recursive: true });
+    if (tasks !== null) fs.writeFileSync(path.join(dir, 'tasks.md'), tasks);
+  }
+  return root;
+}
+
+describe('archive gate', () => {
+  it('lists only completed, unarchived changes', () => {
+    const root = makeChangesRepo({
+      done: '## Tasks\n- [x] **1. A**\n  - [X] step\n',
+      open: '## Tasks\n- [x] **1. A**\n  - [ ] step\n',
+      'delivery-open': '## Tasks\n- [x] **1. A**\n\n## Delivery\n- [ ] push\n',
+      empty: '## Tasks\nnothing yet\n',
+      'archive/2026-01-01-old': '- [x] done\n',
+      'no-tasks': null,
+    });
+    assert.deepEqual(findCompletedUnarchivedChanges(root), ['delivery-open', 'done']);
+  });
+
+  it('--stop-hook blocks with a reason naming the change, and allows stop when already active', () => {
+    const root = makeChangesRepo({ foo: '- [x] **1. A**\n' });
+    const run = (input) =>
+      spawnSync(process.execPath, ['.claude/hooks/archive-gate.mjs', '--stop-hook'], {
+        input,
+        encoding: 'utf8',
+        env: { ...process.env, NIFTY_REPO_ROOT: root },
+      });
+
+    const blocked = run('{}');
+    assert.equal(blocked.status, 0);
+    const out = JSON.parse(blocked.stdout);
+    assert.equal(out.decision, 'block');
+    assert.match(out.reason, /foo/);
+
+    const active = run('{"stop_hook_active":true}');
+    assert.equal(active.status, 0);
+    assert.equal(active.stdout, '');
+  });
+
+  it('repo invariant: no completed change is left unarchived', () => {
+    assert.deepEqual(findCompletedUnarchivedChanges(getRepoRoot()), []);
   });
 });
