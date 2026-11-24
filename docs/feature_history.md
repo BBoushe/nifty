@@ -6,7 +6,7 @@ The date in each heading is the archive date. Before 2026-11-24, the team did no
 ## 2026-11-24 — ai-context-docs
 - **What:** Added this feature history with a test that keeps it complete, a feature backlog and `docs/ai_docs/` library notes. Added the vetted `asd-ste100` skill, an STE writing rule and three `AGENTS.md` dispatch rows.
 - **Why:** Agents could not see what was built, what to pick next, or current APIs for Spring Boot 4, Spring AI 2 and Timefold 2.
-- **PR/MR:** GitHub #…, GitLab !… (filled after the PR opens)
+- **PR/MR:** GitHub #11, GitLab !10
 - **Specs:** REQ-CD-01 to REQ-CD-06   **Decisions:** 3.5, 3.6
 
 ## 2026-11-24 — decisions-coding-rules-gitlab
