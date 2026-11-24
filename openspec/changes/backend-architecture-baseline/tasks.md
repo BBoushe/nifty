@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`
-- **Current:** Task 2 done (GREEN committed)
-- **Next action:** Task 3, first step (GlobalExceptionHandlerTest)
+- **Current:** Task 3 done
+- **Next action:** Task 4, first step (record line count before)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -23,12 +23,12 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
   - [x] Move `config/*` → `shared/config/` and `health/HealthController` → `health/web/` (design §1). Update imports.
   - [x] Run `cd backend && ./mvnw -B test`. Expect: exit 0, including `HealthEndpointTest` and `ArchitectureTest`.
   - [x] Commit `refactor(backend): move to package-by-feature layout`.
-- [ ] **3. Problem details** — REQ-BA-05, REQ-BA-06
-  - [ ] Write `GlobalExceptionHandlerTest` (`@WebMvcTest` with a test-only controller; design §4): invalid `@Valid` record body → 400 `application/problem+json` with the field name; `DomainException(CONFLICT, "Config is already approved")` → 409 with that detail; `IllegalStateException("secret internal state")` → 500 whose body does not contain `secret internal state`, `trace` or `IllegalStateException`.
-  - [ ] Run `./mvnw -B test -Dtest=GlobalExceptionHandlerTest`. Expect: FAIL (no handler).
-  - [ ] Implement `DomainException` and `GlobalExceptionHandler` (design §2).
-  - [ ] Run `./mvnw -B test`. Expect: exit 0.
-  - [ ] Commit `feat(backend): add RFC 9457 GlobalExceptionHandler and DomainException`.
+- [x] **3. Problem details** — REQ-BA-05, REQ-BA-06
+  - [x] Write `GlobalExceptionHandlerTest` (`@WebMvcTest` with a test-only controller; design §4): invalid `@Valid` record body → 400 `application/problem+json` with the field name; `DomainException(CONFLICT, "Config is already approved")` → 409 with that detail; `IllegalStateException("secret internal state")` → 500 whose body does not contain `secret internal state`, `trace` or `IllegalStateException`.
+  - [x] Run `./mvnw -B test -Dtest=GlobalExceptionHandlerTest`. Expect: FAIL (no handler).
+  - [x] Implement `DomainException` and `GlobalExceptionHandler` (design §2).
+  - [x] Run `./mvnw -B test`. Expect: exit 0.
+  - [x] Commit `feat(backend): add RFC 9457 GlobalExceptionHandler and DomainException`.
 - [ ] **4. Quiet Maven output** — REQ-BA-07
   - [ ] Record `./mvnw -B test 2>&1 | wc -l` (before).
   - [ ] Apply design §5.
@@ -75,4 +75,11 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - **Verification:** RED `cd backend && ./mvnw -B test -Dtest=ArchitectureTest` → FAIL (Task 1); GREEN `cd backend && ./mvnw -B test` → exit 0 (14 tests: ArchitectureTest 12, HealthEndpointTest 2)
 - **Contracts/Migrations added:** none (`/api/v1/health` unchanged; `HealthResponse` stays nested in `HealthController`)
 - **Decisions:** none new (Decision 1.10 layout)
+- **Open Questions:** none
+
+### Task 3 — Problem details
+- **Commits:** `feat(backend): add RFC 9457 GlobalExceptionHandler and DomainException`
+- **Verification:** RED `cd backend && ./mvnw -B test -Dtest=GlobalExceptionHandlerTest` → FAIL (compile: `DomainException` missing); GREEN `cd backend && ./mvnw -B test` → exit 0 (18 tests)
+- **Contracts/Migrations added:** error envelope = ProblemDetail `type` (`about:blank` default; Spring 7 leaves it null, so `createResponseEntity` sets it), `title`, `status`, `detail`, `instance`, plus `errors: [{field, message}]` on 400 validation; `server.error.include-stacktrace: never`
+- **Decisions:** `AccessDeniedException`/`AuthenticationException` are rethrown so `@EnableMethodSecurity` denials stay 401/403 instead of hitting the catch-all 500 (tested); test controller needs `@Import` because Boot excludes classes nested in tests from scanning
 - **Open Questions:** none
