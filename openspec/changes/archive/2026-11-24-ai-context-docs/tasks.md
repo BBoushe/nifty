@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab)
+- **Branch:** `chore/ai-context-docs` (origin/dev merged in, no rebase)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs` (keep until the user cleans up)
-- **Current:** Delivery — review APPROVE, CI green on 5278188 (GitHub 5/5, GitLab pipeline 8721); the user said: do not merge yet
-- **Next action:** when the user approves: re-check `gh pr checks 11` (this commit reruns CI), `gh pr merge 11 --merge`, `node scripts/forge.mjs sync dev`, `node scripts/forge.mjs status`. The user does the branch/worktree cleanup.
+- **Current:** Delivery — merged origin/dev (forge-ci-parity, dual-forge archived); history now has 10 entries incl. open PRs #7, #8, #9; waiting for CI
+- **Next action:** CI green on PR #11 and MR !10, then ask the user to merge (`gh pr merge 11 --merge`, `node scripts/forge.mjs sync dev`, `status`)
 - **Uncommitted changes:** no
 - **PR / MR:** https://github.com/BBoushe/nifty/pull/11 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/10
 - **Open review findings:** 0 Blocking. Convention Candidates (deferred): `#feature-slice-map` anchor arrives with `backend-architecture-baseline`; backlog cites Decision 1.10 for Testcontainers (1.10 covers it) but not for GitLab dind; README `Version: index` line; in-flight harness changes have no backlog rows (design lists only domain specs + `docs-ste-rewrite`)
@@ -97,3 +97,11 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Contracts/Migrations added:** `spec-driven.md` rule 6; 3 AGENTS.md §3 rows; 4 `docs/setup.md` inventory rows; CHANGELOG `[Unreleased]` entry
 - **Decisions:** none new (3.5, 3.6)
 - **Open Questions:** none
+
+### Delivery — merge origin/dev (user request)
+- **Commits:** merge commit `chore(merge): merge origin/dev into chore/ai-context-docs`
+- **Verification:** RED `node --test scripts/harness-scripts.test.mjs` → FAIL (lacks dual-forge, forge-ci-parity); GREEN same cmd → exit 0; full `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0; `openspec validate --all` → 11/11
+- **Contracts/Migrations added:** none. Conflicts in `CHANGELOG.md` and `scripts/harness-scripts.test.mjs` resolved by keeping both sides; `AGENTS.md`, `docs/setup.md` auto-merged with both sides
+- **Decisions:** history entries added ahead of merge for open PRs #7/#8/#9 (user request) and for dual-forge (test requires it); corrected backfilled GitLab links (MRs !1, !2 exist)
+- **Open Questions:** none
+

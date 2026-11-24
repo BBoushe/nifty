@@ -41,6 +41,15 @@
           },
           {
             "context": "Conventional Commits"
+          },
+          {
+            "context": "Backend Image (Docker)"
+          },
+          {
+            "context": "Frontend Image (Docker)"
+          },
+          {
+            "context": "Hook Tests (Node)"
           }
         ]
       }
