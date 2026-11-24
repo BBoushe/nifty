@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,9 +27,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REQ-BA-05 and REQ-BA-06. Security filters are off: this test is about error mapping only. */
-@WebMvcTest(controllers = GlobalExceptionHandlerTest.ErrorTestController.class)
+// The 500 case logs its expected stack trace at ERROR; silence only this logger here.
+@WebMvcTest(controllers = GlobalExceptionHandlerTest.ErrorTestController.class,
+        properties = "logging.level.de.fhdortmund.nifty.shared.exception.GlobalExceptionHandler=OFF")
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandlerTest.ErrorTestController.class) // nested classes are excluded from scanning
+@ActiveProfiles("test")
 class GlobalExceptionHandlerTest {
 
     @Autowired

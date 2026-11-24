@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`
-- **Current:** Task 3 done
-- **Next action:** Task 4, first step (record line count before)
+- **Current:** Task 4 done
+- **Next action:** Task 5, first step (datasource password from env)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -29,11 +29,11 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
   - [x] Implement `DomainException` and `GlobalExceptionHandler` (design §2).
   - [x] Run `./mvnw -B test`. Expect: exit 0.
   - [x] Commit `feat(backend): add RFC 9457 GlobalExceptionHandler and DomainException`.
-- [ ] **4. Quiet Maven output** — REQ-BA-07
-  - [ ] Record `./mvnw -B test 2>&1 | wc -l` (before).
-  - [ ] Apply design §5.
-  - [ ] Record the line count after; check that `grep -c "Downloading from\|Downloaded from"` is 0 and that the banner is gone. Expect: exit 0 and fewer lines.
-  - [ ] Commit `build(backend): cut maven and spring test log noise`.
+- [x] **4. Quiet Maven output** — REQ-BA-07
+  - [x] Record `./mvnw -B test 2>&1 | wc -l` (before).
+  - [x] Apply design §5.
+  - [x] Record the line count after; check that `grep -c "Downloading from\|Downloaded from"` is 0 and that the banner is gone. Expect: exit 0 and fewer lines.
+  - [x] Commit `build(backend): cut maven and spring test log noise`.
 - [ ] **5. Credentials from env only** — REQ-BA-08
   - [ ] Apply design §6.
   - [ ] Run `cd backend && ./mvnw -B test` and `docker compose config >/dev/null` (from the repo root). Expect: both exit 0.
@@ -82,4 +82,11 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - **Verification:** RED `cd backend && ./mvnw -B test -Dtest=GlobalExceptionHandlerTest` → FAIL (compile: `DomainException` missing); GREEN `cd backend && ./mvnw -B test` → exit 0 (18 tests)
 - **Contracts/Migrations added:** error envelope = ProblemDetail `type` (`about:blank` default; Spring 7 leaves it null, so `createResponseEntity` sets it), `title`, `status`, `detail`, `instance`, plus `errors: [{field, message}]` on 400 validation; `server.error.include-stacktrace: never`
 - **Decisions:** `AccessDeniedException`/`AuthenticationException` are rethrown so `@EnableMethodSecurity` denials stay 401/403 instead of hitting the catch-all 500 (tested); test controller needs `@Import` because Boot excludes classes nested in tests from scanning
+- **Open Questions:** none
+
+### Task 4 — Quiet Maven output
+- **Commits:** `build(backend): cut maven and spring test log noise`
+- **Verification:** RED `./mvnw -B test 2>&1 | wc -l` → 236 lines, 2 Spring banners, 41 framework INFO lines (warm cache, 0 downloads); GREEN `cd backend && ./mvnw -B test` → exit 0, 59 lines, 0 `Downloading from|Downloaded from`, 0 banners, 0 INFO framework logs
+- **Contracts/Migrations added:** `backend/.mvn/maven.config` (`-ntp`), `application-test.yml` (banner off, root WARN), `src/test/resources/logback-test.xml` (root WARN before Boot reads the profile; console only)
+- **Decisions:** `GlobalExceptionHandlerTest` activates profile `test` and turns off only the handler logger, which otherwise prints its expected ~110-line stack trace; remaining output is JVM/Mockito agent and framework WARN lines
 - **Open Questions:** none

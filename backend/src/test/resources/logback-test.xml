@@ -1,0 +1,8 @@
+<!-- Quiet test output (REQ-BA-07): covers the phase before Spring Boot reads application-test.yml. -->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

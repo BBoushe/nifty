@@ -1,4 +1,6 @@
 spring:
+  main:
+    banner-mode: off
   datasource:
     url: jdbc:h2:mem:nifty_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
@@ -9,3 +11,8 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+
+# Quiet test output for humans and agents (REQ-BA-07)
+logging:
+  level:
+    root: WARN
