@@ -70,3 +70,8 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
 - **Did:** heredoc scan now tracks quotes, comments and `$( … )`; heredoc bodies are checked as commands when a shell or `eval` is the command word or a segment starts with a substitution; `[^x]` globs; design §6; limits list; older gaps moved to the backlog.
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (8 new probes); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (40/40). Probe file: commit/PR heredocs with `sh` in the title still allowed.
 - **Next:** push, new cold review, merge (ask the user).
+
+### 2026-11-25 — Fourth review fixes (main session)
+- **Did:** replaced the heredoc deny-list scanner with an allow-list (`stripTextHeredocs`, design §6); removed the `mayRunText` heuristic; `splitShellSegments` ends backticks at the next unescaped backtick.
+- **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (12 new probes, fake heredocs and shared commands); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (40/40). Probe file: commit/PR heredoc forms still allowed (9/9).
+- **Next:** push, cold review round 5, merge (ask the user).

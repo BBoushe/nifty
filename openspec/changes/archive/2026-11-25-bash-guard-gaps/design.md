@@ -54,12 +54,15 @@ In `parseGitPushTargets`:
 
 In `segmentTouchesBlockedEnv`, an **unquoted** argument that contains `*`, `?` or `[` is turned into an anchored regex (`*` → `[^/]*`, `?` → `[^/]`, `[…]` kept). Each path segment is tested against `.env` and `.env.local`. A match blocks, unless the literal argument ends in `.env.example`. Quoted arguments are not globbed by the shell, so `grep ".*" file` stays allowed.
 
-## 6. Quoted heredocs (added after the second and third reviews)
+## 6. Message heredocs: an allow-list (after the second to fourth reviews)
 
-- `stripQuotedHeredocBodies(command) → { text, bodies }` in `lib.mjs` removes the bodies of `<<'X'`, `<<"X"` and `<<\X` heredocs. It tracks quotes, comments and `$( … )` nesting, so only a real `<<` starts a heredoc (`echo "<<'X'"` does not).
-- `evaluateBashCommand` scans every body line for the secret env file, always.
-- It also evaluates the bodies as commands when a segment's command word is a shell or `eval`, or a segment starts with a substitution (`bash /dev/stdin <<'X'`, `eval "$(cat <<'X' …)"`). Otherwise the bodies are text, so the standard `git commit -m "$(cat <<'EOF' … EOF)"` form works.
-- Unquoted heredocs stay in place, because the shell expands `$( … )` inside them.
+A scanner that tries to find every quoted heredoc (a deny-list) kept leaking: fake `<<'X'` markers in quotes, comments, unquoted heredoc bodies, `${…}` and backticks hid real commands. So the guard treats a heredoc body as text only in two known forms, and checks every other heredoc line as a command (as before this change).
+
+- `stripTextHeredocs(command) → { text, bodies }` in `lib.mjs`:
+  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`, only when everything before it in the command is plain arguments of that one command (no substitution, separator, comment, redirection or open quote), and no body line equals the delimiter;
+  - `git|gh|glab … <<'X'` as the whole first line (`git commit -F - <<'EOF'`).
+- `evaluateBashCommand` always scans the removed bodies for the secret env file.
+- `splitShellSegments` ends a backtick at the next unescaped backtick, as bash does.
 
 ## 7. Docs
 

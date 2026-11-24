@@ -18,7 +18,7 @@ import {
   isBlockedEnvPath,
   readStdinJson,
   splitShellSegments,
-  stripQuotedHeredocBodies,
+  stripTextHeredocs,
   stripLeadingEnvAssignments,
   tokenizeSegment,
 } from './lib.mjs';
@@ -369,8 +369,8 @@ export function evaluateBashCommand(command, options = {}) {
       `Never read, print, or stage '.env' files via shell commands.`,
   });
 
-  // Quoted heredoc bodies are text, not commands; they still must not name a secret env file.
-  const heredoc = stripQuotedHeredocBodies(command);
+  // Known message heredocs (`git commit -m "$(cat <<'EOF' …)"`) are text; they still must not name a secret env file.
+  const heredoc = stripTextHeredocs(command);
   for (const line of heredoc.bodies.join('\n').split('\n')) {
     const hit = line.trim() && segmentTouchesBlockedEnv(line);
     if (hit) return envBlocked(hit);
@@ -378,21 +378,6 @@ export function evaluateBashCommand(command, options = {}) {
 
   const segments = splitShellSegments(heredoc.text);
   let hasGitCommit = false;
-
-  // A heredoc body is text, unless a shell or `eval` may run it (`bash /dev/stdin <<'X'`,
-  // `eval "$(cat <<'X' …)"`, a substitution as the command word). Then check it as commands too.
-  const mayRunText = segments.some((s) => {
-    if (/^(\$\(|`)/.test(s)) return true;
-    const cmd = stripLeadingEnvAssignments(tokenizeSegment(s))[0]?.value.split('/').pop();
-    return cmd === 'eval' || SHELLS.has(cmd);
-  });
-  if (mayRunText) {
-    for (const body of heredoc.bodies) {
-      if (depth + 1 > MAX_COMMAND_DEPTH) return tooDeep;
-      const bodyResult = evaluateBashCommand(body, nested);
-      if (bodyResult.blocked) return bodyResult;
-    }
-  }
 
   for (const segment of segments) {
     // 1. Block .env shell reads/prints/staging

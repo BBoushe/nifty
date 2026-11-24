@@ -369,6 +369,20 @@ describe('guard-bash.mjs', () => {
       `$(cat <<'X'\ngit push origin master\nX\n)`,
       `bash /dev/stdin <<'X'\ngit push origin master\nX`,
       'cat .[^x]nv',
+      // Fourth review: fake heredocs a deny-list scanner missed.
+      `cat <<EOF\n<<'X'\nEOF\ngit push origin master\nX`,
+      `cat <<'A' <<'B'\nA\n<<'Y'\nB\ngit push origin master\nY`,
+      `(true)#<<'X'\ngit push origin master\nX`,
+      `echo "\${x:-"a <<'X' b"}"\ngit push origin master\nX`,
+      "echo `echo '`' <<\"X\" '\ngit push origin master\nX`",
+      `source /dev/stdin <<'X'\ngit push origin master\nX`,
+      `. /dev/stdin <<'X'\ngit push origin master\nX`,
+      `{ $(cat <<'X'\ngit push origin master\nX\n); }`,
+      `time $(cat <<'X'\ngit push origin master\nX\n)`,
+      // Known text forms only count when nothing else shares the command.
+      `git status; eval "$(cat <<'X'\ngit push origin master\nX\n)"`,
+      `git log $(eval "$(cat <<'X'\ngit push origin master\nX\n)")`,
+      `git commit -m "$(cat <<'X'\nX\ngit push origin master\nX\n)"`,
     ]) {
       assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
     }

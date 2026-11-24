@@ -251,6 +251,15 @@ export function splitShellSegments(command) {
       continue;
     }
 
+    // bash ends a backtick substitution at the next unescaped backtick, whatever quotes are inside it.
+    if (ch === '`' && !inSingle) {
+      let j = i + 1;
+      while (j < command.length && command[j] !== '`') j += command[j] === '\\' ? 2 : 1;
+      current += command.slice(i, j + 1);
+      i = j;
+      continue;
+    }
+
     if (ch === "'" && !inDouble) {
       inSingle = !inSingle;
       current += ch;
@@ -291,79 +300,66 @@ export function splitShellSegments(command) {
   return segments;
 }
 
-/**
- * Remove the bodies of quoted heredocs (`<<'X'`, `<<"X"`, `<<\X`): the shell passes them as literal
- * text, so their lines are not commands. Only a `<<` outside quotes and comments starts a heredoc.
- * Returns `{ text, bodies }`; callers still scan `bodies` as data, and as commands when a shell runs them.
- * Unquoted heredocs stay in place, because the shell expands `$( … )` inside them.
- */
-export function stripQuotedHeredocBodies(command) {
-  const bodies = [];
-  const contexts = []; // double-quote state saved when entering `$(`
-  let out = '';
-  let pos = 0;
+// The only commands whose quoted heredoc text the guard treats as data, never as code.
+const TEXT_COMMAND_RE = /^\s*(?:rtk\s+)?(?:git|gh|glab)\s/;
+// Flags whose value is message text in git/gh/glab.
+const TEXT_FLAG_RE = /(\s(?:-m|-F|--message|--body|--title|--description|--notes)[=\s]+)"\$\(cat <<-?(['"])(\w+)\2\n([\s\S]*?)\n\3\n\)"/g;
+
+/** Quote state at the end of `text`: true when it ends outside quotes and has no substitution. */
+function isPlainPrefix(text) {
+  if (/\$\(|`/.test(text)) return false;
   let inSingle = false;
   let inDouble = false;
-  for (let i = 0; i < command.length; i += 1) {
-    const ch = command[i];
-    if (inSingle) {
-      if (ch === "'") inSingle = false;
-      continue;
-    }
-    if (ch === '\\') {
-      i += 1;
-      continue;
-    }
-    if (ch === "'" && !inDouble) {
-      inSingle = true;
-      continue;
-    }
-    if (ch === '"') {
-      inDouble = !inDouble;
-      continue;
-    }
-    if (ch === '$' && command[i + 1] === '(') {
-      contexts.push(inDouble); // `"$(cat <<'EOF' …)"`: quoting restarts inside the substitution
-      inDouble = false;
-      i += 1;
-      continue;
-    }
-    if (ch === ')' && !inDouble && contexts.length) {
-      inDouble = contexts.pop();
-      continue;
-    }
-    if (inDouble) continue;
-    if (ch === '#' && (i === 0 || /[\s;&|(]/.test(command[i - 1]))) {
-      const nl = command.indexOf('\n', i); // a comment ends at the line end
-      if (nl === -1) break;
-      i = nl - 1;
-      continue;
-    }
-    if (ch !== '<' || command[i + 1] !== '<' || command[i + 2] === '<' || command[i - 1] === '<') continue;
-    const m = /^<<-?[ \t]*(?:'([^'\n]+)'|"([^"\n]+)"|\\([A-Za-z0-9_]+))/.exec(command.slice(i));
-    if (!m) continue;
-    const delim = m[1] ?? m[2] ?? m[3];
-    const lineEnd = command.indexOf('\n', i + m[0].length);
-    if (lineEnd === -1) break;
-    let line = lineEnd + 1;
-    let bodyEnd = -1;
-    while (line <= command.length) {
-      const nl = command.indexOf('\n', line);
-      const stop = nl === -1 ? command.length : nl;
-      if (command.slice(line, stop).replace(/^\t+/, '').trimEnd() === delim) {
-        bodyEnd = line;
-        break;
-      }
-      if (nl === -1) break;
-      line = nl + 1;
-    }
-    if (bodyEnd === -1) break; // unterminated: leave the rest untouched
-    bodies.push(command.slice(lineEnd + 1, bodyEnd));
-    out += command.slice(pos, lineEnd + 1);
-    pos = bodyEnd;
-    i = bodyEnd + delim.length - 1;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '\\' && !inSingle) i += 1;
+    else if (ch === "'" && !inDouble) inSingle = !inSingle;
+    else if (ch === '"' && !inSingle) inDouble = !inDouble;
+    else if (!inSingle && !inDouble && /[;&|\n#<>()]/.test(ch)) return false;
   }
-  return { text: out + command.slice(pos), bodies };
+  return !inSingle && !inDouble;
+}
+
+/**
+ * Allow-list of heredocs that only carry message text (Decision: bash-guard-gaps design §6):
+ *  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`,
+ *    when everything before it in the command is plain arguments of that one command;
+ *  - `git|gh|glab … <<'X'` as the whole first line (`git commit -F - <<'EOF'`).
+ * Returns `{ text, bodies }`: `text` has those bodies removed; callers still scan `bodies` as data.
+ * Every other heredoc stays in place, so its lines are checked as commands.
+ */
+export function stripTextHeredocs(command) {
+  const bodies = [];
+  let text = command;
+
+  const first = /^(\s*(?:rtk\s+)?(?:git|gh|glab)\s[^;&|`$()<>\n#]*<<(-?)(['"])(\w+)\3[ \t]*)\n/.exec(text);
+  if (first) {
+    const [, head, dash, , delim] = first;
+    const lines = text.slice(first[0].length).split('\n');
+    const end = lines.findIndex((l) => (dash ? l.replace(/^\t+/, '') : l) === delim);
+    if (end !== -1) {
+      bodies.push(lines.slice(0, end).join('\n'));
+      text = `${head}\n${lines.slice(end).join('\n')}`;
+    }
+  }
+
+  if (TEXT_COMMAND_RE.test(text)) {
+    let out = '';
+    let pos = 0;
+    let m;
+    TEXT_FLAG_RE.lastIndex = 0;
+    while ((m = TEXT_FLAG_RE.exec(text)) !== null) {
+      const prefix = out + text.slice(pos, m.index) + m[1];
+      const [, , , delim, body] = m;
+      // A line equal to the delimiter ends the heredoc early in bash: the rest would run as code.
+      if (!isPlainPrefix(prefix) || body.split('\n').includes(delim)) break;
+      bodies.push(body);
+      out = `${prefix}"heredoc-text"`;
+      pos = TEXT_FLAG_RE.lastIndex;
+    }
+    text = out + text.slice(pos);
+  }
+  return { text, bodies };
 }
 
 /**
