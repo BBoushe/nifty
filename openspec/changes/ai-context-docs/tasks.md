@@ -33,12 +33,12 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
   - [x] Vet the source per design §5 step 1. Record the result (accepted, or rejected with the reason) in the Handoff Log.
   - [x] If accepted: install, move, symlink (design §5 step 2). Run the linter on one doc (step 3). Expect: the linter runs and prints findings.
   - [x] Commit `chore(skills): add vetted asd-ste100 skill`.
-- [ ] **6. Rules and dispatch** — REQ-CD-05, REQ-CD-06
-  - [ ] Add rule 6 to `.agents/rules/spec-driven.md` and the three AGENTS.md §3 rows (design §6).
-  - [ ] Add inventory rows to the end of the `docs/setup.md` table for `docs/feature_history.md`, `docs/feature_backlog.md`, `docs/ai_docs/` and `.agents/skills/asd-ste100/`.
-  - [ ] Add a `CHANGELOG.md` `[Unreleased]` entry.
-  - [ ] Run `OPENSPEC_TELEMETRY=0 openspec validate --all` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: both exit 0.
-  - [ ] Commit `docs(agents): dispatch ai_docs, backlog/history lifecycle and STE rule`.
+- [x] **6. Rules and dispatch** — REQ-CD-05, REQ-CD-06
+  - [x] Add rule 6 to `.agents/rules/spec-driven.md` and the three AGENTS.md §3 rows (design §6).
+  - [x] Add inventory rows to the end of the `docs/setup.md` table for `docs/feature_history.md`, `docs/feature_backlog.md`, `docs/ai_docs/` and `.agents/skills/asd-ste100/`.
+  - [x] Add a `CHANGELOG.md` `[Unreleased]` entry.
+  - [x] Run `OPENSPEC_TELEMETRY=0 openspec validate --all` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: both exit 0.
+  - [x] Commit `docs(agents): dispatch ai_docs, backlog/history lifecycle and STE rule`.
 
 ## Delivery
 
@@ -89,4 +89,11 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - **Verification:** RED n/a (no test); GREEN `python3 -I .agents/skills/asd-ste100/scripts/ste-lint.py docs/feature_history.md` → exit 0, "0 violations (0 hard, baseline 0), 332 words" (run by the user: auto mode blocks downloaded scripts)
 - **Contracts/Migrations added:** `.agents/skills/asd-ste100/` (danyuchn/asd-ste100-skill @ d714e53, v0.4.0, MIT) + `.claude/skills/asd-ste100` symlink
 - **Decisions:** vet ACCEPTED — stdlib-only Python, no runtime network, no install/postinstall scripts, no binaries; writes only to a temp dir in `--selftest`. Copied the vetted files instead of `npx skills add`, so the repo holds exactly the read commit and the skills CLI telemetry never runs; `.claude-plugin/` omitted
+- **Open Questions:** none
+
+### Task 6 — Rules and dispatch
+- **Commits:** `docs(agents): dispatch ai_docs, backlog/history lifecycle and STE rule`
+- **Verification:** RED n/a (docs only); GREEN `OPENSPEC_TELEMETRY=0 openspec validate --all` → 14/14 passed; `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
+- **Contracts/Migrations added:** `spec-driven.md` rule 6; 3 AGENTS.md §3 rows; 4 `docs/setup.md` inventory rows; CHANGELOG `[Unreleased]` entry
+- **Decisions:** none new (3.5, 3.6)
 - **Open Questions:** none

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AI context docs (Decisions 3.5, 3.6):** `docs/feature_history.md` (backfilled, kept complete by a harness test), `docs/feature_backlog.md` (status, blockers, blast radius), `docs/ai_docs/` notes for Spring Boot 4, Spring AI 2 with ki:connect NRW and Timefold 2.8, the vetted `asd-ste100` skill and linter, `spec-driven.md` rule 6 (plain writing) and three new `AGENTS.md` dispatch rows.
 - **Dual forge (`GIT_FORGE=both`, Decision 1.8):** `scripts/forge.mjs` (`push`, `pr`, `sync`, `status`, all `--dry-run`-able) pushes and opens PR + MR on GitHub and GitLab together and fast-forwards GitLab after GitHub merges; `check-setup.mjs` now checks both CLIs and the `origin`/`gitlab` remotes; `scripts/apply-gitlab-protections.sh` mirrors `.github/rulesets/`; `pr-memo` and docs updated.
 - **Documentation Foundation (`docs/`):** Added `docs/discovery-canvas.md`, `docs/architecture.md` (monorepo map, 9-step evidence-first pipeline, `assessment-transcript/v1` contract), `docs/workflow.md`, and `docs/decisions.md` (ADRs D1–D13 and open team decisions O1–O7).
 - **Spec-Driven Layer (`openspec/`):** Initialized OpenSpec for Claude Code, Antigravity, Codex, and Gemini CLI; created `openspec/changes/project-setup/` and seeded all 7 MVP domain specs (`interviewer-studio`, `assessment-chat`, `evidence-pipeline`, `formula-engine`, `skills-matrix-review`, `team-builder`, `candidate-results`) with all §14.2 EARS requirements (`openspec validate --all` passing 8/8).

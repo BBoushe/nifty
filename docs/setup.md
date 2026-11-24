@@ -66,6 +66,10 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 | `.githooks/` | Portable Git hooks (`pre-commit` -> `guard-bash.mjs --pre-commit`, `commit-msg`, `pre-push` -> branch guard + `test-gate.mjs`) | Git (every CLI, IDE, wrapper, and human) | **Adapter (Universal Enforcement)** |
 | `.github/workflows/ci.yml` & `.gitlab-ci.yml` | Parallel GitHub Actions & GitLab CI pipelines running hook/script tests, commit lint, branch policy, and pluggable build jobs | GitHub Actions / GitLab CI | **Enforcement (Remote)** |
 | `.github/rulesets/*.json` | Declarative branch protection rulesets synced to GitHub via `scripts/` | GitHub Repository Governance | **Enforcement (Remote)** |
+| `docs/feature_history.md` | One entry per archived OpenSpec change: what, why, PR/MR, REQ and decision IDs. `scripts/harness-scripts.test.mjs` fails if an entry is missing. | All agents & humans | **Canonical (History)** |
+| `docs/feature_backlog.md` | Planned features in pick order, with status, blockers, dependencies and blast radius (slice + migrations) | All agents & humans | **Canonical (Backlog)** |
+| `docs/ai_docs/` | Current API notes for pinned libraries that are newer than model training data. One file per library, each ≤150 lines. | Builders (dispatched by `AGENTS.md` §3) | **Canonical (Library Notes)** |
+| `.agents/skills/asd-ste100/` | Vetted ASD-STE100 rewrite skill and linter (`python3 .agents/skills/asd-ste100/scripts/ste-lint.py <file>`), symlinked to `.claude/skills/asd-ste100` | All agents (`spec-driven.md` rule 6) | **Canonical (Writing Style)** |
 
 ### 2. Modification Rules (Zero-Drift Policy)
 
