@@ -36,7 +36,10 @@ rules:
   tasks:
     - Break work into small, verifiable tasks with explicit test or verification commands.
     - Mark tasks complete only after running and observing passing exit codes.
-    - Include a `## Handoff Log` section at the bottom of `tasks.md` recording Commits, Verification (command + exit code), Contracts/Migrations added, Decisions, and Open Questions after each completed milestone.
+    - "Use the resumable layout (Decision 3.9) in this order: `## Status` (overwritten at every stop: Branch, Worktree, Current, Next action, Uncommitted changes, PR / MR, Open review findings), `## Tasks` (each task has nested step checkboxes and its Conventional Commit), `## Delivery` (rebase, archive, push, PR/MR, review, CI, merge, sync, cleanup), and `## Handoff Log`."
+    - Never add an "archive" task above `## Delivery`. The archive gate treats a change as complete when every checkbox above `## Delivery` is ticked.
+    - Include a `## Handoff Log` section at the bottom of `tasks.md` recording Commits, Verification, Contracts/Migrations added, Decisions, and Open Questions after each completed task.
+    - "Write the Verification line as `RED: <cmd> → FAIL (<one-line reason>); GREEN: <cmd> → exit 0`. Doc-only or config-only tasks write `RED: n/a (no behaviour)` (Decision 3.7)."
 
 operations:
   apply:
@@ -44,6 +47,9 @@ operations:
       - "Implement one logical milestone at a time and use Conventional Commits."
       - "Never skip verification — run real Maven, npm, and Docker checks before marking tasks done."
       - "Append a compact 5-line entry to `## Handoff Log` in `tasks.md` at the end of each completed milestone for cross-session and multi-agent continuity."
+      - "Follow the Build Loop in `.claude/agents/spec-builder.md`: failing test first (RED), minimal code (GREEN), systematic debugging on any failure, verification before ticking `[x]`."
+      - "Tick each step as you finish it. Overwrite `## Status` before every stop. Commit and push the feature branch after every task."
+      - "After the last task, run `## Delivery` in order. Archive before pushing, because the pre-push archive gate blocks the push otherwise."
   archive:
     guidance:
       - "Sync updated domain requirements into openspec/specs/<module>/spec.md before archiving."

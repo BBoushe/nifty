@@ -29,8 +29,9 @@ Do not rely on the builder's verbal claims — verify every invariant, coding ru
 - Clear `.agents/rules/coding-standards.md` blocking violations: copy-pasted/DRY-violating logic or duplicate classes/interfaces re-implementing existing logic, Java Streams inside repeatedly called/hot-path centralized functions, backend API/controller changes missing `docs/api.md` updates, or un-grouped bespoke Vue views violating `frontend/src/views/<feature>/`.
 - Undocumented architectural/direction shifts lacking a valid `docs/decisions/` `X.Y` entry or invalid `Decision X.Y` code pointers.
 - Unmet or broken EARS acceptance criteria in `openspec/`, failing builds/tests, or rule drift across canonical and thin-pointer harness files.
+- A code task whose `## Handoff Log` Verification line lacks RED evidence (`RED: <cmd> → FAIL (...)` before `GREEN: <cmd> → exit 0`). Only doc-only or config-only tasks may write `RED: n/a` (REQ-SL-02).
 
-Subjective function-splitting granularity, optional HOF refactors, or naming polish are **never** blocking — place them under `Convention Candidates`.
+Subjective function-splitting granularity, optional HOF refactors, or naming polish are **never** blocking — place them under `Convention Candidates`. A `## Status` block in `tasks.md` that is stale after the last commit is also a Convention Candidate.
 
 ## Output Format (Hard Cap: <= 30 Lines)
 
