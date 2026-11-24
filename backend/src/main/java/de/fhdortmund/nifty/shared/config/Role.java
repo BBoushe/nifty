@@ -1,4 +1,4 @@
-package de.fhdortmund.nifty.config;
+package de.fhdortmund.nifty.shared.config;
 
 /**
  * Core application roles aligned with the two-view architecture:

@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `refactor/backend-architecture-baseline` (local only, not pushed yet)
+- **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`
-- **Current:** Task 1 done (RED committed)
-- **Next action:** Task 2, first step (package moves)
+- **Current:** Task 2 done (GREEN committed)
+- **Next action:** Task 3, first step (GlobalExceptionHandlerTest)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -19,10 +19,10 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
   - [x] Write `ArchitectureRules`, the `archfixture` packages and `ArchitectureTest` (design §3).
   - [x] Run `cd backend && ./mvnw -B test -Dtest=ArchitectureTest`. Expect: the fixture assertions pass, and the layout rule FAILS on `de.fhdortmund.nifty.config.SecurityConfig` and `de.fhdortmund.nifty.health.HealthController`.
   - [x] Commit `test(backend): add ArchUnit architecture rules with violating fixtures`.
-- [ ] **2. Package moves (GREEN)** — REQ-BA-01
-  - [ ] Move `config/*` → `shared/config/` and `health/HealthController` → `health/web/` (design §1). Update imports.
-  - [ ] Run `cd backend && ./mvnw -B test`. Expect: exit 0, including `HealthEndpointTest` and `ArchitectureTest`.
-  - [ ] Commit `refactor(backend): move to package-by-feature layout`.
+- [x] **2. Package moves (GREEN)** — REQ-BA-01
+  - [x] Move `config/*` → `shared/config/` and `health/HealthController` → `health/web/` (design §1). Update imports.
+  - [x] Run `cd backend && ./mvnw -B test`. Expect: exit 0, including `HealthEndpointTest` and `ArchitectureTest`.
+  - [x] Commit `refactor(backend): move to package-by-feature layout`.
 - [ ] **3. Problem details** — REQ-BA-05, REQ-BA-06
   - [ ] Write `GlobalExceptionHandlerTest` (`@WebMvcTest` with a test-only controller; design §4): invalid `@Valid` record body → 400 `application/problem+json` with the field name; `DomainException(CONFLICT, "Config is already approved")` → 409 with that detail; `IllegalStateException("secret internal state")` → 500 whose body does not contain `secret internal state`, `trace` or `IllegalStateException`.
   - [ ] Run `./mvnw -B test -Dtest=GlobalExceptionHandlerTest`. Expect: FAIL (no handler).
@@ -68,4 +68,11 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - **Verification:** RED `cd backend && ./mvnw -B test -Dtest=ArchitectureTest` → FAIL (12 run, 1 failure: layout rule on `config.Role`, `config.SecurityConfig`, `health.HealthController` (+ nested `HealthResponse`); all 5 fixture checks pass)
 - **Contracts/Migrations added:** none (test dep `archunit-junit5` 1.5.1, latest on Maven Central)
 - **Decisions:** fixtures live in `de.fhdortmund.archfixture.<case>`, not `de.fhdortmund.nifty.archfixture` (design §3): `@SpringBootApplication` would component/entity-scan them in `HealthEndpointTest`; rule factories take the root, so behaviour is unchanged
+- **Open Questions:** none
+
+### Task 2 — Package moves (GREEN)
+- **Commits:** `refactor(backend): move to package-by-feature layout`
+- **Verification:** RED `cd backend && ./mvnw -B test -Dtest=ArchitectureTest` → FAIL (Task 1); GREEN `cd backend && ./mvnw -B test` → exit 0 (14 tests: ArchitectureTest 12, HealthEndpointTest 2)
+- **Contracts/Migrations added:** none (`/api/v1/health` unchanged; `HealthResponse` stays nested in `HealthController`)
+- **Decisions:** none new (Decision 1.10 layout)
 - **Open Questions:** none
