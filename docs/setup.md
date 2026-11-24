@@ -66,6 +66,9 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 | `.githooks/` | Portable Git hooks (`pre-commit` -> `guard-bash.mjs --pre-commit`, `commit-msg`, `pre-push` -> branch guard + `test-gate.mjs`) | Git (every CLI, IDE, wrapper, and human) | **Adapter (Universal Enforcement)** |
 | `.github/workflows/ci.yml` & `.gitlab-ci.yml` | Parallel GitHub Actions & GitLab CI pipelines running hook/script tests, commit lint, branch policy, and pluggable build jobs | GitHub Actions / GitLab CI | **Enforcement (Remote)** |
 | `.github/rulesets/*.json` | Declarative branch protection rulesets synced to GitHub via `scripts/` | GitHub Repository Governance | **Enforcement (Remote)** |
+| `.claude/hooks/archive-gate.mjs` | Archive gate (Decision 3.8): lists changes whose tasks above `## Delivery` are all `[x]` but still sit outside `openspec/changes/archive/`. Modes `--stop-hook` and `--pre-push`; repo-invariant test in `hooks.test.mjs` | Claude Code `Stop` hook, `.githooks/pre-push`, CI | **Canonical (Enforcement)** |
+| `.claude/settings.json` `hooks.Stop` | Runs `node .claude/hooks/archive-gate.mjs --stop-hook`. It blocks the stop with a reason naming each unarchived completed change, and allows the stop when `stop_hook_active` is set | Claude Code | **Adapter** |
+| `.claude/settings.json` `enabledPlugins` | Declares `superpowers@claude-plugins-official` (Decision 3.7). Declaring it does not install it: each teammate runs `claude plugin install superpowers@claude-plugins-official --scope project` once per clone. Other tools use the inline Build Loop in `.claude/agents/spec-builder.md` | Claude Code | **Adapter** |
 
 ### 2. Modification Rules (Zero-Drift Policy)
 

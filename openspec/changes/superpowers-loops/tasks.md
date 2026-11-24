@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Task 5 done and committed
-- **Next action:** Task 6, first step (AGENTS.md §6 parity row)
+- **Current:** Task 6 committed (not pushed: the archive gate blocks until the change is archived)
+- **Next action:** Delivery step 1 (rebase on origin/dev), then archive, then push
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -38,12 +38,12 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
   - [x] Extend `openspec/config.yaml` per design §3.
   - [x] Run `OPENSPEC_TELEMETRY=0 openspec validate --all`. Expect: exit 0.
   - [x] Commit `chore(specs): require resumable tasks.md layout and RED/GREEN evidence`.
-- [ ] **6. Parity docs**
-  - [ ] AGENTS.md §6: add a row "Archive completed OpenSpec changes" → Claude: `archive-gate.mjs` Stop hook; others: `.githooks/pre-push` + CI test.
-  - [ ] Add rows to the end of the `docs/setup.md` inventory table for `archive-gate.mjs` and the Stop hook.
-  - [ ] Add a `CHANGELOG.md` `[Unreleased]` entry.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-  - [ ] Commit `docs(setup): document archive gate across tools`.
+- [x] **6. Parity docs**
+  - [x] AGENTS.md §6: add a row "Archive completed OpenSpec changes" → Claude: `archive-gate.mjs` Stop hook; others: `.githooks/pre-push` + CI test.
+  - [x] Add rows to the end of the `docs/setup.md` inventory table for `archive-gate.mjs` and the Stop hook.
+  - [x] Add a `CHANGELOG.md` `[Unreleased]` entry.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+  - [x] Commit `docs(setup): document archive gate across tools`.
 
 ## Delivery
 
@@ -93,4 +93,11 @@ Owned files: `.claude/settings.json`, `.claude/agents/{spec-builder,reviewer,tes
 - **Verification:** RED: n/a (config only); GREEN: `OPENSPEC_TELEMETRY=0 openspec validate --all` → exit 0 (14/14); YAML parses (6 `rules.tasks`, 6 `apply.guidance`)
 - **Contracts/Migrations added:** `rules.tasks` layout + RED/GREEN line; `operations.apply.guidance` loop/Status/Delivery
 - **Decisions:** 3.7, 3.8, 3.9
+- **Open Questions:** none
+
+### Task 6 — Parity docs (2026-11-24)
+- **Commits:** `docs(setup): document archive gate across tools`
+- **Verification:** RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (30/30, run before ticking this task)
+- **Contracts/Migrations added:** AGENTS.md §6 archive-gate row; `docs/setup.md` rows for `archive-gate.mjs`, `hooks.Stop`, `enabledPlugins` (includes the per-clone install command)
+- **Decisions:** 3.7, 3.8
 - **Open Questions:** none
