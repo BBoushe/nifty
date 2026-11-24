@@ -383,6 +383,10 @@ describe('guard-bash.mjs', () => {
       `git status; eval "$(cat <<'X'\ngit push origin master\nX\n)"`,
       `git log $(eval "$(cat <<'X'\ngit push origin master\nX\n)")`,
       `git commit -m "$(cat <<'X'\nX\ngit push origin master\nX\n)"`,
+      // Fifth review: quotes, backslashes and <<- around the allow-listed forms.
+      `gh pr list "<<'X'\n"; git push origin master\nX`,
+      `gh pr list \\<<'X'\ngit push origin master\nX`,
+      `git commit -m "$(cat <<-'X'\nmsg\n\tX\n)"; git push origin master; : "\nX\n)"`,
     ]) {
       assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
     }

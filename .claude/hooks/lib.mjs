@@ -303,7 +303,8 @@ export function splitShellSegments(command) {
 // The only commands whose quoted heredoc text the guard treats as data, never as code.
 const TEXT_COMMAND_RE = /^\s*(?:rtk\s+)?(?:git|gh|glab)\s/;
 // Flags whose value is message text in git/gh/glab.
-const TEXT_FLAG_RE = /(\s(?:-m|-F|--message|--body|--title|--description|--notes)[=\s]+)"\$\(cat <<-?(['"])(\w+)\2\n([\s\S]*?)\n\3\n\)"/g;
+// `<<-` is not accepted: bash ends it at a tab-indented delimiter.
+const TEXT_FLAG_RE = /(\s(?:-m|-F|--message|--body|--title|--description|--notes)[=\s]+)"\$\(cat <<(['"])(\w+)\2\n([\s\S]*?)\n\3\n\)"/g;
 
 /** Quote state at the end of `text`: true when it ends outside quotes and has no substitution. */
 function isPlainPrefix(text) {
@@ -324,7 +325,8 @@ function isPlainPrefix(text) {
  * Allow-list of heredocs that only carry message text (Decision: bash-guard-gaps design §6):
  *  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`,
  *    when everything before it in the command is plain arguments of that one command;
- *  - `git|gh|glab … <<'X'` as the whole first line (`git commit -F - <<'EOF'`).
+ *  - `git|gh|glab … -F -|--file -|--body-file - … <<'X'` as the whole first line (`git commit -F - <<'EOF'`),
+ *    when the text before `<<` is plain arguments.
  * Returns `{ text, bodies }`: `text` has those bodies removed; callers still scan `bodies` as data.
  * Every other heredoc stays in place, so its lines are checked as commands.
  */
@@ -332,14 +334,16 @@ export function stripTextHeredocs(command) {
   const bodies = [];
   let text = command;
 
-  const first = /^(\s*(?:rtk\s+)?(?:git|gh|glab)\s[^;&|`$()<>\n#]*<<(-?)(['"])(\w+)\3[ \t]*)\n/.exec(text);
-  if (first) {
-    const [, head, dash, , delim] = first;
+  const first = /^(\s*(?:rtk\s+)?(?:git|gh|glab)\s[^;&|`$()<>\n#]*)<<(['"])(\w+)\2[ \t]*\n/.exec(text);
+  const readsStdin = (head) => /\s(?:-F|--file|--body-file)[=\s]+-(?=\s)/.test(`${head} `);
+  // The text before `<<` must be plain arguments: no open quote and no `\` that turns `<<` into `\<`.
+  if (first && isPlainPrefix(first[1]) && !/\\$/.test(first[1]) && readsStdin(first[1])) {
+    const [, head, quote, delim] = first;
     const lines = text.slice(first[0].length).split('\n');
-    const end = lines.findIndex((l) => (dash ? l.replace(/^\t+/, '') : l) === delim);
+    const end = lines.findIndex((l) => l === delim);
     if (end !== -1) {
       bodies.push(lines.slice(0, end).join('\n'));
-      text = `${head}\n${lines.slice(end).join('\n')}`;
+      text = `${head}<<${quote}${delim}${quote}\n${lines.slice(end).join('\n')}`;
     }
   }
 
