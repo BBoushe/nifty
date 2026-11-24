@@ -2,13 +2,13 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `fix/bash-guard-hardening`
+- **Branch:** `fix/bash-guard-hardening` (pushed to `origin` + `gitlab`)
 - **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Tasks 1-5 done; rebased (no-op, dev at 579e3d2), tests exit 0, archived
-- **Next action:** Delivery: `node scripts/forge.mjs push`, then PR/MR via `pr-memo` (ask the user first)
+- **Current:** Tasks 1-5 done; archived; PR/MR open
+- **Next action:** Cold review in a fresh session (board review prompt); then wait for green CI on both forges; then merge on GitHub only (ask the user first)
 - **Uncommitted changes:** no
-- **PR / MR:** —
-- **Open review findings:** —
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/7 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/6
+- **Open review findings:** — (cold review not run yet)
 
 ## Tasks
 
@@ -44,8 +44,8 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive bash-guard-hardening -y --skip-specs` (harness change; continue in `openspec/changes/archive/*-bash-guard-hardening/tasks.md`). Commit `chore(specs): archive bash-guard-hardening`.
 - [x] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit. (n/a: file absent after rebase)
-- [ ] `node scripts/forge.mjs push`
-- [ ] PR/MR body via the `pr-memo` skill, then `node scripts/forge.mjs pr --title "fix(hooks): harden bash guard against wrappers and command strings" --body-file <file>`. Record the links in Status.
+- [x] `node scripts/forge.mjs push`
+- [x] PR/MR body via the `pr-memo` skill, then `node scripts/forge.mjs pr --title "fix(hooks): harden bash guard against wrappers and command strings" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session (board review prompt): verdict has no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
