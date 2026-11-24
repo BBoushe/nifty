@@ -80,3 +80,8 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
 - **Did:** first-line form needs a stdin message flag (`-F -`, `--file -`, `--body-file -`) and a plain prefix before `<<` (no open quote, no trailing backslash); `<<-` dropped from both forms; design §6 notes the over-blocking cost.
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (3 new probes); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (40/40). Probe file 9/9.
 - **Next:** push, cold review round 6, merge (ask the user).
+
+### 2026-11-25 — Sixth review fixes (main session)
+- **Did:** `isUnambiguousBody`: a `-m "$(cat <<'X' …)"` body counts as text only with no line starting with the delimiter, balanced parentheses and even quote/backtick counts (bash 3.2 ends the substitution at `X)` or an unbalanced `)`). Otherwise its lines are checked as commands.
+- **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (3 new probes); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0. Probe file 9/9.
+- **Next:** push, ask the user about merging.

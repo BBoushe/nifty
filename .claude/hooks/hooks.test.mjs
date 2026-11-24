@@ -387,6 +387,10 @@ describe('guard-bash.mjs', () => {
       `gh pr list "<<'X'\n"; git push origin master\nX`,
       `gh pr list \\<<'X'\ngit push origin master\nX`,
       `git commit -m "$(cat <<-'X'\nmsg\n\tX\n)"; git push origin master; : "\nX\n)"`,
+      // Sixth review: bash 3.2 ends the substitution at `X)` or at an unbalanced `)` in the body.
+      `git commit -m "$(cat <<'X'\nmsg\nX)"; git push origin master; : "\nX\n)"`,
+      `git commit -m "$(cat <<'X'\nmsg\nX )"; git push origin master; : "\nX\n)"`,
+      `git commit -m "$(cat <<'X'\nmsg\n)"; git push origin master; : "(\nX\n)"`,
     ]) {
       assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
     }

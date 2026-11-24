@@ -59,7 +59,7 @@ In `segmentTouchesBlockedEnv`, an **unquoted** argument that contains `*`, `?` o
 A scanner that tries to find every quoted heredoc (a deny-list) kept leaking: fake `<<'X'` markers in quotes, comments, unquoted heredoc bodies, `${…}` and backticks hid real commands. So the guard treats a heredoc body as text only in two known forms, and checks every other heredoc line as a command (as before this change).
 
 - `stripTextHeredocs(command) → { text, bodies }` in `lib.mjs`:
-  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`, only when everything before it in the command is plain arguments of that one command (no substitution, separator, comment, redirection or open quote), and no body line equals the delimiter;
+  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`, only when everything before it in the command is plain arguments of that one command (no substitution, separator, comment, redirection or open quote), and the body is unambiguous for every shell (no line starts with the delimiter, balanced parentheses, even quote and backtick counts; bash 3.2 closes the substitution early otherwise);
   - `git|gh|glab … -F -|--file -|--body-file - … <<'X'` as the whole first line (`git commit -F - <<'EOF'`), when the text before `<<` is plain arguments with no trailing `\`.
   - `<<-` is never accepted, because bash ends it at a tab-indented delimiter.
 - Cost: any other heredoc (for example a `python3 - <<'EOF'` script whose text has backticks) is checked line by line as commands, so it can be over-blocked. Use a script file instead.

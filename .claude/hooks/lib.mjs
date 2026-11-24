@@ -322,6 +322,25 @@ function isPlainPrefix(text) {
 }
 
 /**
+ * True when every shell reads `body` the same way inside `"$(cat <<'X' … X)"`: no line starts with the
+ * delimiter (bash ends the heredoc at `X` or, in bash 3.2, at `X)`), parentheses balance (bash 3.2 closes
+ * the substitution at an unbalanced `)`), and quote and backtick counts are even.
+ */
+function isUnambiguousBody(body, delim) {
+  if (body.split('\n').some((line) => line.startsWith(delim))) return false;
+  let depth = 0;
+  for (const ch of body) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')' && --depth < 0) return false;
+  }
+  if (depth !== 0) return false;
+  for (const q of ["'", '"', '`']) {
+    if (body.split(q).length % 2 === 0) return false; // odd count
+  }
+  return true;
+}
+
+/**
  * Allow-list of heredocs that only carry message text (Decision: bash-guard-gaps design §6):
  *  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`,
  *    when everything before it in the command is plain arguments of that one command;
@@ -355,8 +374,7 @@ export function stripTextHeredocs(command) {
     while ((m = TEXT_FLAG_RE.exec(text)) !== null) {
       const prefix = out + text.slice(pos, m.index) + m[1];
       const [, , , delim, body] = m;
-      // A line equal to the delimiter ends the heredoc early in bash: the rest would run as code.
-      if (!isPlainPrefix(prefix) || body.split('\n').includes(delim)) break;
+      if (!isPlainPrefix(prefix) || !isUnambiguousBody(body, delim)) break;
       bodies.push(body);
       out = `${prefix}"heredoc-text"`;
       pos = TEXT_FLAG_RE.lastIndex;
