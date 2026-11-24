@@ -40,6 +40,13 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **3.3** | — | Team & Process | Mandatory decision recording on question rounds & prompter changes | Decided | 2026-11-23 | prompter-change | [3-team-process.md](./3-team-process.md#33--mandatory-decision-recording--code-pointers) |
 | **1.8** | — | Architecture | Dual forge: GIT_FORGE=both with GitHub primary and GitLab secondary mirror | Decided | 2026-11-23 | prompter-change | [1-architecture.md](./1-architecture.md#18--dual-forge-git_forgeboth-with-github-primary-and-gitlab-secondary-mirror) |
 | **3.4** | — | Team & Process | Unified PR/MR template and cross-tool scoped rule dispatch | Decided | 2026-11-23 | prompter-change | [3-team-process.md](./3-team-process.md#34--unified-prmr-template-and-cross-tool-scoped-rule-dispatch) |
+| **1.9** | — | Architecture | CI parity: GitHub CI gates the same jobs as GitLab CI | Decided | 2026-11-24 | prompter-change | [1-architecture.md](./1-architecture.md#19--ci-parity-github-ci-gates-the-same-jobs-as-gitlab-ci) |
+| **1.10** | — | Architecture | Backend package-by-feature with ArchUnit-enforced boundaries | Decided | 2026-11-24 | prompter-change | [1-architecture.md](./1-architecture.md#110--backend-package-by-feature-with-archunit-enforced-boundaries) |
+| **3.5** | — | Team & Process | Adopt ASD-STE100 for specs and docs; reject Caveman | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#35--adopt-asd-ste100-for-specs-and-docs-reject-caveman) |
+| **3.6** | — | Team & Process | AI context docs: feature history, feature backlog and ai_docs | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#36--ai-context-docs-feature-history-feature-backlog-and-ai_docs) |
+| **3.7** | — | Team & Process | Superpowers loops wired into agent roles | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#37--superpowers-loops-wired-into-agent-roles) |
+| **3.8** | — | Team & Process | Completed OpenSpec changes must be archived | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#38--completed-openspec-changes-must-be-archived) |
+| **3.9** | — | Team & Process | Parallel, resumable delivery by blast radius | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#39--parallel-resumable-delivery-by-blast-radius) |
 <!-- DECISION_INDEX_END -->
 
 ---
