@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-hardening`
 - **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Tasks 1-5 done; Delivery not started
-- **Next action:** Delivery step 1 (`git fetch origin && git rebase origin/dev`)
+- **Current:** Tasks 1-5 done; rebased (no-op, dev at 579e3d2), tests exit 0, archived
+- **Next action:** Delivery: `node scripts/forge.mjs push`, then PR/MR via `pr-memo` (ask the user first)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -40,10 +40,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 
 ## Delivery
 
-- [ ] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in shared test files, keep both describe blocks.
-- [ ] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive bash-guard-hardening -y --skip-specs` (harness change; continue in `openspec/changes/archive/*-bash-guard-hardening/tasks.md`). Commit `chore(specs): archive bash-guard-hardening`.
-- [ ] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit.
+- [x] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in shared test files, keep both describe blocks.
+- [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive bash-guard-hardening -y --skip-specs` (harness change; continue in `openspec/changes/archive/*-bash-guard-hardening/tasks.md`). Commit `chore(specs): archive bash-guard-hardening`.
+- [x] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit. (n/a: file absent after rebase)
 - [ ] `node scripts/forge.mjs push`
 - [ ] PR/MR body via the `pr-memo` skill, then `node scripts/forge.mjs pr --title "fix(hooks): harden bash guard against wrappers and command strings" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session (board review prompt): verdict has no Blocking items.
