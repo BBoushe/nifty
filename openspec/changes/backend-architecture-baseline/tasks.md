@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`
-- **Current:** Task 4 done
-- **Next action:** Task 5, first step (datasource password from env)
+- **Current:** Task 5 done
+- **Next action:** Task 6, first step (backend-java.md §8)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -34,10 +34,10 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
   - [x] Apply design §5.
   - [x] Record the line count after; check that `grep -c "Downloading from\|Downloaded from"` is 0 and that the banner is gone. Expect: exit 0 and fewer lines.
   - [x] Commit `build(backend): cut maven and spring test log noise`.
-- [ ] **5. Credentials from env only** — REQ-BA-08
-  - [ ] Apply design §6.
-  - [ ] Run `cd backend && ./mvnw -B test` and `docker compose config >/dev/null` (from the repo root). Expect: both exit 0.
-  - [ ] Commit `fix(backend): read datasource password from the environment only`.
+- [x] **5. Credentials from env only** — REQ-BA-08
+  - [x] Apply design §6.
+  - [x] Run `cd backend && ./mvnw -B test` and `docker compose config >/dev/null` (from the repo root). Expect: both exit 0.
+  - [x] Commit `fix(backend): read datasource password from the environment only`.
 - [ ] **6. Rules and docs**
   - [ ] Add `backend-java.md` §8 Architecture (design §7), including the test pyramid table. Update §5 and §7 to point to it instead of repeating it.
   - [ ] Add the feature slice map (design §1) to `docs/architecture.md` under a heading `## Feature Slice Map` (the `ai-context-docs` change links to this anchor).
@@ -89,4 +89,11 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - **Verification:** RED `./mvnw -B test 2>&1 | wc -l` → 236 lines, 2 Spring banners, 41 framework INFO lines (warm cache, 0 downloads); GREEN `cd backend && ./mvnw -B test` → exit 0, 59 lines, 0 `Downloading from|Downloaded from`, 0 banners, 0 INFO framework logs
 - **Contracts/Migrations added:** `backend/.mvn/maven.config` (`-ntp`), `application-test.yml` (banner off, root WARN), `src/test/resources/logback-test.xml` (root WARN before Boot reads the profile; console only)
 - **Decisions:** `GlobalExceptionHandlerTest` activates profile `test` and turns off only the handler logger, which otherwise prints its expected ~110-line stack trace; remaining output is JVM/Mockito agent and framework WARN lines
+- **Open Questions:** none
+
+### Task 5 — Credentials from env only
+- **Commits:** `fix(backend): read datasource password from the environment only`
+- **Verification:** RED `grep -qE '^ +password: \$\{SPRING_DATASOURCE_PASSWORD\}$' backend/src/main/resources/application.yml` → FAIL (committed default); GREEN same check → exit 0, `cd backend && ./mvnw -B test` → exit 0 (18 tests), `docker compose config >/dev/null` → exit 0 (backend env has `SPRING_DATASOURCE_PASSWORD`)
+- **Contracts/Migrations added:** none; running the backend outside compose now needs `SPRING_DATASOURCE_PASSWORD` set (startup fails on the unresolved placeholder)
+- **Decisions:** none new (compose fallback kept per design §6)
 - **Open Questions:** none
