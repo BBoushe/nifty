@@ -11,6 +11,7 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import {
+  commandStringFlag,
   findSecretsInDiff,
   getGitSubcommand,
   isBlockedEnvPath,
@@ -25,9 +26,11 @@ const PROTECTED_NO_DIRECT = new Set(['master', 'main', 'alpha']);
 const PROTECTED_HOOKED = new Set([...PROTECTED_NO_DIRECT, 'dev']);
 const DEV_ALLOWED_COMMIT_RE = /^(docs|hotfix)(\([a-z0-9._/-]+\))?!?: /;
 const MAX_COMMAND_DEPTH = 3;
-const SHELLS = new Set(['sh', 'bash', 'zsh']);
-// `stripLeadingEnvAssignments` stops on these (`env -S`, `rtk run -c|--command`) and leaves them first.
-const COMMAND_STRING_FLAGS = new Set(['-c', '--command', '-S', '--split-string']);
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh']);
+// Shell options whose value is the next token (`bash -o pipefail -c …`).
+const SHELL_VALUE_OPTS = new Set(['-o', '+o', '-O', '+O', '--rcfile', '--init-file']);
+// Marker: the shell gets no command string and no script, so it reads commands from stdin.
+const STDIN = Symbol('stdin');
 
 function defaultRunGit(args, cwd = process.cwd()) {
   try {
@@ -134,14 +137,41 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
 function extractCommandString(tokens) {
   if (!tokens.length) return null;
   const first = tokens[0].value;
-  if (COMMAND_STRING_FLAGS.has(first)) return tokens[1]?.value ?? null;
+  // `stripLeadingEnvAssignments` leaves a command-string flag first only after `env` or `rtk run`.
+  const flag = commandStringFlag(first);
+  if (flag) return flag.inline ?? tokens[1]?.value ?? null;
   const name = first.split('/').pop();
   if (name === 'eval') return tokens.slice(1).map((t) => t.value).join(' ');
   if (!SHELLS.has(name)) return null;
-  for (let i = 1; i < tokens.length && tokens[i].value.startsWith('-'); i += 1) {
-    if (/^-[a-z]*c[a-z]*$/.test(tokens[i].value)) return tokens[i + 1]?.value ?? null;
+  return shellCommandString(tokens);
+}
+
+/** The `-c` string of a shell call, null for a script by path, or STDIN (design.md §2). */
+function shellCommandString(tokens) {
+  let sawC = false;
+  let sawS = false;
+  for (let i = 1; i < tokens.length; i += 1) {
+    const v = tokens[i].value;
+    if (v === '--') return sawC ? (tokens[i + 1]?.value ?? null) : sawS ? STDIN : null;
+    if (/^\d*[<>]/.test(v)) {
+      if (/^\d*[<>]+&?$/.test(v)) i += 1; // `<< EOF`, `> out`: skip the separate target
+      continue;
+    }
+    if (SHELL_VALUE_OPTS.has(v)) {
+      i += 1;
+      continue;
+    }
+    if (v.startsWith('--')) continue;
+    if (/^[-+][A-Za-z]+$/.test(v)) {
+      if (v[0] === '-' && v.includes('c')) sawC = true;
+      else if (v[0] === '-' && v.includes('s')) sawS = true;
+      if (/[oO]$/.test(v)) i += 1; // `-euo pipefail`
+      continue;
+    }
+    if (sawC) return v;
+    return sawS ? STDIN : null;
   }
-  return null;
+  return sawC ? null : STDIN;
 }
 
 function parseGitPushTargets(args, currentBranch) {
@@ -296,6 +326,12 @@ export function evaluateBashCommand(command, options = {}) {
 
     // 2. Evaluate command strings (`sh -c`, `rtk run -c`, `env -S`, `eval`) with the same rules
     const inner = extractCommandString(stripLeadingEnvAssignments(tokens));
+    if (inner === STDIN) {
+      return {
+        blocked: true,
+        reason: `BLOCKED: this shell reads its commands from stdin, which the guard cannot see. Run the commands directly or pass them with -c.`,
+      };
+    }
     if (inner !== null) {
       if (depth + 1 > MAX_COMMAND_DEPTH) {
         return {

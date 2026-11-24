@@ -72,10 +72,26 @@ const WRAPPER_VALUE_FLAGS = {
 // `proxy` is the deprecated alias of `bypass`; all of these run the command that follows.
 const RTK_PASSTHROUGH = ['proxy', 'bypass', 'err', 'test', 'summary'];
 
-function skipFlags(tokens, idx, valueFlags, stopFlags = []) {
+/**
+ * If `value` is a command-string flag of `wrapper` (`'env'`, `'rtk-run'` or `'any'`), return
+ * `{ inline }`: the string attached to the flag, or null when the string is the next token.
+ * Otherwise return null. The one place that lists these flags (`env -S`, `rtk run -c`).
+ */
+export function commandStringFlag(value, wrapper = 'any') {
+  const forms = [];
+  if (wrapper !== 'rtk-run') forms.push(/^--split-string(?:=(.*))?$/s, /^-[iv0]*S(.*)$/s);
+  if (wrapper !== 'env') forms.push(/^--command(?:=(.*))?$/s, /^-c(.*)$/s);
+  for (const re of forms) {
+    const m = re.exec(value);
+    if (m) return { inline: m[1] || null };
+  }
+  return null;
+}
+
+function skipFlags(tokens, idx, valueFlags, isStop = () => false) {
   while (idx < tokens.length) {
     const v = tokens[idx].value;
-    if (!v.startsWith('-') || stopFlags.includes(v)) break;
+    if (!v.startsWith('-') || isStop(v)) break;
     idx += valueFlags.includes(v) ? 2 : 1;
   }
   return idx;
@@ -96,13 +112,13 @@ export function stripLeadingEnvAssignments(tokens) {
     const name = t.split('/').pop();
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) idx += 1;
     else if (Object.hasOwn(WRAPPER_VALUE_FLAGS, name)) {
-      const stop = name === 'env' ? ['-S', '--split-string'] : [];
+      const stop = name === 'env' ? (v) => commandStringFlag(v, 'env') : undefined;
       idx = skipFlags(tokens, idx + 1, WRAPPER_VALUE_FLAGS[name], stop);
     } else if (name === 'rtk') {
       idx = skipFlags(tokens, idx + 1, []);
       const sub = tokens[idx]?.value;
       if (RTK_PASSTHROUGH.includes(sub)) idx += 1;
-      else if (sub === 'run') idx = skipFlags(tokens, idx + 1, ['--shell'], ['-c', '--command']);
+      else if (sub === 'run') idx = skipFlags(tokens, idx + 1, ['--shell'], (v) => commandStringFlag(v, 'rtk-run'));
     } else break;
   }
   return tokens.slice(idx);
