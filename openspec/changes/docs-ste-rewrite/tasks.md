@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `docs/docs-ste-rewrite` (not created; **queued** until the five harness changes have merged)
-- **Worktree:** —
-- **Current:** not started
-- **Next action:** check that the five harness changes are archived on `origin/dev`, then Task 1
+- **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
+- **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
+- **Current:** Task 1 next. Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
+- **Next action:** Task 1. Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -31,7 +31,7 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 
 ## Delivery
 
-- [ ] `git fetch origin && git rebase origin/dev`.
+- [ ] `git fetch origin && git merge origin/dev` (no rebase: a rebase needs a force push, which the guard blocks).
 - [ ] Re-run `OPENSPEC_TELEMETRY=0 openspec validate --all` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
 - [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive docs-ste-rewrite -y --skip-specs`. Add the `docs/feature_history.md` entry and update `docs/feature_backlog.md`. Commit `chore(specs): archive docs-ste-rewrite`.
 - [ ] `node scripts/forge.mjs push`
