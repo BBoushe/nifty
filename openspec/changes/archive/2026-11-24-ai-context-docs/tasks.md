@@ -4,11 +4,11 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs`
-- **Current:** Delivery — PR/MR open
-- **Next action:** cold review session (`reviewer` agent on `git diff dev...HEAD`); then CI green on both forges; merge on GitHub only
+- **Current:** Delivery — cold review APPROVE (0 Blocking); waiting for CI on both forges
+- **Next action:** `gh pr checks 11` + GitLab MR !10 pipeline green; then merge on GitHub only (ask the user first)
 - **Uncommitted changes:** no
 - **PR / MR:** https://github.com/BBoushe/nifty/pull/11 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/10
-- **Open review findings:** —
+- **Open review findings:** 0 Blocking. Convention Candidates (deferred): `#feature-slice-map` anchor arrives with `backend-architecture-baseline`; backlog cites Decision 1.10 for Testcontainers (1.10 covers it) but not for GitLab dind; README `Version: index` line; in-flight harness changes have no backlog rows (design lists only domain specs + `docs-ste-rewrite`)
 
 ## Tasks
 
@@ -48,7 +48,7 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive ai-context-docs -y --skip-specs`, then add its own history entry (the test requires it). Continue in `openspec/changes/archive/*-ai-context-docs/tasks.md`. Commit `chore(specs): archive ai-context-docs`.
 - [x] `node scripts/forge.mjs push`
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "docs: add feature history, backlog, ai_docs and STE rule" --body-file <file>`. Record the links in Status.
-- [ ] Cold review session: verdict has no Blocking items.
+- [x] Cold review session: verdict has no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
