@@ -36,6 +36,11 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
   - [x] Correct `README.md` and `docs/setup.md` (design §6); update the `lib.mjs` `shortcut:` comment and pointer; CHANGELOG `[Unreleased]` entry; backlog row 9 → `in progress`.
   - [x] Run the tests. Expect: exit 0.
   - [x] Commit `docs(setup): state exactly what the bash guard covers`.
+- [ ] **6. Second review fixes (GREEN)** — REQ-BG-13, regression
+  - [ ] Make the 3 failing tests from `2a2fa81` pass (Status lists the four code fixes).
+  - [ ] Docs limits list, stranded JSDoc, proposal note on guard-agent.
+  - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: only the repo-invariant test may fail until the archive step.
+  - [ ] Commit `fix(hooks): close the second review's guard gaps`.
 
 ## Delivery
 
