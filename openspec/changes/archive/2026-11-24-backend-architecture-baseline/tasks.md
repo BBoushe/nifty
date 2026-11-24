@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`; change now at `openspec/changes/archive/2026-11-24-backend-architecture-baseline/`
-- **Current:** cold review APPROVE (0 Blocking); CI re-running after review follow-ups
-- **Next action:** GitLab MR pipeline + `gh pr checks 8` green, then ask the user before merging
+- **Current:** review APPROVE; CI green on `e7faed6` (GitHub PR #8 all 5 checks, GitLab pipeline #8714 all 7 jobs)
+- **Next action:** user merges on GitHub (`gh pr merge 8 --merge`), then `node scripts/forge.mjs sync dev`, `node scripts/forge.mjs status` 0/0, branch + worktree cleanup
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/8 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/7
 - **Open review findings:** non-blocking only: composite ArchUnit sub-rules (layout packages/persistence/services, repository→service/web) lack their own fixtures; catch-all handler turns `@ResponseStatus` exceptions into 500 (use `DomainException`). Fixed: empty-import guard, `errors` wording in `docs/api.md` §3
@@ -56,7 +56,7 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - [x] `node scripts/forge.mjs push`
 - [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "refactor(backend): package-by-feature baseline with ArchUnit and ProblemDetail" --body-file <file>`. Record the links in Status.
 - [x] Cold review session (also run the `backend-spring-check` skill): verdict has no Blocking items.
-- [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
+- [x] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [ ] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
 - [ ] After `git merge-base --is-ancestor refactor/backend-architecture-baseline origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-backend-architecture-baseline`.
