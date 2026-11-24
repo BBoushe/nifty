@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Provide an evidence-first visual review workspace where professors and TAs inspect candidate skill matrices, drill into verified quotes in one click, prioritize uncertain or high-impact scores, record auditable overrides, and inspect SQL-calculated cohort gaps.
+Provide an evidence-first visual review workspace. Professors and TAs use it to inspect candidate skill matrices and to open verified quotes in one click. They also prioritize uncertain or high-impact scores, record auditable overrides, and inspect SQL-calculated cohort gaps.
 
 ## Requirements
 

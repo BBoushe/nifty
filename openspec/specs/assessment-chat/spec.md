@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Conduct an adaptive yet standardized conversational assessment via streaming SSE chat, recording every Q/A turn into the `assessment-transcript/v1` JSON contract without revealing scores during the interview.
+Run an adaptive and standardized conversational assessment through streaming SSE chat. Record every Q/A turn in the `assessment-transcript/v1` JSON contract. Do not reveal scores during the interview.
 
 ## Requirements
 

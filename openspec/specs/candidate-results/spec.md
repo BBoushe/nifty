@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Provide candidates with full post-approval transparency into their skill profile—showing approved scores, `N/A` explanations, confidence indicators, verbatim evidence quotes, question/skill weights, and the exact formula version used—alongside a dispute entry point.
+Give candidates full transparency into their skill profile after approval. The profile includes approved scores, `N/A` explanations, confidence indicators, verbatim evidence quotes, question and skill weights, and the exact formula version that the system used. The page also has a dispute entry point.
 
 ## Requirements
 

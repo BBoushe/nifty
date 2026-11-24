@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Give professors transparent, versioned, and strictly deterministic control over question weights, skill weights, coverage thresholds, and fit formulas—with live what-if previews before publishing changes.
+Give professors transparent, versioned, and strictly deterministic control over question weights, skill weights, coverage thresholds, and fit formulas. Professors get live what-if previews before they publish changes.
 
 ## Requirements
 

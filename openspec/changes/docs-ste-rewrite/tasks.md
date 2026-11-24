@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
-- **Current:** Tasks 1, 2, 4, 5 done; Task 6 next (Task 3 waits for PR #13). Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
-- **Next action:** Task 6 (domain specs). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
+- **Current:** Tasks 1, 2, 4, 5, 6 done; Task 3 waits for PR #13, then Task 7. Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
+- **Next action:** after PR #13 merges: `git merge origin/dev`, then Task 3 (README, setup, workflow). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -24,8 +24,8 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
   - [x] Steps (a)–(f)
 - [x] **5. Product vision** — `docs/discovery-canvas.md`
   - [x] Steps (a)–(f)
-- [ ] **6. Domain specs** — `openspec/specs/*/spec.md`
-  - [ ] Steps (a)–(f)
+- [x] **6. Domain specs** — `openspec/specs/*/spec.md`
+  - [x] Steps (a)–(f)
 - [ ] **7. Changelog**
   - [ ] Add a `CHANGELOG.md` `[Unreleased]` entry. Commit `docs(changelog): note STE rewrite`.
 
@@ -65,3 +65,8 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 - **Verification:** RED: n/a (no behaviour). Obligations equal; ste-lint hard findings 36→7. Accepted exceptions: 6 in the verbatim §14.2 EARS lines (EARS text is not rewritten), 1 synonym in the Spring AI feature name "self-correcting". `openspec validate --all` exit 0; harness tests 35/35.
 - **Rule for Task 6:** EARS requirement sentences stay verbatim; only surrounding prose and scenario text may change.
 - **Next:** Task 6.
+
+### 2026-11-25 — Task 6 (Sonnet subagent, checked by main session)
+- **Did:** STE rewrite of the Purpose paragraph in all 7 `openspec/specs/*/spec.md` (the only free prose). EARS statements, scenarios, headings and REQ IDs unchanged (`git diff -U0 | grep SHALL|WHEN|…` prints nothing).
+- **Verification:** RED: n/a (no behaviour). Obligations equal on all 7; prose lint findings 2→0; EARS findings accepted (28, verbatim by rule); `openspec validate --all --strict` 8/8; harness tests 35/35.
+- **Next:** Task 3 after PR #13 merges.
