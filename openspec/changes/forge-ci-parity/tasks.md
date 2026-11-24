@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Task 4 done (docs + CHANGELOG)
-- **Next action:** Task 5: run `scripts/apply-gitlab-protections.sh --dry-run` and show the user (user confirmed Maintainer)
+- **Current:** Task 5 done (GitLab protections applied and verified)
+- **Next action:** Task 6 (tag answer already given: leave local; check `docker compose ps`)
 - **Uncommitted changes:** no
 - **PR / MR:** — (branch pushed to origin + gitlab)
 - **Open review findings:** —
@@ -30,13 +30,13 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - [x] **4. Docs**
   - [x] `docs/workflow.md` per design §5. Add a `CHANGELOG.md` `[Unreleased]` entry.
   - [x] Commit `docs(workflow): add CI parity table and Maintainer-only sync note`.
-- [ ] **5. Apply GitLab protections (ops — ask the user first)** — REQ-GP-01, REQ-GP-02
-  - [ ] Confirm with the user that their GitLab account is a **Maintainer** of project 6748. If yes, run this task before merge (a Maintainer can still run `forge.mjs sync` to protected `dev`). If not, stop and ask the user how to proceed.
-  - [ ] `scripts/apply-gitlab-protections.sh --dry-run`; show the output to the user.
-  - [ ] On confirmation, run it for real (design §4). Record the Premium `WARN` line.
-  - [ ] Verify with the two read-only `glab api` commands in design §4. Expect: `dev`, `alpha`, `master`, `main` listed with `allow_force_push: false`; `true` for the pipeline setting.
-  - [ ] Check off the open task in `openspec/changes/dual-forge/tasks.md` and add a Handoff Log entry there with the outcome.
-  - [ ] Commit `chore(specs): complete dual-forge protections task`.
+- [x] **5. Apply GitLab protections (ops — ask the user first)** — REQ-GP-01, REQ-GP-02
+  - [x] Confirm with the user that their GitLab account is a **Maintainer** of project 6748. If yes, run this task before merge (a Maintainer can still run `forge.mjs sync` to protected `dev`). If not, stop and ask the user how to proceed.
+  - [x] `scripts/apply-gitlab-protections.sh --dry-run`; show the output to the user.
+  - [x] On confirmation, run it for real (design §4). Record the Premium `WARN` line.
+  - [x] Verify with the two read-only `glab api` commands in design §4. Expect: `dev`, `alpha`, `master`, `main` listed with `allow_force_push: false`; `true` for the pipeline setting.
+  - [x] Check off the open task in `openspec/changes/dual-forge/tasks.md` and add a Handoff Log entry there with the outcome.
+  - [x] Commit `chore(specs): complete dual-forge protections task`.
 - [ ] **6. Housekeeping question (no code)**
   - [ ] Ask the user about the local tag `archive/fe-mvp` → `97cf21b`: (a) push it for a remote backup to both remotes, or (b) leave it local. Never delete it. Record the answer in the Handoff Log.
   - [ ] If `docker compose ps` shows fe-mvp containers, ask before `docker compose down` (`-v` only if the user wants the DB volume gone).
@@ -84,4 +84,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** RED n/a (docs-only); GREEN `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0.
 - **Contracts/Migrations added:** none
 - **Decisions:** none
+- **Open Questions:** none
+
+### Task 5 — Apply GitLab protections (ops)
+- **Commits:** `chore(specs): complete dual-forge protections task`
+- **Verification:** RED n/a (ops); dry-run → exit 0 (shown to user, confirmed); real run → exit 0; `glab api projects/6748/protected_branches` → `master`/`main`/`alpha`/`dev`, push+merge 40, `allow_force_push: false`; `only_allow_merge_if_pipeline_succeeds` → `true`.
+- **Contracts/Migrations added:** GitLab project 6748 settings (server-side)
+- **Decisions:** user is Owner (access 50) of 6748, so applied before merge. Premium WARN logged: approval rules skipped for master x4, main x4, alpha x2.
 - **Open Questions:** none
