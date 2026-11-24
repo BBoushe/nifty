@@ -54,6 +54,13 @@ In `parseGitPushTargets`:
 
 In `segmentTouchesBlockedEnv`, an **unquoted** argument that contains `*`, `?` or `[` is turned into an anchored regex (`*` → `[^/]*`, `?` → `[^/]`, `[…]` kept). Each path segment is tested against `.env` and `.env.local`. A match blocks, unless the literal argument ends in `.env.example`. Quoted arguments are not globbed by the shell, so `grep ".*" file` stays allowed.
 
-## 6. Docs
+## 6. Quoted heredocs (added after the second and third reviews)
+
+- `stripQuotedHeredocBodies(command) → { text, bodies }` in `lib.mjs` removes the bodies of `<<'X'`, `<<"X"` and `<<\X` heredocs. It tracks quotes, comments and `$( … )` nesting, so only a real `<<` starts a heredoc (`echo "<<'X'"` does not).
+- `evaluateBashCommand` scans every body line for the secret env file, always.
+- It also evaluates the bodies as commands when a segment's command word is a shell or `eval`, or a segment starts with a substitution (`bash /dev/stdin <<'X'`, `eval "$(cat <<'X' …)"`). Otherwise the bodies are text, so the standard `git commit -m "$(cat <<'EOF' … EOF)"` form works.
+- Unquoted heredocs stay in place, because the shell expands `$( … )` inside them.
+
+## 7. Docs
 
 `README.md` (Optional: RTK) and `docs/setup.md` (bullet, Guard Layers, RTK invariant): list the shells and wrappers, and replace "sees through `-c` strings" with the exact forms covered plus the remaining limits (interpreter one-liners, `find -exec`, scripts by path, other shell syntax). Update the `shortcut:` comment in `lib.mjs`, and replace its `Decision: design.md §1-§2` pointer with the archived design paths of `bash-guard-hardening` and `bash-guard-gaps`.

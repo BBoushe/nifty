@@ -189,6 +189,7 @@ export function globMatchesEnv(input) {
       .replace(/\*/g, '[^/]*')
       .replace(/\?/g, '[^/]')
       .replace(/\[!/g, '[^')
+      .replace(/\[\\\^/g, '[^') // `[^x]` was escaped to `[\^x]` above
       .replace(/\[:[a-z]+:\]/g, '\\s\\S');
     try {
       const re = new RegExp(`^${body}$`, 'i');
@@ -292,36 +293,75 @@ export function splitShellSegments(command) {
 
 /**
  * Remove the bodies of quoted heredocs (`<<'X'`, `<<"X"`, `<<\X`): the shell passes them as literal
- * text, so their lines are not commands. Returns `{ text, bodies }`; callers still scan `bodies` as data.
+ * text, so their lines are not commands. Only a `<<` outside quotes and comments starts a heredoc.
+ * Returns `{ text, bodies }`; callers still scan `bodies` as data, and as commands when a shell runs them.
  * Unquoted heredocs stay in place, because the shell expands `$( … )` inside them.
  */
 export function stripQuotedHeredocBodies(command) {
-  const re = /(?<!<)<<(?!<)-?[ \t]*(?:'([^'\n]+)'|"([^"\n]+)"|\\([A-Za-z0-9_]+))/g;
   const bodies = [];
+  const contexts = []; // double-quote state saved when entering `$(`
   let out = '';
   let pos = 0;
-  let m;
-  while ((m = re.exec(command)) !== null) {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < command.length; i += 1) {
+    const ch = command[i];
+    if (inSingle) {
+      if (ch === "'") inSingle = false;
+      continue;
+    }
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === "'" && !inDouble) {
+      inSingle = true;
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (ch === '$' && command[i + 1] === '(') {
+      contexts.push(inDouble); // `"$(cat <<'EOF' …)"`: quoting restarts inside the substitution
+      inDouble = false;
+      i += 1;
+      continue;
+    }
+    if (ch === ')' && !inDouble && contexts.length) {
+      inDouble = contexts.pop();
+      continue;
+    }
+    if (inDouble) continue;
+    if (ch === '#' && (i === 0 || /[\s;&|(]/.test(command[i - 1]))) {
+      const nl = command.indexOf('\n', i); // a comment ends at the line end
+      if (nl === -1) break;
+      i = nl - 1;
+      continue;
+    }
+    if (ch !== '<' || command[i + 1] !== '<' || command[i + 2] === '<' || command[i - 1] === '<') continue;
+    const m = /^<<-?[ \t]*(?:'([^'\n]+)'|"([^"\n]+)"|\\([A-Za-z0-9_]+))/.exec(command.slice(i));
+    if (!m) continue;
     const delim = m[1] ?? m[2] ?? m[3];
-    const lineEnd = command.indexOf('\n', re.lastIndex);
+    const lineEnd = command.indexOf('\n', i + m[0].length);
     if (lineEnd === -1) break;
-    let start = lineEnd + 1;
-    let end = -1;
-    while (start <= command.length) {
-      const nl = command.indexOf('\n', start);
+    let line = lineEnd + 1;
+    let bodyEnd = -1;
+    while (line <= command.length) {
+      const nl = command.indexOf('\n', line);
       const stop = nl === -1 ? command.length : nl;
-      if (command.slice(start, stop).replace(/^\t+/, '').trimEnd() === delim) {
-        end = start;
+      if (command.slice(line, stop).replace(/^\t+/, '').trimEnd() === delim) {
+        bodyEnd = line;
         break;
       }
       if (nl === -1) break;
-      start = nl + 1;
+      line = nl + 1;
     }
-    if (end === -1) break; // unterminated: leave the rest untouched
-    bodies.push(command.slice(lineEnd + 1, end));
+    if (bodyEnd === -1) break; // unterminated: leave the rest untouched
+    bodies.push(command.slice(lineEnd + 1, bodyEnd));
     out += command.slice(pos, lineEnd + 1);
-    pos = end;
-    re.lastIndex = end + delim.length;
+    pos = bodyEnd;
+    i = bodyEnd + delim.length - 1;
   }
   return { text: out + command.slice(pos), bodies };
 }

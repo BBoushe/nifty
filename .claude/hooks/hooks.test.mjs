@@ -358,6 +358,22 @@ describe('guard-bash.mjs', () => {
     }
   });
 
+  // Third cold review: heredoc markers in quotes or comments, heredoc bodies that a shell runs, `[^x]`.
+  it('blocks the forms found by the third review', () => {
+    for (const cmd of [
+      `echo "<<'X'"\ngit push origin master\nX`,
+      `true # <<'X'\ngit push origin master\nX`,
+      `echo '<<"X"'\ngit push origin master\nX`,
+      `eval "$(cat <<'X'\ngit push origin master\nX\n)"`,
+      `bash -c "$(cat <<'X'\ngit push origin master\nX\n)"`,
+      `$(cat <<'X'\ngit push origin master\nX\n)`,
+      `bash /dev/stdin <<'X'\ngit push origin master\nX`,
+      'cat .[^x]nv',
+    ]) {
+      assert.equal(evaluateBashCommand(cmd, wrapOpts).blocked, true, `expected block for '${cmd}'`);
+    }
+  });
+
   it('treats quoted heredoc bodies as text', () => {
     const body = 'fix: add `sh` support\n\nNever run `git push origin master` or `zsh -c x` here.';
     for (const cmd of [

@@ -30,4 +30,5 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
   - CI drift test (`scripts/harness-scripts.test.mjs`): it ignores other toolchains (pnpm, `docker compose build`) and skips multi-line `run: |` blocks.
   - `ArchitectureTest`: the composite sub-rules (layout packages/persistence/services, repository→service/web) have no violating test classes of their own.
   - `GlobalExceptionHandler`: exceptions marked `@ResponseStatus` become 500. Use `DomainException`, or let the handler honour the annotation.
+  - Bash guard (third review of PR #13, gaps older than that PR): quoted redirection targets (`cat <".env"`, `$(<'.env')`) and `git commit -F .env` are allowed; `git commit -m x <path>` stages a path without a separate `git add`.
   - Docs: `docs/workflow.md` Handoff step lacks the RED/GREEN Verification format; the `docs/setup.md` `.githooks/` row omits the archive gate; the Delivery template runs tests before the archive step.

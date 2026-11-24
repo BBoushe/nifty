@@ -5,9 +5,9 @@
 - **Branch:** `fix/bash-guard-gaps` (based on `docs/harness-upgrade-closeout`, PR #12; merge `origin/dev` in after #12 merges)
 - **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
 - **Current:** Tasks 1-6 done (second review fixed)
-- **Next action:** push, open PR/MR, new cold review (archived at openspec/changes/archive/2026-11-25-bash-guard-gaps/)
+- **Next action:** push the third-review fixes, run a new cold review, then ask the user to merge PR #13
 - **Uncommitted changes:** no
-- **PR / MR:** —
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/13 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/12
 - **Open review findings:** —
 
 ## Tasks
@@ -46,7 +46,7 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
 
 - [x] After PR #12 merges: `git fetch origin && git merge origin/dev` (no rebase). Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive bash-guard-gaps -y --skip-specs`. Remove backlog row 9, add the `docs/feature_history.md` entry, tick the cold-review box in the archived `bash-guard-hardening` tasks.md if this review passes. Commit `chore(specs): archive bash-guard-gaps`.
-- [ ] `node scripts/forge.mjs push`, then PR/MR via `pr-memo` and `node scripts/forge.mjs pr`. Record links in Status.
+- [x] `node scripts/forge.mjs push`, then PR/MR via `pr-memo` and `node scripts/forge.mjs pr`. Record links in Status.
 - [ ] Cold review (fresh `reviewer` agent): no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only (ask the user first), then `node scripts/forge.mjs sync dev` and `node scripts/forge.mjs status` 0/0.
@@ -65,3 +65,8 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
 - **Did:** second cold review fixes: tokenizer records a glob character outside quotes; `<` redirection targets get the glob check; `[!x]` and POSIX classes in globs; `stripQuotedHeredocBodies` drops quoted heredoc bodies (still scanned for the secret env file); limits listed in README and setup; proposal note on guard-agent; `-n` comment.
 - **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (3 new tests, commit 2a2fa81); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (39/39). Everyday commands re-probed: allowed.
 - **Next:** Delivery.
+
+### 2026-11-25 — Third review fixes (main session)
+- **Did:** heredoc scan now tracks quotes, comments and `$( … )`; heredoc bodies are checked as commands when a shell or `eval` is the command word or a segment starts with a substitution; `[^x]` globs; design §6; limits list; older gaps moved to the backlog.
+- **Verification:** RED: `node --test .claude/hooks/hooks.test.mjs` → FAIL (8 new probes); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (40/40). Probe file: commit/PR heredocs with `sh` in the title still allowed.
+- **Next:** push, new cold review, merge (ask the user).
