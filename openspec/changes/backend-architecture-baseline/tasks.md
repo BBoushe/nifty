@@ -2,10 +2,10 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `refactor/backend-architecture-baseline` (not created)
-- **Worktree:** —
-- **Current:** not started
-- **Next action:** Task 1, first step
+- **Branch:** `refactor/backend-architecture-baseline` (local only, not pushed yet)
+- **Worktree:** `../nifty-backend-architecture-baseline`
+- **Current:** Task 1 done (RED committed)
+- **Next action:** Task 2, first step (package moves)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -14,11 +14,11 @@
 
 Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/backend-spring-check/SKILL.md`, `docs/architecture.md`, `docs/api.md` §3. Never touch `.github/` or `.gitlab-ci.yml`. Decision 1.10 is already recorded. Read `design.md` and `.agents/rules/backend-java.md` first.
 
-- [ ] **1. Architecture rules with fixtures (RED)** — REQ-BA-01..04
-  - [ ] Add the ArchUnit test dependency (design §3).
-  - [ ] Write `ArchitectureRules`, the `archfixture` packages and `ArchitectureTest` (design §3).
-  - [ ] Run `cd backend && ./mvnw -B test -Dtest=ArchitectureTest`. Expect: the fixture assertions pass, and the layout rule FAILS on `de.fhdortmund.nifty.config.SecurityConfig` and `de.fhdortmund.nifty.health.HealthController`.
-  - [ ] Commit `test(backend): add ArchUnit architecture rules with violating fixtures`.
+- [x] **1. Architecture rules with fixtures (RED)** — REQ-BA-01..04
+  - [x] Add the ArchUnit test dependency (design §3).
+  - [x] Write `ArchitectureRules`, the `archfixture` packages and `ArchitectureTest` (design §3).
+  - [x] Run `cd backend && ./mvnw -B test -Dtest=ArchitectureTest`. Expect: the fixture assertions pass, and the layout rule FAILS on `de.fhdortmund.nifty.config.SecurityConfig` and `de.fhdortmund.nifty.health.HealthController`.
+  - [x] Commit `test(backend): add ArchUnit architecture rules with violating fixtures`.
 - [ ] **2. Package moves (GREEN)** — REQ-BA-01
   - [ ] Move `config/*` → `shared/config/` and `health/HealthController` → `health/web/` (design §1). Update imports.
   - [ ] Run `cd backend && ./mvnw -B test`. Expect: exit 0, including `HealthEndpointTest` and `ArchitectureTest`.
@@ -62,3 +62,10 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - [ ] After `git merge-base --is-ancestor refactor/backend-architecture-baseline origin/dev`: delete the branch on both remotes and locally; `git worktree remove ../nifty-backend-architecture-baseline`.
 
 ## Handoff Log
+
+### Task 1 — Architecture rules with fixtures (RED)
+- **Commits:** `test(backend): add ArchUnit architecture rules with violating fixtures`
+- **Verification:** RED `cd backend && ./mvnw -B test -Dtest=ArchitectureTest` → FAIL (12 run, 1 failure: layout rule on `config.Role`, `config.SecurityConfig`, `health.HealthController` (+ nested `HealthResponse`); all 5 fixture checks pass)
+- **Contracts/Migrations added:** none (test dep `archunit-junit5` 1.5.1, latest on Maven Central)
+- **Decisions:** fixtures live in `de.fhdortmund.archfixture.<case>`, not `de.fhdortmund.nifty.archfixture` (design §3): `@SpringBootApplication` would component/entity-scan them in `HealthEndpointTest`; rule factories take the root, so behaviour is unchanged
+- **Open Questions:** none
