@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Task 3 done (rulesets require image + hook-test checks; not applied yet)
-- **Next action:** Task 4, first step (docs/workflow.md + CHANGELOG)
+- **Current:** Task 4 done (docs + CHANGELOG)
+- **Next action:** Task 5: run `scripts/apply-gitlab-protections.sh --dry-run` and show the user (user confirmed Maintainer)
 - **Uncommitted changes:** no
 - **PR / MR:** — (branch pushed to origin + gitlab)
 - **Open review findings:** —
@@ -27,9 +27,9 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
   - [x] Add the three contexts to `dev.json`, `alpha.json`, `main.json` (design §2).
   - [x] Run `node -e "for (const f of ['dev','alpha','main']) JSON.parse(require('fs').readFileSync('.github/rulesets/'+f+'.json'))"`. Expect: exit 0.
   - [x] Commit `ci(github): require image and hook-test checks in rulesets`.
-- [ ] **4. Docs**
-  - [ ] `docs/workflow.md` per design §5. Add a `CHANGELOG.md` `[Unreleased]` entry.
-  - [ ] Commit `docs(workflow): add CI parity table and Maintainer-only sync note`.
+- [x] **4. Docs**
+  - [x] `docs/workflow.md` per design §5. Add a `CHANGELOG.md` `[Unreleased]` entry.
+  - [x] Commit `docs(workflow): add CI parity table and Maintainer-only sync note`.
 - [ ] **5. Apply GitLab protections (ops — ask the user first)** — REQ-GP-01, REQ-GP-02
   - [ ] Confirm with the user that their GitLab account is a **Maintainer** of project 6748. If yes, run this task before merge (a Maintainer can still run `forge.mjs sync` to protected `dev`). If not, stop and ask the user how to proceed.
   - [ ] `scripts/apply-gitlab-protections.sh --dry-run`; show the output to the user.
@@ -77,4 +77,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** RED n/a (config-only; the three contexts were absent before); GREEN `node -e "for (const f of ['dev','alpha','main']) JSON.parse(...)"` → exit 0; each file now lists `Backend Image (Docker)`, `Frontend Image (Docker)`, `Hook Tests (Node)`.
 - **Contracts/Migrations added:** none (rulesets not applied; Delivery step, after the image jobs report on the PR)
 - **Decisions:** `strict` left unchanged per file.
+- **Open Questions:** none
+
+### Task 4 — Docs
+- **Commits:** `docs(workflow): add CI parity table and Maintainer-only sync note`
+- **Verification:** RED n/a (docs-only); GREEN `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0.
+- **Contracts/Migrations added:** none
+- **Decisions:** none
 - **Open Questions:** none

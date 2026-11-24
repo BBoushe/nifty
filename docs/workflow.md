@@ -69,6 +69,20 @@ GitHub (`origin`) is primary; GitLab (`gitlab`) is the secondary course repo. Ne
 
 Rules that prevent drift: merge only on GitHub (merge commit, not squash, so GitLab can mark the MR as merged after `sync`); do not merge MRs on GitLab; every command is dry-runnable with `--dry-run`. `sync` never force-pushes, so a diverged GitLab branch is rejected, not overwritten.
 
+Only a GitLab **Maintainer** can run `forge.mjs sync`, because it pushes to protected branches (`dev`, `alpha`, `master`, `main`).
+
+**CI parity (Decision 1.9).** Any job added to one CI file must be added to the other in the same PR. The `CI parity` drift test in `scripts/harness-scripts.test.mjs` fails when the two files run different build, test or image commands.
+
+| GitHub job (`.github/workflows/ci.yml`) | GitLab job (`.gitlab-ci.yml`) |
+|---|---|
+| `Backend (Java 21 & Maven)` | `backend` |
+| `Frontend (Vue 3.5 & Vite 8)` | `frontend` |
+| `Hook Tests (Node)` | `harness-tests` |
+| `Conventional Commits` | `conventional-commits` |
+| `Branch Promotion Policy` | `branch-policy` |
+| `Backend Image (Docker)` | `backend-image` |
+| `Frontend Image (Docker)` | `frontend-image` |
+
 ### Module Ownership Table (PR Reviewer Routing)
 
 | Module / Area | Primary Paths | OpenSpec Modules | Suggested Reviewer |
