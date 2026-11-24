@@ -82,6 +82,27 @@ jobs:
       - name: Run harness hook and script unit tests
         run: node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs
 
+  # Decision 1.9: same docker build commands as .gitlab-ci.yml (no registry, no push).
+  backend-image:
+    name: Backend Image (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build --pull -t "nifty-backend:${{ github.sha }}" backend
+
+  frontend-image:
+    name: Frontend Image (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build frontend image
+        run: docker build --pull --target prod -t "nifty-frontend:${{ github.sha }}" frontend
+
   conventional-commits:
     name: Conventional Commits
     runs-on: ubuntu-latest

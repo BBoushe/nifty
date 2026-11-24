@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/superpowers-loops` (pushed to origin + gitlab)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-superpowers-loops`
-- **Current:** Delivery: CI green on 6ae2982 (GitHub PR #9 5/5, GitLab pipeline 8716 7/7)
-- **Next action:** WAIT. The user said not to merge until they say so. Then: `gh pr merge 9 --merge`, `node scripts/forge.mjs sync dev`, `node scripts/forge.mjs status`, then cleanup
+- **Current:** Delivery: merged origin/dev into the branch (no rebase, per user). CHANGELOG conflict resolved by keeping both entries. `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (32/32)
+- **Next action:** wait for all 7 GitHub checks + the GitLab pipeline to go green, then ask the user to merge PR #9. After the merge: `forge.mjs sync dev`, then delete the remote branches only (no Delivery ticks, keep the local branch and worktree)
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/9 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/8
 - **Open review findings:** Convention Candidates only (not fixed, outside owned files): `docs/workflow.md:48` Handoff step lacks the RED/GREEN format; `docs/setup.md:66` `.githooks/` row omits the archive gate; Delivery template runs tests before archive
