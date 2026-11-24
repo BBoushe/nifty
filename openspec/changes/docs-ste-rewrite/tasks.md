@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
-- **Current:** Tasks 1-2 done; Task 4 next (Task 3 waits for PR #13). Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
-- **Next action:** Task 4 (architecture docs). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
+- **Current:** Tasks 1, 2, 4 done; Task 5 next (Task 3 waits for PR #13). Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
+- **Next action:** Task 5 (discovery canvas). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -20,8 +20,8 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
   - [x] Steps (a)–(f)
 - [ ] **3. Onboarding** — `README.md`, `docs/setup.md`, `docs/workflow.md`
   - [ ] Steps (a)–(f)
-- [ ] **4. Architecture docs** — `docs/architecture.md`, `docs/api.md`, `docs/design_system.md`
-  - [ ] Steps (a)–(f)
+- [x] **4. Architecture docs** — `docs/architecture.md`, `docs/api.md`, `docs/design_system.md`
+  - [x] Steps (a)–(f)
 - [ ] **5. Product vision** — `docs/discovery-canvas.md`
   - [ ] Steps (a)–(f)
 - [ ] **6. Domain specs** — `openspec/specs/*/spec.md`
@@ -54,3 +54,8 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 - **Did:** STE rewrite of `.agents/rules/*.md`; frontmatter, headings, Reviewer levels and frontend-vue rules 10/11 unchanged.
 - **Verification:** RED: n/a (no behaviour). Obligations equal on all 5 files; ste-lint hard findings 14→0, 7→1, 5→0, 0→0, 2→1. Exceptions: coding-standards.md:3 (YAML description, kept byte-for-byte), spec-driven.md:16 (heading "Verify Before Checking Off" kept). `openspec validate --all` exit 0; harness tests exit 0. Main session read the invariant lines: no meaning change.
 - **Next:** Task 4.
+
+### 2026-11-25 — Task 4 (Sonnet subagent, checked by main session)
+- **Did:** STE rewrite of `docs/architecture.md`, `docs/api.md`, `docs/design_system.md`; headings, anchors, tables, diagrams unchanged. Main session restored the past tense in the design-system source note and reworded the api.md maintenance rule.
+- **Verification:** RED: n/a (no behaviour). Obligations equal on all 3 files; ste-lint hard findings 19→0, 4→0, 3→0; `openspec validate --all` exit 0; harness tests 35/35.
+- **Next:** Task 5.

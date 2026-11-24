@@ -1,6 +1,6 @@
 # Living API Documentation (`docs/api.md`)
 
-> **Maintenance Rule (Decision 2.9 & `.agents/rules/coding-standards.md` #4):** Every PR that adds, modifies, or removes a backend controller endpoint, DTO, auth rule, or SSE event **MUST** update this file in the same commit/PR. Live machine-readable OpenAPI remains available at `/v3/api-docs` and `/swagger-ui.html`.
+> **Maintenance Rule (Decision 2.9 & `.agents/rules/coding-standards.md` #4):** It applies to every PR that adds, modifies, or removes a backend controller endpoint, DTO, auth rule, or SSE event. That PR **MUST** update this file in the same commit/PR. Live machine-readable OpenAPI remains available at `/v3/api-docs` and `/swagger-ui.html`.
 
 ## 1. Base URLs & Live OpenAPI
 
@@ -15,17 +15,17 @@
 |---|---|---|
 | `/api/v1/health`, `/actuator/health/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` | Public (`permitAll`) | Liveness, readiness, and OpenAPI schema |
 | `/api/v1/ranking/**` | `PROFESSOR`, `REVIEWER` | Ranking View, Studio, Matrix, Approval Queue, Team Builder |
-| `/api/v1/assessment/**` | `CANDIDATE`, `PROFESSOR` | Assessment Chat SSE & post-approval Candidate Results (candidates only see their own data; never unapproved scores) |
+| `/api/v1/assessment/**` | `CANDIDATE`, `PROFESSOR` | Assessment Chat SSE & post-approval Candidate Results (candidates see only their own data and never see unapproved scores) |
 | All other routes | Authenticated | Default deny for unauthenticated callers |
 
 ## 3. Standard Error Envelope
 
-Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`, produced by `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`; rules in `.agents/rules/backend-java.md` §8). Responses never contain stack traces or exception class names.
+Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Rules are in `.agents/rules/backend-java.md` §8. Responses never contain stack traces or exception class names.
 
 | Field | Meaning |
 |---|---|
-| `type` | Problem type URI; `about:blank` unless a specific type is defined |
-| `title` | Short summary, defaults to the HTTP reason phrase (e.g. `Bad Request`) |
+| `type` | Problem type URI. The value is `about:blank` unless a specific type exists. |
+| `title` | Short summary. It defaults to the HTTP reason phrase (e.g. `Bad Request`). |
 | `status` | HTTP status code |
 | `detail` | Human-readable explanation, safe for clients |
 | `instance` | Request path that failed |
@@ -45,16 +45,16 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 | Source | Status | `detail` |
 |---|---|---|
 | `@Valid` body violation | `400` | Spring's validation summary, plus `errors` |
-| `DomainException(status, detail)` thrown by a service | its `status` | its `detail` |
-| Spring MVC errors (404, 405, 415, ...) | as mapped by `ResponseEntityExceptionHandler` | Spring's default |
-| Any other exception | `500` | `An unexpected error occurred.` (logged server-side) |
+| `DomainException(status, detail)` that a service throws | its `status` | its `detail` |
+| Spring MVC errors (404, 405, 415, ...) | the status that `ResponseEntityExceptionHandler` maps | Spring's default |
+| Any other exception | `500` | `An unexpected error occurred.` (the server logs the error) |
 
 ## 4. Implemented Endpoints
 
 | Method | Path | Roles | Request | Response DTO | Notes |
 |---|---|---|---|---|---|
 | `GET` | `/api/v1/health` | Public | — | `{ status, service, aiProviderMode, timestamp }` | Returns `"UP"`, `"nifty-backend"`, active evaluator mode (`kiconnect-nrw` or `placeholder`), ISO-8601 timestamp (`HealthController`) |
-| `GET` | `/actuator/health` | Public | — | Spring Boot Actuator health JSON | Used by Docker Compose healthcheck |
+| `GET` | `/actuator/health` | Public | — | Spring Boot Actuator health JSON | The Docker Compose healthcheck uses it |
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
