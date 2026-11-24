@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `chore/forge-ci-parity`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-forge-ci-parity`
-- **Current:** Task 5 done (GitLab protections applied and verified)
-- **Next action:** Task 6 (tag answer already given: leave local; check `docker compose ps`)
+- **Current:** Delivery: rebased (no-op), tests green, both changes archived
+- **Next action:** Delivery: `node scripts/forge.mjs push`, then PR/MR via pr-memo
 - **Uncommitted changes:** no
 - **PR / MR:** — (branch pushed to origin + gitlab)
 - **Open review findings:** —
@@ -37,15 +37,15 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
   - [x] Verify with the two read-only `glab api` commands in design §4. Expect: `dev`, `alpha`, `master`, `main` listed with `allow_force_push: false`; `true` for the pipeline setting.
   - [x] Check off the open task in `openspec/changes/dual-forge/tasks.md` and add a Handoff Log entry there with the outcome.
   - [x] Commit `chore(specs): complete dual-forge protections task`.
-- [ ] **6. Housekeeping question (no code)**
-  - [ ] Ask the user about the local tag `archive/fe-mvp` → `97cf21b`: (a) push it for a remote backup to both remotes, or (b) leave it local. Never delete it. Record the answer in the Handoff Log.
-  - [ ] If `docker compose ps` shows fe-mvp containers, ask before `docker compose down` (`-v` only if the user wants the DB volume gone).
+- [x] **6. Housekeeping question (no code)**
+  - [x] Ask the user about the local tag `archive/fe-mvp` → `97cf21b`: (a) push it for a remote backup to both remotes, or (b) leave it local. Never delete it. Record the answer in the Handoff Log.
+  - [x] If `docker compose ps` shows fe-mvp containers, ask before `docker compose down` (`-v` only if the user wants the DB volume gone).
 
 ## Delivery
 
-- [ ] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `scripts/harness-scripts.test.mjs`, keep both describe blocks.
-- [ ] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-- [ ] Archive both changes: `OPENSPEC_TELEMETRY=0 openspec archive forge-ci-parity -y --skip-specs` and `OPENSPEC_TELEMETRY=0 openspec archive dual-forge -y --skip-specs`. Continue in `openspec/changes/archive/*-forge-ci-parity/tasks.md`. Commit `chore(specs): archive forge-ci-parity and dual-forge`.
+- [x] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `scripts/harness-scripts.test.mjs`, keep both describe blocks.
+- [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+- [x] Archive both changes: `OPENSPEC_TELEMETRY=0 openspec archive forge-ci-parity -y --skip-specs` and `OPENSPEC_TELEMETRY=0 openspec archive dual-forge -y --skip-specs`. Continue in `openspec/changes/archive/*-forge-ci-parity/tasks.md`. Commit `chore(specs): archive forge-ci-parity and dual-forge`.
 - [ ] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit.
 - [ ] `node scripts/forge.mjs push`
 - [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "ci: gate GitHub on the same jobs as GitLab" --body-file <file>`. Record the links in Status.
@@ -91,4 +91,11 @@ Owned files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, `.gitlab-ci.
 - **Verification:** RED n/a (ops); dry-run → exit 0 (shown to user, confirmed); real run → exit 0; `glab api projects/6748/protected_branches` → `master`/`main`/`alpha`/`dev`, push+merge 40, `allow_force_push: false`; `only_allow_merge_if_pipeline_succeeds` → `true`.
 - **Contracts/Migrations added:** GitLab project 6748 settings (server-side)
 - **Decisions:** user is Owner (access 50) of 6748, so applied before merge. Premium WARN logged: approval rules skipped for master x4, main x4, alpha x2.
+- **Open Questions:** none
+
+### Task 6 — Housekeeping (no code)
+- **Commits:** none (no code; recorded in the archive commit)
+- **Verification:** `docker compose ps` → 0 services; `docker ps -a` → no nifty/fe-mvp containers, so nothing to stop.
+- **Contracts/Migrations added:** none
+- **Decisions:** user: leave tag `archive/fe-mvp` → `97cf21b` local (not pushed, not deleted).
 - **Open Questions:** none
