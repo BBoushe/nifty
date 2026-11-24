@@ -2,11 +2,11 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab, head c75634d)
+- **Branch:** `chore/ai-context-docs` (pushed to origin + gitlab through 385154a)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-ai-context-docs`
-- **Current:** Task 5 — vet accepted; vetted files copied to `.agents/skills/asd-ste100/` + `.claude/skills/asd-ste100` symlink
-- **Next action:** user runs `python3 -I .agents/skills/asd-ste100/scripts/ste-lint.py docs/feature_history.md`; then tick, log, commit task 5
-- **Uncommitted changes:** yes — `.agents/skills/asd-ste100/`, `.claude/skills/asd-ste100`, this file
+- **Current:** Delivery — tasks 1–6 done; archived as `2026-11-24-ai-context-docs` with its history entry
+- **Next action:** push, then PR/MR via `pr-memo` + `node scripts/forge.mjs pr` (ask the user first); then fill PR/MR numbers in `docs/feature_history.md`
+- **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
 
@@ -42,10 +42,10 @@ Owned files: `AGENTS.md` §3 dispatch table, `.agents/rules/spec-driven.md`, `do
 
 ## Delivery
 
-- [ ] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `scripts/harness-scripts.test.mjs`, `docs/setup.md` and `AGENTS.md`, keep both sides.
-- [ ] Backfill a history entry for every change archived on `dev` since task 2 (the test tells you which).
-- [ ] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive ai-context-docs -y --skip-specs`, then add its own history entry (the test requires it). Continue in `openspec/changes/archive/*-ai-context-docs/tasks.md`. Commit `chore(specs): archive ai-context-docs`.
+- [x] `git fetch origin && git rebase origin/dev`. On conflict in `CHANGELOG.md`, keep both entries; in `scripts/harness-scripts.test.mjs`, `docs/setup.md` and `AGENTS.md`, keep both sides.
+- [x] Backfill a history entry for every change archived on `dev` since task 2 (the test tells you which).
+- [x] Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive ai-context-docs -y --skip-specs`, then add its own history entry (the test requires it). Continue in `openspec/changes/archive/*-ai-context-docs/tasks.md`. Commit `chore(specs): archive ai-context-docs`.
 - [ ] `node scripts/forge.mjs push`
 - [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "docs: add feature history, backlog, ai_docs and STE rule" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session: verdict has no Blocking items.

@@ -3,6 +3,12 @@
 Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `scripts/harness-scripts.test.mjs`).
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the first four entries share one date.
 
+## 2026-11-24 — ai-context-docs
+- **What:** Added this feature history with a test that keeps it complete, a feature backlog and `docs/ai_docs/` library notes. Added the vetted `asd-ste100` skill, an STE writing rule and three `AGENTS.md` dispatch rows.
+- **Why:** Agents could not see what was built, what to pick next, or current APIs for Spring Boot 4, Spring AI 2 and Timefold 2.
+- **PR/MR:** GitHub #…, GitLab !… (filled after the PR opens)
+- **Specs:** REQ-CD-01 to REQ-CD-06   **Decisions:** 3.5, 3.6
+
 ## 2026-11-24 — decisions-coding-rules-gitlab
 - **What:** Added the `docs/decisions/` registry with `X.Y` IDs and `scripts/record-decision.mjs`. Added the canonical coding standards and the living `docs/api.md`. Added a GitHub/GitLab switch in `.env` with `scripts/check-setup.mjs` and a GitLab CI file.
 - **Why:** The course grades decision traceability and clean code. The team also needs GitLab next to GitHub.
