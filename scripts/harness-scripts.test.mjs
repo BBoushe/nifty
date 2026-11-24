@@ -263,3 +263,51 @@ describe('scripts/forge.mjs', () => {
     assert.throws(() => repoUrl('not a url'), /Unsupported/);
   });
 });
+
+describe('CI parity', () => {
+  // Decision 1.9: GitHub and GitLab must run the same build, test and image commands.
+  const KEYWORDS = ['docker build', './mvnw', 'npm ci', 'npm run', 'node --test'];
+
+  const ciCommands = (yamlText) => {
+    const commands = new Set();
+    for (const raw of yamlText.split('\n')) {
+      const line = raw.trim().replace(/^- /, '').replace(/^(run|script):/, '').trim();
+      if (line.startsWith('#') || !KEYWORDS.some((k) => line.includes(k))) continue;
+      commands.add(
+        line
+          .replace(/^cd \S+ &&\s*/, '')
+          .replace(/\$\{\{\s*github\.sha\s*\}\}|\$CI_COMMIT_SHORT_SHA/g, '<SHA>')
+          .replace(/ --cache \.npm --prefer-offline/, '')
+          .replace(/\s+/g, ' ')
+      );
+    }
+    return commands;
+  };
+
+  const assertCiParity = (githubYaml, gitlabYaml) => {
+    const github = ciCommands(githubYaml);
+    const gitlab = ciCommands(gitlabYaml);
+    const missing = [
+      ...[...gitlab].filter((c) => !github.has(c)).map((c) => `missing on GitHub: ${c}`),
+      ...[...github].filter((c) => !gitlab.has(c)).map((c) => `missing on GitLab: ${c}`),
+    ];
+    if (missing.length) assert.fail(`CI drift between forges:\n${missing.join('\n')}`);
+  };
+
+  it('runs the same build, test and image commands on GitHub and GitLab', () => {
+    assertCiParity(
+      fs.readFileSync('.github/workflows/ci.yml', 'utf8'),
+      fs.readFileSync('.gitlab-ci.yml', 'utf8')
+    );
+  });
+
+  it('names the missing command', () => {
+    const github = 'steps:\n  - run: npm ci\n';
+    const gitlab =
+      'script:\n  - npm ci --cache .npm --prefer-offline\n  - docker build --pull -t "nifty-backend:$CI_COMMIT_SHORT_SHA" backend\n';
+    assert.throws(
+      () => assertCiParity(github, gitlab),
+      (err) => err.message.includes('missing on GitHub: docker build --pull -t "nifty-backend:<SHA>" backend')
+    );
+  });
+});
