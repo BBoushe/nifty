@@ -4,10 +4,10 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `refactor/backend-architecture-baseline` (pushed to origin + gitlab)
 - **Worktree:** `../nifty-backend-architecture-baseline`; change now at `openspec/changes/archive/2026-11-24-backend-architecture-baseline/`
-- **Current:** Tasks 1–6 done; rebased (no-op), re-verified, archived
-- **Next action:** `node scripts/forge.mjs push`, then PR/MR via `pr-memo` (ask the user before opening)
+- **Current:** PR/MR open; cold review + CI pending
+- **Next action:** cold review (reviewer + backend-spring-check), then CI green on both forges
 - **Uncommitted changes:** no
-- **PR / MR:** —
+- **PR / MR:** GitHub https://github.com/BBoushe/nifty/pull/8 · GitLab https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/7
 - **Open review findings:** —
 
 ## Tasks
@@ -53,8 +53,8 @@ Owned files: `backend/**`, `.agents/rules/backend-java.md`, `.claude/skills/back
 - [x] Re-run `cd backend && ./mvnw -B test` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive backend-architecture-baseline -y --skip-specs` (architecture rules live in `backend-java.md`, not in a domain spec). Continue in `openspec/changes/archive/*-backend-architecture-baseline/tasks.md`. Commit `chore(specs): archive backend-architecture-baseline`.
 - [x] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit. — n/a: file absent after rebase
-- [ ] `node scripts/forge.mjs push`
-- [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "refactor(backend): package-by-feature baseline with ArchUnit and ProblemDetail" --body-file <file>`. Record the links in Status.
+- [x] `node scripts/forge.mjs push`
+- [x] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "refactor(backend): package-by-feature baseline with ArchUnit and ProblemDetail" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session (also run the `backend-spring-check` skill): verdict has no Blocking items.
 - [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [ ] Merge on GitHub only: `gh pr merge <n> --merge`.
