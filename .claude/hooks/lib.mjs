@@ -61,12 +61,23 @@ export function toRepoRelative(input, repoRoot = process.cwd()) {
 }
 
 /**
- * Strip leading shell environment variable assignments (e.g. `CI=true npm run build`).
+ * Strip leading shell environment variable assignments (e.g. `CI=true npm run build`)
+ * and the RTK token-saving wrapper (`rtk git push`, `rtk -v bypass git push`) so every
+ * guard sees the real command. RTK's PreToolUse hook rewrites `git ...` to `rtk git ...`.
  */
 export function stripLeadingEnvAssignments(tokens) {
   let idx = 0;
   while (idx < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[idx].value)) {
     idx += 1;
+  }
+  const first = idx < tokens.length ? tokens[idx].value : '';
+  if (first === 'rtk' || first.endsWith('/rtk')) {
+    idx += 1;
+    while (idx < tokens.length && tokens[idx].value.startsWith('-')) idx += 1;
+    // `proxy` is the deprecated alias of `bypass`; both run the command unfiltered.
+    if (idx < tokens.length && (tokens[idx].value === 'proxy' || tokens[idx].value === 'bypass')) {
+      idx += 1;
+    }
   }
   return tokens.slice(idx);
 }
