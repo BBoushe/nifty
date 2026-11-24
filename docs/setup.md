@@ -20,6 +20,7 @@ Every rule, feature spec, agent role, and safety hook lives as **plain text file
 - **Parallel GitHub / GitLab switch:** Set `GIT_FORGE=github`, `gitlab`, or `both` in `.env` and run `node scripts/check-setup.mjs` — agents read only the non-secret forge setting and never see your API keys.
 - **Cold, separate-session review:** The agent that wrote the code should never grade its own homework. A fresh, read-only **Reviewer** session inspects only the Git diff, specs, coding standards, and decisions, separating hard **Blocking** defects from non-blocking **Convention Candidates**.
 - **Portable hooks for everyone:** Zero-dependency Node `.mjs` hooks (tested by `node --test`) + `.githooks/` block accidental `.env` secret leaks, bad commit messages, and direct pushes to protected branches identically on **macOS, Windows, and Linux**.
+- **Optional RTK token savings (Claude Code, per developer):** [RTK](https://github.com/rtk-ai/rtk) compresses noisy shell output (`git`, `gh`, `npm run ...`) before it reaches the model, cutting context cost. It lives entirely in *your* `~/.claude/settings.json` and RTK config, never in the repo, and our guards still see through it. Setup steps and the required `./mvnw` exclusion are in the root [`README.md`](../README.md#optional-rtk-token-savings-for-claude-code).
 
 ### The 6-Step Daily Loop
 
@@ -57,6 +58,7 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 | `.claude/agents/*.md` | Role prompts & tool-boundary hooks (`spec-builder`, cold read-only `reviewer`, `tests-only` `test-writer`) | Claude Code (mirrored by `AGENTS.md` for other tools) | **Canonical (Roles)** |
 | `.claude/hooks/*.mjs` | Zero-dependency cross-platform safety guards (`lib`, `guard-files`, `guard-bash`, `guard-agent`, `test-gate`) + `hooks.test.mjs` | Claude Code `PreToolUse`, `.githooks/`, CI | **Canonical (Enforcement)** |
 | `.claude/settings.json` | Claude Code `permissions.allow` / `permissions.deny` and `PreToolUse` hook wiring | Claude Code | **Adapter** |
+| `~/.claude/settings.json` + RTK `config.toml` *(outside the repo)* | Optional per-developer RTK hook (`rtk hook claude`, installed with `rtk init -g --hook-only`) rewriting Bash commands to `rtk ...`, and `[hooks] exclude_commands` keeping `./mvnw`/`mvnw`/`mvnw.cmd` unrewritten | Claude Code (the developer's own machine) | **Optional, non-canonical (never committed)** |
 | `.claude/skills/` | Symlinks to `.agents/skills/*` plus Claude-oriented verification skills (`spec-implementer`, stack checks) | Claude Code | **Adapter / Symlinks** |
 | `CLAUDE.md` | Claude Code entrypoint (`@` imports of canonical `coding-standards.md`, `spec-driven.md`, `git-workflow.md`) + forge-aware First-Run Bootstrap | Claude Code, T3 Code | **Thin Pointer** |
 | `GEMINI.md` | Antigravity / Gemini CLI verifier persona & quota-conscious habits | Antigravity (`agy`), Gemini CLI | **Thin Pointer** |
@@ -71,6 +73,7 @@ This section is the **canonical source of truth** for any AI agent tasked with u
 2. **Recording a decision (mandatory on `question-round` & prompter changes):** Run `node scripts/record-decision.mjs --category 1|2|3|4 ...` so `X.Y` IDs and `docs/decisions/index.md` stay deterministic, then add `// Decision X.Y` pointers in affected files.
 3. **Adding a new workflow skill:** Create `.agents/skills/<name>/SKILL.md` first, then create a relative symlink `.claude/skills/<name> -> ../../.agents/skills/<name>`.
 4. **Adding or changing a hook or helper script:** Implement shared logic in `.claude/hooks/lib.mjs` or `scripts/*.mjs`, add `node:test` coverage in `.claude/hooks/hooks.test.mjs` or `scripts/harness-scripts.test.mjs`, verify tests pass, and never weaken `.env` secret isolation (agents always use `node scripts/check-setup.mjs --forge`, never reading `.env`).
+   - **RTK invariant:** RTK's hook rewrites `git ...` to `rtk git ...`, so `stripLeadingEnvAssignments` in `lib.mjs` also strips a leading `rtk` (path-qualified, with flags, and the `proxy`/`bypass` aliases) and every guard must keep checking the *unwrapped* command; `hooks.test.mjs` covers this ("sees through the rtk wrapper"). Never add a guard that matches on a raw command string without going through that helper, and never weaken it. Wrapper-sensitive commands such as `./mvnw` stay excluded in RTK config so pinned toolchains are not bypassed.
 5. **Adding a new AI tool or orchestrator:** Add a **thin pointer file** (<=25 lines) in that tool's native config directory pointing to `AGENTS.md`, `openspec/`, and `.githooks/`. Never fork specs into a second spec folder (e.g., avoid `.kiro/specs/` or `.claude/plans/`).
 6. **Changing the app tech stack (pluggable slots):** Only swap stack-specific `.agents/rules/<stack>.md` files, stack check skills, `docs/api.md` contract content, `test-gate.mjs` path commands, and CI build jobs. Keep OpenSpec, decision registry, coding-rule structure, roles, forge switch, and secret/branch hooks untouched.
 
@@ -97,6 +100,7 @@ Follow these steps in order to replicate this SDD/ADD harness into any greenfiel
    - Copy `scripts/{record-decision,check-setup,harness-scripts.test}.mjs` and `docs/decisions/` templates, plus `.agents/rules/coding-standards.md` and `docs/api.md`.
    - Add `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`, Conventional Commits validation, and branch promotion checks to `.github/workflows/ci.yml` and parallel `.gitlab-ci.yml`.
    - Add declarative `.github/rulesets/*.json` matching the team's branch promotion flow.
+   - *(Optional, per developer)* If teammates use RTK, keep the `rtk` unwrapping in `lib.mjs` and its test, install with `rtk init -g --hook-only`, and exclude any version-pinning wrapper (`./mvnw`) via `[hooks] exclude_commands` in RTK's `config.toml`. Do not commit RTK output or RTK's `~/.claude` files.
 6. **Verify End-to-End:**
    - Run `OPENSPEC_TELEMETRY=0 openspec validate --all` -> exit `0`.
    - Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` -> exit `0`.
