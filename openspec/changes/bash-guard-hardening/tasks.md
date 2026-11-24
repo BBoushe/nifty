@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `fix/bash-guard-hardening`
 - **Worktree:** `../nifty-bash-guard-hardening`
-- **Current:** Task 4 done (`--no-verify` push block; all tests green)
-- **Next action:** Task 5, first step (replace `shortcut:` comment in `lib.mjs`)
+- **Current:** Tasks 1-5 done; Delivery not started
+- **Next action:** Delivery step 1 (`git fetch origin && git rebase origin/dev`)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -31,12 +31,12 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
   - [x] Implement design §3.
   - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
   - [x] Commit `fix(hooks): block git push --no-verify to protected branches`.
-- [ ] **5. Comment and docs**
-  - [ ] Replace the wrong `shortcut:` comment in `lib.mjs` with design §4.
-  - [ ] Update `README.md` (Optional: RTK) and `docs/setup.md` per design §5, including the "Guard Layers" subsection.
-  - [ ] Add a `CHANGELOG.md` `[Unreleased]` entry.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-  - [ ] Commit `docs(setup): document guard layers and RTK wrapper limits`.
+- [x] **5. Comment and docs**
+  - [x] Replace the wrong `shortcut:` comment in `lib.mjs` with design §4.
+  - [x] Update `README.md` (Optional: RTK) and `docs/setup.md` per design §5, including the "Guard Layers" subsection.
+  - [x] Add a `CHANGELOG.md` `[Unreleased]` entry.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+  - [x] Commit `docs(setup): document guard layers and RTK wrapper limits`.
 
 ## Delivery
 
@@ -80,4 +80,11 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - Verification: RED `node --test .claude/hooks/hooks.test.mjs` → FAIL (`git push --no-verify origin dev` row); GREEN `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (29/29)
 - Contracts/Migrations added: none
 - Decisions: `-n` stays allowed (`--dry-run`), per proposal deviation.
+- Open Questions: none
+
+### Task 5 — Comment and docs
+- Commits: `docs(setup): document guard layers and RTK wrapper limits`
+- Verification: RED n/a (docs/comment only); GREEN `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (29/29)
+- Contracts/Migrations added: none
+- Decisions: "Guard Layers" sits under "For Teammates" in `docs/setup.md`; RTK 1.2.1 confirmed locally (`rtk --version`).
 - Open Questions: none

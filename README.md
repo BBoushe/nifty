@@ -136,14 +136,14 @@ rtk gain                    # must print savings stats; "command not found" mean
 rtk init -g --hook-only     # adds one Bash PreToolUse hook to ~/.claude/settings.json; no RTK.md, no CLAUDE.md edits
 ```
 
-Do **not** use `cargo install rtk` from crates.io (wrong package). Then run **one extra step**, because RTK rewrites `./mvnw` to the system `mvn` and would bypass our pinned Maven wrapper. Run `rtk config` to print your config file path, and add to it:
+Do **not** use `cargo install rtk` from crates.io (wrong package). Then add **one safeguard**. RTK 1.2.1 rewrites bare `mvn` but **not** `./mvnw` (checked with `rtk hook claude`), so this entry changes nothing today; it keeps our pinned Maven wrapper from being rewritten if a later RTK version starts doing so. Run `rtk config` to print your config file path, and add to it:
 
 ```toml
 [hooks]
 exclude_commands = ["./mvnw", "mvnw", "mvnw.cmd"]
 ```
 
-Restart Claude Code afterwards. Our safety guards still apply: `.claude/hooks/guard-bash.mjs` strips a leading `rtk` before checking, so `rtk git push origin master` is blocked exactly like `git push origin master`. Undo anytime with `rtk init -g --uninstall`. Details for agents: [`docs/setup.md`](docs/setup.md).
+Restart Claude Code afterwards. RTK auto-allows the commands it rewrites, so `.claude/hooks/guard-bash.mjs` is the only check that sees the command before it runs. The guard sees through `rtk` (including `rtk err|test|summary|run`), the `env`, `command`, `nice`, `time`, `sudo`, `xargs` and `eval` wrappers, and `sh|bash|zsh -c`, `rtk run -c` and `env -S` strings up to depth 3, so `rtk git push origin master` or `sh -c "git push origin master"` is blocked exactly like `git push origin master`. Prefer absolute paths over `cd <dir> && …`, because the RTK rewrite may drop the `cd`. Undo anytime with `rtk init -g --uninstall`. Details for agents: [`docs/setup.md`](docs/setup.md) (Guard Layers).
 
 ### Branch & Commit Rules (Summary)
 

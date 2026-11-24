@@ -87,7 +87,7 @@ function skipFlags(tokens, idx, valueFlags, stopFlags = []) {
  * in any order, so every guard sees the real command. RTK's PreToolUse hook rewrites `git ...` to
  * `rtk git ...`. Peeling stops on a command-string flag (`env -S`, `rtk run -c|--command`) and
  * leaves it first, so guard-bash can evaluate the string (Decision: design.md §1-§2).
- * shortcut: wrapper flags that take a separate value (`env -u VAR`) are not skipped; extend if a wrapper needs it.
+ * shortcut: interpreter one-liners (python -c, node -e), here-docs into a shell, find -exec, and scripts run by path are not inspected; extend the command-string table in guard-bash.mjs if agents start using them.
  */
 export function stripLeadingEnvAssignments(tokens) {
   let idx = 0;
