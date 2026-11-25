@@ -5,7 +5,7 @@
 - **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
 - **Current:** Tasks 1-7 done; Delivery next
-- **Next action:** Delivery: archive, history entry, push, PR/MR, cold review with the word diff
+- **Next action:** push, open PR/MR, cold review with the word diff (archived at openspec/changes/archive/2026-11-25-docs-ste-rewrite/)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -31,9 +31,9 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (no rebase: a rebase needs a force push, which the guard blocks).
-- [ ] Re-run `OPENSPEC_TELEMETRY=0 openspec validate --all` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive docs-ste-rewrite -y --skip-specs`. Add the `docs/feature_history.md` entry and update `docs/feature_backlog.md`. Commit `chore(specs): archive docs-ste-rewrite`.
+- [x] `git fetch origin && git merge origin/dev` (no rebase: a rebase needs a force push, which the guard blocks).
+- [x] Re-run `OPENSPEC_TELEMETRY=0 openspec validate --all` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive docs-ste-rewrite -y --skip-specs`. Add the `docs/feature_history.md` entry and update `docs/feature_backlog.md`. Commit `chore(specs): archive docs-ste-rewrite`.
 - [ ] `node scripts/forge.mjs push`
 - [ ] PR/MR body via `pr-memo`, then `node scripts/forge.mjs pr --title "docs: rewrite existing docs in ASD-STE100" --body-file <file>`. Record the links in Status.
 - [ ] Cold review session with the word diff (design §3): verdict has no Blocking items.
