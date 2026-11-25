@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
-- **Current:** Tasks 1–3 done
-- **Next action:** Task 4 (architecture and API)
+- **Current:** Tasks 1–4 done
+- **Next action:** Task 5 (design system)
 - **Uncommitted changes:** yes (change folder)
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -33,10 +33,10 @@
 - [x] Commit `docs(rules): align invariants and rules with the Nov 24 decisions`
 
 ### Task 4: Architecture and API
-- [ ] `docs/architecture.md`: two views, dual-agent pipeline, ledger contract, domain model + ER diagram, enum table, slice map (design §2–§6)
-- [ ] `docs/api.md`: role table, planned endpoints (auth, invites, sessions, answers, BFI-10, logs), Docker OpenAPI row
-- [ ] Verify: `ste-lint.py`; harness tests
-- [ ] Commit `docs(architecture): add the dual-agent model, ledger and domain model`
+- [x] `docs/architecture.md`: two views, dual-agent pipeline, ledger contract, domain model + ER diagram, enum table, slice map (design §2–§6)
+- [x] `docs/api.md`: role table, planned endpoints (auth, invites, sessions, answers, BFI-10, logs), Docker OpenAPI row
+- [x] Verify: `ste-lint.py`; harness tests
+- [x] Commit `docs(architecture): add the dual-agent model, ledger and domain model`
 
 ### Task 5: Design system (Decision 1.14)
 - [ ] `docs/design_system.md`: 0–4 + hatched `N/A`, PrimeVue on Tailwind v4 tokens, interview framing, time format, advice tone, no Ask AI search in MVP
@@ -77,3 +77,7 @@
 - **Did:** archived the canvas as OUTDATED in `docs/archive/` and updated the live canvas (subagent); aligned `AGENTS.md` (invariants 4–6, 8–10, read order), `CLAUDE.md`, `README.md`, `openspec/config.yaml`, `spec-driven.md`, `backend-java.md` (roles, ledger, Java conventions as new rule 7, so Architecture is now §9), `frontend-vue.md` (PrimeVue, countdown, duplicate rule removed), `workflow.md`, reviewer and check skills, spec header lines.
 - **Verification:** RED: n/a (no behaviour). ste-lint: no new hard findings in written text (EARS lines exempt); `openspec validate --all --strict` 8/8; harness tests 43/43.
 - **Open questions:** canvas subagent notes: interview budget has no decision; rubber-stamp metrics kept in UX-04.
+
+### 2026-11-25 — Task 4 (main session)
+- **Did:** `docs/architecture.md` §2–§5 rewritten (two roles, dual-agent pipeline, interview request flow, ledger and transcript contract, enum table with `auto_released`, domain model ER diagram) and the slice map with `auth` and `audit`; `docs/api.md` role table, Docker OpenAPI row, planned endpoints.
+- **Verification:** RED: n/a (no behaviour). ste-lint: 0 hard findings in both files.
