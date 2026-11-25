@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/context-creation` (branch off `dev`)
 - **Worktree:** `../nifty-context-creation`
-- **Current:** US-CC-02 done and committed
-- **Next action:** Start US-CC-03
+- **Current:** US-CC-03 done and committed
+- **Next action:** Start US-CC-04
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -23,11 +23,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(context): add zero-stream PromptSanitizer and InjectionDetector`
 
-- [ ] **US-CC-03: `InterviewerContextBuilder` (`interviewer-v1`)**
-  - [ ] Write RED pure-JVM tests verifying vision, active question, target skill names, follow-ups remaining, `inventedQuestionsEnabled = false` enforcement, `<candidate_answer>` wrapping, guardrail directives, and canary leak assertions.
-  - [ ] Implement `InterviewerContextBuilder` and `PromptTemplates`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(context): implement rubric-blind InterviewerContextBuilder`
+- [x] **US-CC-03: `InterviewerContextBuilder` (`interviewer-v1`)**
+  - [x] Write RED pure-JVM tests verifying vision, active question, target skill names, follow-ups remaining, `inventedQuestionsEnabled = false` enforcement, `<candidate_answer>` wrapping, guardrail directives, and canary leak assertions.
+  - [x] Implement `InterviewerContextBuilder` and `PromptTemplates`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(context): implement rubric-blind InterviewerContextBuilder`
 
 - [ ] **US-CC-04: `JudgeContextBuilder` (`evaluator-judge-v1`) aligned with Decision 2.20**
   - [ ] Write RED pure-JVM tests verifying blank/null answer rejection, non-blank `timedOut = true` inclusion with `<transcript_entry id="..." timedOut="true">`, fixed ascending `0..4` rubric rendering from `List<String>` (size 5), `<transcript_entry>` anti-injection framing, and `{ level, verbatimQuote, rationale, suggestion? } (REQ-EP-08, Decision 2.25)` evidence-only JSON instructions (forbidding totals/confidence).
@@ -65,8 +65,15 @@
 - Open Questions: none
 
 ### US-CC-02
-- Commits: `feat(context): add zero-stream PromptSanitizer and InjectionDetector`
+- Commits: `28f9af4 feat(context): add zero-stream PromptSanitizer and InjectionDetector`
 - Verification: RED: `./mvnw -B test -Dtest='PromptSanitizerTest,InjectionDetectorTest'` → FAIL (compile error: `PromptSanitizer` and `InjectionDetector` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0 (52 tests)
 - Contracts/Migrations added: none (package-private `PromptSanitizer`, `InjectionDetector`; rules `ROLE_OVERRIDE`, `TEST_SKIP`, `GRADE_MANIPULATION`, `PROMPT_EXFILTRATION`, `DELIMITER_BREAKOUT`)
 - Decisions: 2.24 (rules and escaping), coding standard #3 (zero Streams, grep-checked)
+- Open Questions: none
+
+### US-CC-03
+- Commits: `feat(context): implement rubric-blind InterviewerContextBuilder`
+- Verification: RED: `./mvnw -B test -Dtest=InterviewerContextBuilderTest` → FAIL (compile error: `InterviewerContextBuilder` and `PromptTemplates` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0 (63 tests)
+- Contracts/Migrations added: none (`PromptTemplates` is public only for `isRubricBlind`, which the preview controller uses; template version `interviewer-v1`)
+- Decisions: 1.12 (rubric-blind prompt and leak check), 1.21 (current-attempt turns only), 2.24 (candidate turns sanitized and wrapped)
 - Open Questions: none

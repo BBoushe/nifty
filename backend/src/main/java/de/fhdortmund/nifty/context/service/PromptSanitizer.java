@@ -22,6 +22,8 @@ final class PromptSanitizer {
     private static final Pattern RESERVED_TAG_START = Pattern.compile(
             "<(?=\\s*/?\\s*(?:" + RESERVED_TAGS + ")\\b|\\|)", Pattern.CASE_INSENSITIVE);
 
+    static final SanitizationReport CLEAN = new SanitizationReport(false, List.of(), false);
+
     /** Text that is safe inside a prompt, plus what the checks found in the raw input. */
     record Sanitized(String text, SanitizationReport report) {
     }
