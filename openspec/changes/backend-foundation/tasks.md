@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** Task 2 done
-- **Next action:** Task 3
+- **Current:** Task 3 done (GitLab dind config unverified until the pipeline runs)
+- **Next action:** Task 4
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -22,8 +22,8 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0 (Docker running); commit `test(backend): run Spring tests on PostgreSQL Testcontainers`
 
 ### Task 3: US-BF-03 GitLab dind
-- [ ] GREEN: `services: [docker:dind]` and Testcontainers variables on the GitLab `backend` job (design §2). No command changes.
-- [ ] Verify: `node --test scripts/harness-scripts.test.mjs` → exit 0 (CI drift test); commit `ci(gitlab): run Testcontainers with docker:dind`
+- [x] GREEN: `services: [docker:dind]` and Testcontainers variables on the GitLab `backend` job (design §2). No command changes.
+- [x] Verify: `node --test scripts/harness-scripts.test.mjs` → exit 0 (CI drift test); commit `ci(gitlab): run Testcontainers with docker:dind`
 
 ### Task 4: US-BF-04 and US-BF-05 Validation errors and shared events (REQ-BF-02)
 - [ ] RED: `GlobalExceptionHandlerTest` case for `FieldValidationException` (400, 2 `errors`, no `trace`/`exception`).
@@ -55,4 +55,11 @@
 - Verification: RED: n/a (dependency rename; baseline `cd backend && ./mvnw -B test` → BUILD SUCCESS, 24 tests); GREEN: `cd backend && ./mvnw -B test` → exit 0, 24 tests
 - Contracts/Migrations added: none
 - Decisions: none
+- Open Questions: none
+
+### Task 2 (US-BF-02, REQ-BF-01)
+- Commits: c44805c test(backend): run Spring tests on PostgreSQL Testcontainers
+- Verification: RED: `cd backend && ./mvnw -B test-compile` → FAIL (`FlywayBaselineTest`: PostgresContainerBase and `@DataJpaTest` package missing); GREEN: `cd backend && ./mvnw -B test` → exit 0, 25 tests on PostgreSQL 17
+- Contracts/Migrations added: `de.fhdortmund.nifty.PostgresContainerBase` (test sources); no migration
+- Decisions: none (supersedes the "H2 until first entity" sentence of Decision 1.10 per design §2)
 - Open Questions: none
