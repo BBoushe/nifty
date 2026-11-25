@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/frontend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-frontend-foundation`
-- **Current:** Task 3 done
-- **Next action:** Task 4
+- **Current:** Task 4 done
+- **Next action:** Task 5
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -27,9 +27,9 @@
 - [x] Verify: frontend checks → exit 0; commit `refactor(frontend): feature folders with one routes file each`
 
 ### Task 4: US-FF-04 Shared API client (REQ-FF-02, REQ-FF-03)
-- [ ] RED: `client.test.ts` for `ApiProblem` (2 field errors) and `postSse` (3 events across chunks).
-- [ ] GREEN: `src/api/client.ts`; `health.ts` uses `apiFetch`.
-- [ ] Verify: frontend checks → exit 0; commit `feat(frontend): add the shared API client`
+- [x] RED: `client.test.ts` for `ApiProblem` (2 field errors) and `postSse` (3 events across chunks).
+- [x] GREEN: `src/api/client.ts`; `health.ts` uses `apiFetch`.
+- [x] Verify: frontend checks → exit 0; commit `feat(frontend): add the shared API client`
 
 ### Task 5: Docs
 - [ ] `docs/architecture.md` (frontend structure), `docs/feature_backlog.md` row 2 → done, `CHANGELOG.md`
@@ -58,4 +58,11 @@
 - Verification: RED: `cd frontend && npm run test` → FAIL (`Failed to resolve import "./ScoreBadge.vue"`); GREEN: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0 (12 tests)
 - Contracts/Migrations added: none (`primevue` 4.5.5 and `@primeuix/themes` 2.0.3, MIT, exact; PrimeVue 5 needs a license key; see design.md; `@theme` tokens in `src/style.css`, preset in `src/theme/preset.ts`)
 - Decisions: 1.14 (inline pointers in `style.css`, `preset.ts`, `ScoreBadge.vue`, `main.ts`)
+- Open Questions: none
+
+### Task 3: Feature folders and route files
+- Commits: `da4336e refactor(frontend): feature folders with one routes file each`
+- Verification: RED: `cd frontend && npm run test` → FAIL (`Failed to resolve import "@/views/assessment/AssessmentView.vue"`); GREEN: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0 (15 tests)
+- Contracts/Migrations added: `views/{auth,studio,assessment,ranking,teams}/routes.ts` (default export `RouteRecordRaw[]`; paths unchanged)
+- Decisions: none
 - Open Questions: none

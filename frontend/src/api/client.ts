@@ -1,0 +1,101 @@
+// Shared API client (US-FF-04). Every feature calls the backend through these two functions.
+
+export interface FieldError {
+  field: string
+  message: string
+  code?: string
+}
+
+export interface SseEvent {
+  event: string
+  data: string
+}
+
+/** RFC 9457 ProblemDetail from docs/api.md §3 (REQ-FF-02). */
+export class ApiProblem extends Error {
+  constructor(
+    readonly status: number,
+    readonly title: string,
+    readonly detail: string,
+    readonly errors: FieldError[] = [],
+  ) {
+    super(detail || title)
+    this.name = 'ApiProblem'
+  }
+}
+
+const isProblem = (response: Response) =>
+  response.headers.get('Content-Type')?.includes('application/problem+json') ?? false
+
+async function toApiProblem(response: Response): Promise<ApiProblem> {
+  if (isProblem(response)) {
+    const body = await response.json().catch(() => ({}))
+    return new ApiProblem(
+      body.status ?? response.status,
+      body.title ?? response.statusText,
+      body.detail ?? '',
+      Array.isArray(body.errors) ? body.errors : [],
+    )
+  }
+  return new ApiProblem(response.status, response.statusText, '')
+}
+
+export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, init)
+  if (!response.ok) throw await toApiProblem(response)
+  if (response.status === 204) return undefined as T
+  return (await response.json()) as T
+}
+
+/** Parses one SSE block (lines between blank lines). Returns null when it has no data field. */
+function parseSseBlock(block: string): SseEvent | null {
+  let event = 'message'
+  const data: string[] = []
+  for (const line of block.split('\n')) {
+    if (line === '' || line.startsWith(':')) continue
+    const colon = line.indexOf(':')
+    const field = colon === -1 ? line : line.slice(0, colon)
+    const value = colon === -1 ? '' : line.slice(line[colon + 1] === ' ' ? colon + 2 : colon + 1)
+    if (field === 'event') event = value
+    else if (field === 'data') data.push(value)
+  }
+  return data.length ? { event, data: data.join('\n') } : null
+}
+
+/** POST a JSON body and yield each SSE event in order until the stream closes (REQ-FF-03). */
+export async function* postSse(url: string, body?: unknown, init: RequestInit = {}): AsyncGenerator<SseEvent> {
+  const headers = new Headers(init.headers)
+  headers.set('Accept', 'text/event-stream')
+  if (body !== undefined && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  const response = await fetch(url, {
+    ...init,
+    method: 'POST',
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (!response.ok) throw await toApiProblem(response)
+  if (!response.headers.get('Content-Type')?.includes('text/event-stream') || !response.body) {
+    throw new Error('Expected a text/event-stream response')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      // The \r\n replace runs on the whole buffer, so a \r\n split across two chunks still matches.
+      buffer = (buffer + decoder.decode(value, { stream: !done })).replace(/\r\n/g, '\n')
+      for (let end = buffer.indexOf('\n\n'); end !== -1; end = buffer.indexOf('\n\n')) {
+        const parsed = parseSseBlock(buffer.slice(0, end))
+        buffer = buffer.slice(end + 2)
+        if (parsed) yield parsed
+      }
+      if (done) break
+    }
+    const rest = parseSseBlock(buffer)
+    if (rest) yield rest
+  } finally {
+    await reader.cancel().catch(() => undefined)
+  }
+}
