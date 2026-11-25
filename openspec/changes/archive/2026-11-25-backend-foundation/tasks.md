@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** Tasks 1-6 done (GitLab dind config unverified until the pipeline runs)
-- **Next action:** `## Delivery` (merge `origin/dev`, archive, push, PR/MR, cold review)
+- **Current:** Tasks 1–6 done, archived
+- **Next action:** push, PR/MR, cold review, ask the user before merge
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -40,8 +40,8 @@
 - [x] Verify: harness tests → exit 0; commit `docs: record backend-foundation`
 
 ## Delivery
-- [ ] `git fetch origin && git merge origin/dev`
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive backend-foundation -y --skip-specs`, history entry (`PR/MR: pending`)
+- [x] `git fetch origin && git merge origin/dev`
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive backend-foundation -y --skip-specs`, history entry (`PR/MR: pending`)
 - [ ] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
 - [ ] Cold review (fresh `reviewer` agent)
 - [ ] CI green on both forges (`node scripts/forge.mjs prs`)
@@ -91,3 +91,9 @@
 - Contracts/Migrations added: none
 - Decisions: none
 - Open Questions: none
+
+### 2026-11-25 — Orchestrator check
+- **Did:** read the diff; recorded Decision 1.22 (all Spring tests on PostgreSQL, supersedes the H2 part of 1.10); archived. Backlog row 1 stays `done` instead of being removed, because rows 3–10 refer to it by number.
+- **Verification:** RED: n/a. `cd backend && ./mvnw -B test` → exit 0; harness tests 43/43.
+- **Contracts:** contract-pack §3 stubs and 6 placeholders on `dev` after merge.
+- **Decisions:** 1.22.
