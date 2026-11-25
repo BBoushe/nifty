@@ -73,3 +73,10 @@
 - Contracts/Migrations added: `src/api/client.ts` (`ApiProblem`, `apiFetch<T>`, `postSse` yields `{ event, data }`; no backend endpoint change, so `docs/api.md` is unchanged)
 - Decisions: none
 - Open Questions: none
+
+### Task 5: Docs
+- Commits: `51a1a64 docs: record frontend-foundation`
+- Verification: RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (43 pass); `ste-lint.py` shows no violation on the new lines
+- Contracts/Migrations added: none
+- Decisions: none
+- Open Questions: none
