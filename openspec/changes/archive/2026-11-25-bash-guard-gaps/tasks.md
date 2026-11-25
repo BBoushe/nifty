@@ -2,13 +2,13 @@
 
 ## Status
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
-- **Branch:** `fix/bash-guard-gaps` (based on `docs/harness-upgrade-closeout`, PR #12; merge `origin/dev` in after #12 merges)
-- **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
-- **Current:** Tasks 1-6 done (second review fixed)
-- **Next action:** push the third-review fixes, run a new cold review, then ask the user to merge PR #13
+- **Branch:** `fix/bash-guard-gaps` merged into `dev` (a1ac54e); deleted on origin, gitlab and locally
+- **Worktree:** main checkout (no separate worktree)
+- **Current:** done: PR #13 merged on GitHub after 6 cold reviews, `forge.mjs sync dev` ran, MR !12 shows merged, `forge.mjs status` 0/0
+- **Next action:** none. Later findings go to the backlog item `harness-review-followups`
 - **Uncommitted changes:** no
-- **PR / MR:** https://github.com/BBoushe/nifty/pull/13 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/12
-- **Open review findings:** —
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/13 (merged) · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/12 (merged)
+- **Open review findings:** none Blocking (round 6 fixed); Convention Candidates and older gaps are in `docs/feature_backlog.md` Notes
 
 ## Tasks
 
@@ -47,10 +47,10 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib.m
 - [x] After PR #12 merges: `git fetch origin && git merge origin/dev` (no rebase). Re-run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`. Expect: exit 0.
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive bash-guard-gaps -y --skip-specs`. Remove backlog row 9, add the `docs/feature_history.md` entry, tick the cold-review box in the archived `bash-guard-hardening` tasks.md if this review passes. Commit `chore(specs): archive bash-guard-gaps`.
 - [x] `node scripts/forge.mjs push`, then PR/MR via `pr-memo` and `node scripts/forge.mjs pr`. Record links in Status.
-- [ ] Cold review (fresh `reviewer` agent): no Blocking items.
-- [ ] GitLab MR pipeline green; `gh pr checks <n>` green.
-- [ ] Merge on GitHub only (ask the user first), then `node scripts/forge.mjs sync dev` and `node scripts/forge.mjs status` 0/0.
-- [ ] Delete the branch on both remotes and locally.
+- [x] Cold review (fresh `reviewer` agent): no Blocking items.
+- [x] GitLab MR pipeline green; `gh pr checks <n>` green.
+- [x] Merge on GitHub only (ask the user first), then `node scripts/forge.mjs sync dev` and `node scripts/forge.mjs status` 0/0.
+- [x] Delete the branch on both remotes and locally.
 
 ## Handoff Log
 

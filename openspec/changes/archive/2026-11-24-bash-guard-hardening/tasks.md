@@ -8,7 +8,7 @@
 - **Next action:** none
 - **Uncommitted changes:** no
 - **PR / MR:** https://github.com/BBoushe/nifty/pull/7 (merged) · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/6 (merged)
-- **Open review findings:** cold review after the merge (2026-11-24): REQUEST_CHANGES, 4 Blocking, all still allowed by `evaluateBashCommand`: (1) `-c` search stops at the first non-flag and misses `bash -euo pipefail -c …`, `bash -Ec …`, `sh -c -- …`; (2) attached or `=` forms `env -S"…"`, `env --split-string=…`, `rtk run --command=…`, `rtk run -c"cat .env"`; (3) shortened `--no-veri`; (4) `HEAD`/`@` destinations are not mapped to the current branch. These go to a follow-up `fix/` change (backlog row 9); the cold-review Delivery box stays open until then
+- **Open review findings:** fixed by `bash-guard-gaps` (PR #13, merged a1ac54e); see `openspec/changes/archive/2026-11-25-bash-guard-gaps/`
 
 ## Tasks
 
@@ -46,7 +46,7 @@ Owned files: `.claude/hooks/lib.mjs`, `.claude/hooks/guard-bash.mjs`, the `lib`/
 - [x] If `docs/feature_history.md` exists after the rebase, add this change's entry (format in its header; the harness test enforces it) and amend it into the archive commit. (n/a: file absent after rebase)
 - [x] `node scripts/forge.mjs push`
 - [x] PR/MR body via the `pr-memo` skill, then `node scripts/forge.mjs pr --title "fix(hooks): harden bash guard against wrappers and command strings" --body-file <file>`. Record the links in Status.
-- [ ] Cold review session (board review prompt): verdict has no Blocking items.
+- [x] Cold review session (board review prompt): verdict has no Blocking items. (Ran after the merge; its Blocking items were fixed in `bash-guard-gaps`, PR #13.)
 - [x] GitLab MR pipeline green; `gh pr checks <n>` green.
 - [x] Merge on GitHub only: `gh pr merge <n> --merge`.
 - [x] `node scripts/forge.mjs sync dev`, then `node scripts/forge.mjs status` prints 0/0 for every branch.
