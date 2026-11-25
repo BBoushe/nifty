@@ -17,9 +17,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`, `ContractStubsTest`) → exit 0; commit `feat(audit): implement AuditService over the V1 audit_log table`
 
 ### Task 2: US-AL-02 Immutable rows (REQ-AL-02)
-- [ ] RED: test that changes a loaded entity's `reason`, flushes, and reads the row back with `JdbcTemplate`; it fails if the entity is not `@Immutable`.
-- [ ] GREEN: `@Immutable` on the entity; the repository has no delete or update method.
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `test(audit): prove audit rows cannot change`
+- [x] RED: test that changes a loaded entity's `reason`, flushes, and reads the row back with `JdbcTemplate`; it fails if the entity is not `@Immutable`.
+- [x] GREEN: `@Immutable` on the entity; the repository has no delete or update method.
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `test(audit): prove audit rows cannot change`
 
 ### Task 3: Docs
 - [ ] `docs/architecture.md` (`AuditService` is real), `docs/tickets/00-parallel-waves-and-contracts.md` §1 conventions (audit placeholder gone), `CHANGELOG.md`
@@ -38,5 +38,12 @@
 - Commits: `feat(audit): implement AuditService over the V1 audit_log table`
 - Verification: RED: `./mvnw -B test -Dtest=AuditServiceImplTest` → FAIL (placeholder throws `UnsupportedOperationException`); GREEN: `./mvnw -B test` → exit 0 (33 run, 1 skipped: the audit placeholder check in `ContractStubsTest`)
 - Contracts/Migrations added: none (`AuditService` impl over `V1`; `AuditServicePlaceholder` deleted)
+- Decisions: none
+- Open Questions: none
+
+### Task 2 (US-AL-02)
+- Commits: `test(audit): prove audit rows cannot change`
+- Verification: RED: `./mvnw -B test -Dtest=AuditLogImmutabilityTest` with `@Immutable` removed → FAIL (`expected "Clear explanation" but was "Tampered"`); GREEN: `./mvnw -B test` with `@Immutable` → exit 0 (35 run, 1 skipped)
+- Contracts/Migrations added: none
 - Decisions: none
 - Open Questions: none
