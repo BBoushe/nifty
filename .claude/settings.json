@@ -30,7 +30,8 @@
     ]
   },
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "ponytail@ponytail": true
   },
   "hooks": {
     "Stop": [
@@ -63,5 +64,13 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    }
   }
 }
