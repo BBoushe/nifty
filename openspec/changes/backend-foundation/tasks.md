@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** Task 3 done (GitLab dind config unverified until the pipeline runs)
-- **Next action:** Task 4
+- **Current:** Task 4 done (GitLab dind config unverified until the pipeline runs)
+- **Next action:** Task 5
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -26,9 +26,9 @@
 - [x] Verify: `node --test scripts/harness-scripts.test.mjs` → exit 0 (CI drift test); commit `ci(gitlab): run Testcontainers with docker:dind`
 
 ### Task 4: US-BF-04 and US-BF-05 Validation errors and shared events (REQ-BF-02)
-- [ ] RED: `GlobalExceptionHandlerTest` case for `FieldValidationException` (400, 2 `errors`, no `trace`/`exception`).
-- [ ] GREEN: `FieldErrorDetail`, `FieldValidationException`, handler mapping; `AttemptCompletedEvent`, `AssessmentDeletedEvent` in `shared/config`.
-- [ ] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; commit `feat(shared): add field validation errors and cross-slice events`
+- [x] RED: `GlobalExceptionHandlerTest` case for `FieldValidationException` (400, 2 `errors`, no `trace`/`exception`).
+- [x] GREEN: `FieldErrorDetail`, `FieldValidationException`, handler mapping; `AttemptCompletedEvent`, `AssessmentDeletedEvent` in `shared/config`.
+- [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; commit `feat(shared): add field validation errors and cross-slice events`
 
 ### Task 5: US-BF-06 Contract stubs, placeholders and role probes (REQ-BF-03)
 - [ ] RED: `ContractStubsTest` (`@SpringBootTest`): one bean per shared interface, placeholder call throws `UnsupportedOperationException`, enum JSON literals (`"N/A"`, `"follow_up"`, `"auto_released"`).
@@ -63,3 +63,10 @@
 - Contracts/Migrations added: `de.fhdortmund.nifty.PostgresContainerBase` (test sources); no migration
 - Decisions: none (supersedes the "H2 until first entity" sentence of Decision 1.10 per design §2)
 - Open Questions: none
+
+### Task 3 (US-BF-03)
+- Commits: 46e49f0 ci(gitlab): run Testcontainers with docker:dind
+- Verification: RED: n/a (CI config, no behaviour); GREEN: `node --test scripts/harness-scripts.test.mjs` → exit 0 (18 pass); dind itself is unverified until the GitLab pipeline runs
+- Contracts/Migrations added: none
+- Decisions: none (design §2: `docker:27-dind` service, `DOCKER_HOST=tcp://docker:2375`, `DOCKER_TLS_CERTDIR=""`, `TESTCONTAINERS_HOST_OVERRIDE=docker`)
+- Open Questions: runner must be privileged

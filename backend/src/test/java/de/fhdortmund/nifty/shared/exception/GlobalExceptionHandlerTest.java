@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -76,6 +77,22 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void fieldValidationExceptionReturnsAllFieldErrorsWithoutInternals() throws Exception {
+        mockMvc.perform(get("/test/errors/fields"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors[0].field").value("minTimeSec"))
+                .andExpect(jsonPath("$.errors[0].message").value("must be at least 30"))
+                .andExpect(jsonPath("$.errors[0].code").value("MIN_TIME_TOO_LOW"))
+                .andExpect(jsonPath("$.errors[1].field").value("followUpLimit"))
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(jsonPath("$.exception").doesNotExist())
+                .andExpect(content().string(not(containsString("FieldValidationException"))));
+    }
+
+    @Test
     void securityExceptionsAreLeftToSpringSecurity() {
         assertThatThrownBy(() -> mockMvc.perform(get("/test/errors/denied")))
                 .hasRootCauseInstanceOf(AccessDeniedException.class);
@@ -100,6 +117,13 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/errors/unexpected")
         String unexpected() {
             throw new IllegalStateException("secret internal state");
+        }
+
+        @GetMapping("/test/errors/fields")
+        String fields() {
+            throw new FieldValidationException(List.of(
+                    new FieldErrorDetail("minTimeSec", "must be at least 30", "MIN_TIME_TOO_LOW"),
+                    new FieldErrorDetail("followUpLimit", "must be at most 3", "FOLLOW_UP_LIMIT_TOO_HIGH")));
         }
 
         @GetMapping("/test/errors/denied")
