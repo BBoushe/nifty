@@ -74,3 +74,7 @@ CLAUDE.local.md
 .cursor/
 .agents/local/
 .kiro/.cache/
+
+# === Local reference material (not tracked) ===
+docs/artifacts/
+docs/pdfs/

@@ -164,3 +164,39 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** Student accounts with email and password registration.
 - **Rationale / Justification:** No registration or password reset to build in block week, and every student is tied to exactly one assessment.
 - **Affected Files / Pointers:** openspec/specs/auth-access/spec.md, docs/api.md
+
+## 1.18 — Unified 7-slice backend package map (studio, context, assessment, evaluation, teams + auth, audit)
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** Five teammates designed five backend services while the repo had nine finer slices and three artifacts violated ArchUnit (studio/domain entities, shared->studio exception, duplicate prompt builder).
+- **Decision:** Map the five teammate services to five vertical slices (studio V3, context stateless, assessment V6, evaluation V7 combining evidence/formula/matrix/results-read, teams V8) plus shared auth (V2/V4) and audit (V1). All @Entity classes live in <slice>.repository. context is the sole prompt builder. evaluation writes audit_log only through AuditService. Generic FieldValidationException lives in shared/exception. Cross-slice events live in shared/config. Supersedes the slice list of 1.16 (evidence, formula and matrix merge into evaluation) and the inferred-tag hand-off of 1.16 (inferred tags are Post-MVP, Decision 2.21).
+- **Alternatives Considered:** Keep nine separate slices; allow a shared repository across services
+- **Rationale / Justification:** Gives each teammate one disjoint backend folder, zero ArchUnit violations, zero migration collisions, and immediate parallel work.
+- **Affected Files / Pointers:** docs/architecture.md, docs/feature_backlog.md, openspec/specs/context-creation/spec.md
+
+## 1.19 — Unified inter-service contracts (UUID IDs, AttemptCompletedEvent, ranking/studio routes, 400 ProblemDetail)
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The five teammate artifacts disagreed on ID types (UUID vs BIGSERIAL/VARCHAR), completion event names (AttemptCompletedEvent vs InterviewCompletedEvent), rubric shape (per-skill List vs Map vs per-question String), professor route prefix (/studio vs /ranking/studio), and validation status (422 vs 400).
+- **Decision:** Use UUID PKs/FKs across all slices. assessment publishes AttemptCompletedEvent(attemptId, configId, inviteId) consumed AFTER_COMMIT by evaluation. studio exposes StudioQueryService views with per-skill List<String> rubricLevels (size 5, index 0..4). context aligns Agent 2 prompt builder to per-(entry, skill) 2-run judge. All professor routes live under /api/v1/ranking/** (including /api/v1/ranking/studio/configs and /api/v1/ranking/transcripts/{attemptId}); candidate routes stay under /api/v1/assessment/**. Validation errors return 400 RFC 9457 ProblemDetail with errors: [{ field, message, code? }].
+- **Alternatives Considered:** Keep mixed Long/UUID IDs; use 422 on studio only; expose /api/v1/studio outside /ranking
+- **Rationale / Justification:** Eliminates integration mismatches before coding and keeps SecurityConfig path-based RBAC airtight.
+- **Affected Files / Pointers:** docs/architecture.md, docs/api.md, docs/tickets/00-parallel-waves-and-contracts.md
+
+## 1.20 — Seeded Java Simulated Annealing team optimizer (replaces Timefold in MVP)
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** GroupCreationService specifies a multi-objective inter-team balance plus intra-team diversity optimizer with 2-opt swaps, while Decisions 1.3 and 2.18 pinned Timefold Solver.
+- **Decision:** Implement team formation in teams using a deterministic, seeded pure-Java Simulated Annealing + 2-opt swap optimizer minimizing alpha * inter_team_imbalance - (1 - alpha) * intra_team_diversity across HARD_SKILLS, SOFT_SKILLS, and COMBINED modes. Exclude N/A skills per candidate without rejecting cohorts or coercing to 0 or 1. Remove Timefold from the stack and the build. Inter-team imbalance covers the hard-skill means and, in SOFT_SKILLS and COMBINED modes, the BFI-10 trait means, so the BFI-10 balance of 2.18 stays as a term of the objective. Intra-team diversity replaces the 'strong member per key skill' soft constraint of 2.18. Supersedes 1.3 (Timefold Solver), the solver parts of 2.18, and the LLM team Modes B and C of 1.1 (Post-MVP, Decision 4.2).
+- **Alternatives Considered:** Model balance and intra-team diversity in Timefold Solver 2.8
+- **Rationale / Justification:** 100% deterministic with seed, zero LLM math, models both balance and diversity directly, and ships faster in block week.
+- **Affected Files / Pointers:** openspec/specs/team-builder/spec.md, docs/architecture.md, docs/feature_backlog.md
+
+## 1.21 — Context builder keeps separate per-attempt contexts for interviewer and evaluator
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The cold review of five-service-convergence asked whether interviewer prompts could ever hold evaluator output. The user explained the data flow: the interviewer runs first, the evaluator runs after the attempt completes, and both are tied to one attempt (session) ID.
+- **Decision:** context builds two separate contexts per attempt, each in its own way, and serves the one that the caller asks for. The interviewer context comes only from the InterviewerView and the ledger entries of the current attempt. The evaluator context comes only from the EvaluatorView and the ledger entries of the completed attempt. A page refresh keeps the same attempt ID and resumes while time is left. A retake starts a new attempt with a new unique ID, so no context reads data of another attempt. No code path loads evaluator output, scores or confidence values into the interviewer context.
+- **Alternatives Considered:** One shared context object for both agents; filtering a shared context before each call
+- **Rationale / Justification:** Isolation by construction: data that the builder never reads cannot leak, so no filter or extra check is needed.
+- **Affected Files / Pointers:** openspec/specs/context-creation/spec.md, openspec/specs/assessment-chat/spec.md, docs/architecture.md

@@ -88,10 +88,11 @@ Only a GitLab **Maintainer** can run `forge.mjs sync`, because it pushes to prot
 
 | Module / Area | Primary Paths | OpenSpec Modules | Suggested Reviewer |
 |---|---|---|---|
-| **Backend Core & Evidence Pipeline** | `backend/src/...` (transcript, extractor, verifier, audit) | `assessment-chat`, `evidence-pipeline` | Backend / AI Lead |
-| **Formula Engine & Timefold Teams** | `backend/src/...` (formula, solver, constraints) | `formula-engine`, `team-builder` | Formula / Solver Lead |
-| **Interviewer Studio & Auth** | `backend/src/...` (studio, security), `frontend/` studio | `interviewer-studio` | Studio / Security Lead |
-| **Frontend Views & ECharts Matrix** | `frontend/src/...` (Assessment, Matrix, Results) | `skills-matrix-review`, `candidate-results` | Frontend Lead |
+| **Studio, Auth & Audit** | `backend/.../{studio,auth,audit}/`, `frontend/src/views/{studio,auth}/` | `interviewer-studio`, `auth-access` | Studio owner (teammate R) |
+| **Context Creation** | `backend/.../context/` | `context-creation` | Context owner (teammate A) |
+| **Assessment Chat & BFI-10** | `backend/.../assessment/`, `frontend/src/views/assessment/` (chat, BFI-10) | `assessment-chat` | Assessment owner (teammate S) |
+| **Evaluation, Formula, Matrix & Results** | `backend/.../evaluation/`, `frontend/src/views/ranking/`, `ResultsView.vue` | `evidence-pipeline`, `formula-engine`, `skills-matrix-review`, `candidate-results` | Evaluation owner (teammate M) |
+| **Team Builder** | `backend/.../teams/`, `frontend/src/views/teams/` | `team-builder` | Teams owner (teammate C) |
 | **Harness, Specs, Docker & CI** | `openspec/`, `.claude/`, `.agents/`, `.kiro/`, `.githooks/`, `.github/`, `docs/` | `project-setup`, `harness-v2-upgrade` | Lead Setup Architect |
 
 ### Review & Documentation Policies

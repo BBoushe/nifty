@@ -1,63 +1,78 @@
 # Domain Spec: Interviewer Studio (`interviewer-studio`)
 
-> **Status:** Seed baseline (from `docs/discovery-canvas.md` §8 UX-01, UX-02 & §14), updated 2026-11-25 by `nov24-reconciliation`
+> **Status:** Seed baseline (from `docs/discovery-canvas.md` §8 UX-01, UX-02 & §14), updated 2026-11-25 by `nov24-reconciliation` and `five-service-convergence`
 > **Primary View:** Ranking View (`PROFESSOR`)
 
 ## Purpose
 
-Allow professors to configure, preview, version, and approve how the LLM interviewer conducts assessments. Professors do not write raw system prompts. The configuration drives the interviewer, evidence extractor, scorer, and team balancer.
+Let professors fill in one assessment form and submit it once as an immutable configuration (Decision 2.21). Professors do not write raw system prompts. The configuration drives the interviewer, evidence extractor, scorer, and team balancer.
 
 ## Requirements
 
 ### Requirement: REQ-IS-01 Immutable Configuration Snapshots
-**WHEN** the professor publishes a configuration **THE SYSTEM SHALL** store an immutable, versioned snapshot and link all subsequent interviews to it.
+**WHEN** the professor submits a valid assessment form (`POST /api/v1/ranking/studio/configs` with an `Idempotency-Key` header) **THE SYSTEM SHALL** save the whole form in one transaction as an immutable `PUBLISHED` snapshot `v1`, link all later interviews to it, and write one `CONFIG_CREATED` row through `AuditService`. A retry by the same professor with the same key returns `200` with the existing `configId` and writes no second audit row (Decision 2.21).
 
 #### Scenario: Publish approved interviewer configuration
-- **WHEN** the professor approves and publishes a draft configuration with vision, core questions, skills, and toggles
-- **THEN** the system creates an immutable versioned snapshot (e.g., `cfg_7@v3`) and links every subsequent candidate interview to that snapshot.
+- **WHEN** the professor submits a valid form with vision, core questions, skills, and toggles
+- **THEN** the system answers `201` with a new `configId`, stores the snapshot as `v1`, and links every later candidate interview to that snapshot.
 
-### Requirement: REQ-IS-02 Controlled Inferred Tag Approval
-**WHEN** the extractor suggests a new inferred tag **THE SYSTEM SHALL** store it in a `pending` state and **SHALL NOT** include it in scoring until the professor approves or merges it into the controlled taxonomy. The `studio` slice owns the taxonomy and the tag states; the evidence pipeline submits suggestions only through the `studio` service (Decision 1.16).
-
-#### Scenario: Pending tag awaits professor decision
-- **WHEN** evidence extraction discovers an unrecognised tag such as `containers`
-- **THEN** the system displays it as a `pending` chip for the professor to accept, merge (e.g., into `Docker`), or reject, excluding it from scoring until approved.
-
-#### Scenario: Evidence pipeline cannot write tags directly
-- **WHEN** the evidence pipeline proposes the tag `containers`
-- **THEN** it calls the `studio` service, which stores the tag as `pending`, and no class outside `studio` uses the `studio` repository.
-
-### Requirement: REQ-IS-03 Post-Interview Structural Configuration Changes
-**WHEN** the professor adds new skills or core questions after interviews have already occurred **THE SYSTEM SHALL** create a new configuration version and mark previously assessed candidates as incomplete against the new version.
-
-#### Scenario: Add core question after candidates completed interviews
-- **WHEN** a new core question is added to a configuration with existing completed transcripts
-- **THEN** the system increments the configuration version and flags affected prior candidates as incomplete rather than mutating their historical snapshot.
-
-### Requirement: REQ-IS-04 Draft Configuration Gate
-**THE SYSTEM SHALL** prevent any candidate from starting an interview against a draft (unapproved) configuration.
-
-#### Scenario: Candidate opens invite for unapproved configuration
-- **WHEN** a candidate attempts to begin an assessment tied to an unapproved draft configuration
-- **THEN** the system rejects session creation until the professor explicitly approves and publishes the configuration.
+#### Scenario: Double submit returns the same configId
+- **WHEN** the professor submits the same form twice with the same `Idempotency-Key`
+- **THEN** the second call answers `200` with the same `configId`, and one configuration and one audit row exist.
 
 ### Requirement: REQ-IS-05 Assessment Configuration Form
-**THE SYSTEM SHALL** let the professor set per assessment: skills and skill weights; core questions with weights, target skills, a confidence threshold, a minimum and maximum time, and a follow-up limit; minimum coverage; maximum attempts; the BFI-10 step on or off; team size; and soft-constraint weights. **THE SYSTEM SHALL NOT** fix a skill count or team size in code (Decisions 2.17, 2.18).
+**THE SYSTEM SHALL** let the professor set per assessment: title and vision; skills with 5 rubric levels (`0..4`) and no weight; ordered core questions with weight, target skills, confidence threshold, minimum and maximum time, and follow-up limit (`0..3`); minimum coverage; maximum attempts; invented questions and BFI-10 on or off; team size; and the grouping settings of REQ-TB-10. **THE SYSTEM SHALL NOT** fix a skill count or team size in code (Decisions 2.17, 2.22, 2.23).
 
 #### Scenario: Professor creates an assessment
-- **WHEN** the professor submits the form with 5 skills, 4 core questions, team size 4 and BFI-10 on
-- **THEN** the draft configuration stores exactly these values, and the interviewer, scorer and team builder read them from the configuration.
+- **WHEN** the professor submits the form with 5 skills, 4 core questions, team size 4, grouping mode `COMBINED` and BFI-10 on
+- **THEN** the configuration stores exactly these values, and the interviewer, scorer and team builder read them from the configuration.
 
 ### Requirement: REQ-IS-06 Configuration Value Validation
-**IF** a submitted configuration has a minimum time not below the maximum time, a confidence threshold or minimum coverage outside `0..1`, fewer than 1 attempt, a team size below 2, or a core question without a target skill, **THEN THE SYSTEM SHALL** reject it with a `400` ProblemDetail that names each invalid field.
+**IF** a submitted configuration breaks a value bound (minimum time below maximum time, ratios in `0..1`, attempts ≥ 1, team size ≥ 2, follow-up limit `0..3`) or a structure rule (5 non-blank rubric levels, unique skills, gap-free positions, a target skill per question, no unused skill), **THEN THE SYSTEM SHALL** reject it with a `400` ProblemDetail that names each invalid field in `errors[]` and store nothing (Decision 1.19).
 
 #### Scenario: Minimum time above maximum time
 - **WHEN** the professor saves a core question with minimum time 120 s and maximum time 60 s
 - **THEN** the system answers `400` with an `errors` entry for that question's minimum time and stores nothing.
 
+#### Scenario: Three errors at once
+- **WHEN** the form has minimum time 120 s with maximum time 60 s, follow-up limit 4, and a blank rubric level
+- **THEN** the system answers `400` with 3 entries in `errors[]` and stores nothing.
+
 ### Requirement: REQ-IS-07 Assessment Deletion
-**WHEN** the professor deletes an assessment **THE SYSTEM SHALL** delete all candidate data of that assessment (ledger, transcripts, evidence, scores, BFI-10 answers, results and invite links) and write an `audit_log` entry that records the deletion without candidate content (Decision 4.4).
+**WHEN** the owning professor deletes an assessment (`DELETE /api/v1/ranking/studio/configs/{configId}`) **THE SYSTEM SHALL** publish `AssessmentDeletedEvent`, set `nifty.allow_purge`, and delete in one transaction all its data (configuration, ledger, evidence, scores, BFI-10 answers, results, teams, invite links). **THE SYSTEM SHALL** write an `audit_log` entry through `AuditService` without candidate content (Decision 4.4).
 
 #### Scenario: Professor deletes a finished assessment
 - **WHEN** the professor deletes assessment `cfg_7` with 30 completed attempts
-- **THEN** no ledger row, score, trait score or invite link of `cfg_7` remains, and one `audit_log` row records actor, time, `cfg_7` and the action `delete`.
+- **THEN** no ledger row, score, trait score, team proposal or invite link of `cfg_7` remains, and one `audit_log` row records actor, time, `cfg_7` and the action `CONFIG_DELETED`.
+
+### Requirement: REQ-IS-08 Database-Enforced Immutability
+**THE SYSTEM SHALL NOT** offer `PUT` or `PATCH` on `/api/v1/ranking/studio/configs/{configId}` (`405`). PostgreSQL triggers on `assessment_config`, `skill`, `core_question` and `core_question_skill` **SHALL** reject every `UPDATE`, and reject every `DELETE` unless the transaction sets `SET LOCAL nifty.allow_purge = 'on'` (Decisions 2.21, 4.4).
+
+#### Scenario: SQL update rejected by trigger
+- **WHEN** any code path runs an SQL `UPDATE` on a saved `core_question` row
+- **THEN** PostgreSQL rejects the statement and the row stays unchanged.
+
+### Requirement: REQ-IS-09 Narrow Read-Only Views for Other Slices
+**THE SYSTEM SHALL** give other slices read-only records through `StudioQueryService` (`exists`, `interviewerView`, `evaluatorView`, `scoringView`, `teamView`). `InterviewerView` **SHALL NOT** contain rubric levels, question weights, confidence thresholds or minimum coverage. `EvaluatorView` **SHALL** contain the 5 rubric levels (`0..4`) of each skill (Decisions 1.12, 1.19).
+
+#### Scenario: Interviewer view hides rubric and weights
+- **WHEN** a reflection test reads the record components of `InterviewerView` and `InterviewerQuestion`
+- **THEN** no component name contains `rubric`, `weight`, `threshold` or `coverage`.
+
+### Requirement: REQ-IS-10 Professor Scoping
+**WHEN** a professor lists assessments (`GET /api/v1/ranking/studio/configs`) or reads one (`GET /api/v1/ranking/studio/configs/{configId}`) **THE SYSTEM SHALL** return only that professor's assessments, newest first, and answer `404` for an unknown ID or for another professor's ID (Decision 1.19).
+
+#### Scenario: Other professor's configuration
+- **WHEN** professor A requests the configuration of professor B
+- **THEN** the system answers `404` ProblemDetail and does not show whether the ID exists.
+
+### Requirement: REQ-IS-11 Required Skills and Questions
+**THE SYSTEM SHALL** require at least 1 skill and 1 core question in a configuration, except when the grouping mode is `SOFT_SKILLS` and BFI-10 is on (Decision 2.23).
+
+#### Scenario: SOFT_SKILLS-only assessment
+- **WHEN** the professor submits grouping mode `SOFT_SKILLS`, BFI-10 on, 0 skills and 0 core questions
+- **THEN** validation passes and the configuration is saved.
+
+#### Scenario: HARD_SKILLS assessment without questions
+- **WHEN** the professor submits grouping mode `HARD_SKILLS` with 0 core questions
+- **THEN** the system answers `400` naming the core questions and stores nothing.

@@ -195,3 +195,48 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Treat every timed-out answer as N/A (feature list); flag timed-out answers for review.
 - **Rationale / Justification:** Partial text can hold real evidence, and quote verification plus confidence already handle weak answers.
 - **Affected Files / Pointers:** openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md, openspec/specs/formula-engine/spec.md
+
+## 2.21 — One-shot immutable assessment creation with browser localStorage draft
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** AssessmentCreationService replaces backend draft/version CRUD with a browser localStorage form submitted once via Idempotency-Key and locked by DB triggers.
+- **Decision:** Professors draft in browser localStorage and submit once via POST /api/v1/ranking/studio/configs with Idempotency-Key, creating an immutable PUBLISHED v1 config protected by PostgreSQL mutation triggers (allowing DELETE only under SET LOCAL nifty.allow_purge = 'on'). Keep max_attempts (default 1), invented_questions (default false), and DELETE /api/v1/ranking/studio/configs/{id} (Decision 4.4). Defer backend drafts, config versioning, and inferredTags UI to Post-MVP. Supersedes 2.6 (post-interview config versions) and the MVP scope of 2.1 (inferred tags).
+- **Alternatives Considered:** Full backend draft and multi-version config CRUD in MVP; drop max_attempts and DELETE
+- **Rationale / Justification:** Cuts studio complexity while preserving immutability, multi-attempt support, and GDPR deletion.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, docs/architecture.md, docs/api.md
+
+## 2.22 — Question-weighted scoring without skill weights; D2 cap and 1.0 follow-up inheritance
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** studio removed SKILL.weight while evaluation and architecture.md still assumed w_s and 0.70 follow-up multipliers.
+- **Decision:** Skills carry no grading weight (no SKILL.weight column). Only core questions have weight > 0, and follow-ups inherit 1.0 * coreQuestion.weight. Multi-skill answers give each targeted skill the full question weight capped per entry at max_entry_skill_weight_share = 0.50 (Decision 2.2). fit is the unweighted mean across SCORED skills; coverage remains weighted over answered core questions (Decision 2.12). Ratios and thresholds are 0..1 decimals in DB/API (UI displays percent). An invented-question entry keeps the lower weight of 2.4: 0.5 * the weight of the active core question, and it never counts toward coverage. Supersedes the skill weights w_s of 2.3 and 2.17.
+- **Alternatives Considered:** Keep both skill and question weights; apply 0.70 follow-up multiplier
+- **Rationale / Justification:** One clear weighting axis configured by the professor, zero double-weighting confusion, aligned across studio and evaluation.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, openspec/specs/formula-engine/spec.md, docs/architecture.md
+
+## 2.23 — Grouping config fields and SOFT_SKILLS-only mode
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** teams and assessment need grouping_mode, soft_preset, combined_hard_weight, alpha, and SOFT_SKILLS-only routing while studio rejected empty question lists.
+- **Decision:** Store team_size, grouping_mode (HARD_SKILLS | SOFT_SKILLS | COMBINED), soft_preset (ENGINEERING_DEFAULT | EQUAL_WEIGHTS | CUSTOM), combined_hard_weight, alpha, and constraint_weights on assessment_config (deriving numTeams = ceil(N / teamSize) with optional run-time override in Team Builder). Allow 0 skills and 0 core questions ONLY when grouping_mode == SOFT_SKILLS and bfi10_enabled == true; otherwise require >=1 skill, >=1 core question, and no unused skills.
+- **Alternatives Considered:** Forbid SOFT_SKILLS-only mode in MVP
+- **Rationale / Justification:** Aligns studio, assessment, and teams on one schema while supporting BFI-10-only workshops.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, openspec/specs/assessment-chat/spec.md, openspec/specs/team-builder/spec.md
+
+## 2.24 — Deterministic prompt-injection and character-velocity anomaly flags
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** Team rules require prompt-injection resistance and deterministic cheating anomaly flagging without LLM-guessed probabilities.
+- **Decision:** context owns deterministic PromptSanitizer and InjectionDetector, returning injectionSuspected + matchedRuleIds and logging security events via AuditService with zero raw PII. assessment persists injection_suspected alongside server-timed paste_suspected (including a character-velocity check). evaluation forces reviewStatus = flagged on any score supported by an entry with pasteSuspected or injectionSuspected.
+- **Alternatives Considered:** Prompt-only guardrails without deterministic detection or flagging
+- **Rationale / Justification:** Defense-in-depth keeps every suspected cheat or injection routed to human professor review with zero LLM math.
+- **Affected Files / Pointers:** openspec/specs/context-creation/spec.md, openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md
+
+## 2.25 — Evaluator returns machine-parsable output; code computes every aggregate and ranking
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The cold review found that no spec still said that LLMs never compute rankings or team-balance numbers. The user confirmed the split between the evaluator LLM and code.
+- **Decision:** For each (entry, skill) the evaluator LLM returns one JSON object in a fixed schema: level (0..4), verbatimQuote, rationale and an optional improvement suggestion. A deterministic parser validates the object against the schema and the rubric range and rejects anything else. The LLM never returns totals, fit, coverage, confidence, rankings or team-balance numbers. Java and SQL functions compute those from all the validated levels.
+- **Alternatives Considered:** Free-text evaluator output parsed with heuristics; letting the LLM rank candidates
+- **Rationale / Justification:** A fixed schema makes the LLM output testable and keeps every number that affects a student deterministic (AGENTS.md §2.1).
+- **Affected Files / Pointers:** openspec/specs/evidence-pipeline/spec.md, openspec/specs/context-creation/spec.md, docs/architecture.md

@@ -6,7 +6,7 @@ context: |
 
   Mandatory Tech Stack:
   - Backend: Java 21, Spring Boot 4.x, Spring Security (2 roles: PROFESSOR, CANDIDATE; extensible),
-    Spring Web (SSE streaming), Spring Data JPA, Spring AI 2.0, Timefold Solver, PostgreSQL (append-only
+    Spring Web (SSE streaming), Spring Data JPA, Spring AI 2.0, PostgreSQL (append-only
     conversation ledger; assessment-transcript/v1 export), Flyway migrations, springdoc-openapi, JUnit 5, Mockito, Testcontainers.
   - Frontend: Vue 3.5 (stable — DO NOT upgrade to 3.6 RC), TypeScript, Vite 8, Vue Router, Pinia,
     TanStack Query (Vue), Tailwind CSS v4, Apache ECharts (vue-echarts). UI kit: PrimeVue (Decision 1.14).

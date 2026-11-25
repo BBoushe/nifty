@@ -20,7 +20,7 @@ This file is the **single canonical home** for coding rules in all harnesses. Th
    - *Reviewer level:* **Convention Candidate** for subjective splitting taste. **Blocking** if a monolithic function prevents testing a required domain invariant.
 
 3. **Hotspot Performance — Avoid Streams in Repeated / Hot Paths:**
-   - Do **not** use Java Streams (`stream().map().filter()...`) in repeatedly called, hot-path, or centralized shared helper functions. Examples: quote verification loops, formula/confidence calculators, Timefold scoring constraints, batch transcript scans.
+   - Do **not** use Java Streams (`stream().map().filter()...`) in repeatedly called, hot-path, or centralized shared helper functions. Examples: quote verification loops, formula/confidence calculators, the Simulated Annealing team swap loop, batch transcript scans.
    - Write clean, optimized, low-allocation loops for hotspots and shared utilities. Use Java Streams strictly for infrequent or one-off in-place transformations.
    - *Reviewer level:* **Blocking** on Streams inside hot-path or centralized repeatedly called helpers.
 

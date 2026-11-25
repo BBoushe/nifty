@@ -1,6 +1,6 @@
 # Living API Documentation (`docs/api.md`)
 
-> **Maintenance Rule (Decision 2.9 & `.agents/rules/coding-standards.md` #4):** It applies to every PR that adds, modifies, or removes a backend controller endpoint, DTO, auth rule, or SSE event. That PR **MUST** update this file in the same commit/PR. Live machine-readable OpenAPI remains available at `/v3/api-docs` and `/swagger-ui.html`.
+> **Maintenance Rule (Decision 2.9 & `.agents/rules/coding-standards.md` #4):** Every PR that adds, changes, or removes a backend controller endpoint, DTO, auth rule, or SSE event MUST update this file in the same commit/PR. Live OpenAPI stays available at `/v3/api-docs` and `/swagger-ui.html`.
 
 ## 1. Base URLs & Live OpenAPI
 
@@ -15,24 +15,24 @@
 |---|---|---|
 | `/api/v1/health`, `/actuator/health/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` | Public (`permitAll`) | Liveness, readiness, and OpenAPI schema |
 | `/api/v1/auth/**` | Public | Professor sign-in, invite-link sign-in (Decision 1.17) |
-| `/api/v1/ranking/**` | `PROFESSOR` | Ranking View: Studio, invites, Matrix, review queue, conversation logs, Team Builder |
-| `/api/v1/assessment/**` | `CANDIDATE` | Assessment Chat and Candidate Results. A candidate session reaches only the assessment and candidate of its invite link. Results stay closed until release. |
+| `/api/v1/ranking/**` | `PROFESSOR` | Ranking View: Studio configs, invites, prompt preview, transcripts, Matrix, review queue, Cohort Gaps, Team Builder (Decision 1.19) |
+| `/api/v1/assessment/**` | `CANDIDATE` | Assessment Chat, BFI-10, and post-release Candidate Results. Candidate sessions reach only the assessment and candidate of their invite link. |
 | All other routes | Authenticated | Default deny for unauthenticated callers |
 
-MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules. A new role (for example `REVIEWER`) is one `Role` value plus rules in these two places.
+MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules.
 
 ## 3. Standard Error Envelope
 
-Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Rules are in `.agents/rules/backend-java.md` §9. Responses never contain stack traces or exception class names.
+Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Responses never contain stack traces or exception class names.
 
 | Field | Meaning |
 |---|---|
-| `type` | Problem type URI. The value is `about:blank` unless a specific type exists. |
-| `title` | Short summary. It defaults to the HTTP reason phrase (e.g. `Bad Request`). |
+| `type` | Problem type URI (`about:blank` unless a specific type exists) |
+| `title` | Short summary (defaults to HTTP reason phrase) |
 | `status` | HTTP status code |
 | `detail` | Human-readable explanation, safe for clients |
 | `instance` | Request path that failed |
-| `errors` | Only on `400` for an invalid `@Valid` request body: list of `{ "field", "message" }` |
+| `errors` | Only on `400` validation failures (`@Valid` or `FieldValidationException` in `shared/exception`, Decision 1.18/1.19): list of `{ "field", "message", "code"? }` |
 
 ```json
 {
@@ -40,36 +40,59 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
   "title": "Bad Request",
   "status": 400,
   "detail": "Invalid request content.",
-  "instance": "/api/v1/ranking/scores/42/override",
-  "errors": [{ "field": "reason", "message": "must not be blank" }]
+  "instance": "/api/v1/ranking/studio/configs",
+  "errors": [{ "field": "questions[0].maxTimeSec", "message": "must be greater than minTimeSec", "code": "TIME_RANGE" }]
 }
 ```
 
 | Source | Status | `detail` |
 |---|---|---|
-| `@Valid` body violation | `400` | Spring's validation summary, plus `errors` |
-| `DomainException(status, detail)` that a service throws | its `status` | its `detail` |
-| Spring MVC errors (404, 405, 415, ...) | the status that `ResponseEntityExceptionHandler` maps | Spring's default |
-| Any other exception | `500` | `An unexpected error occurred.` (the server logs the error) |
+| `@Valid` body violation or `FieldValidationException` | `400` | Validation summary plus `errors[]` |
+| `DomainException(status, detail)` | its `status` | its `detail` |
+| Spring MVC errors (`404`, `405`, `415`, ...) | status mapped by `ResponseEntityExceptionHandler` | Spring default |
+| Any other exception | `500` | `An unexpected error occurred.` (server logs full error) |
 
 ## 4. Implemented Endpoints
 
 | Method | Path | Roles | Request | Response DTO | Notes |
 |---|---|---|---|---|---|
-| `GET` | `/api/v1/health` | Public | — | `{ status, service, aiProviderMode, timestamp }` | Returns `"UP"`, `"nifty-backend"`, active evaluator mode (`kiconnect-nrw` or `placeholder`), ISO-8601 timestamp (`HealthController`) |
-| `GET` | `/actuator/health` | Public | — | Spring Boot Actuator health JSON | The Docker Compose healthcheck uses it |
+| `GET` | `/api/v1/health` | Public | — | `{ status, service, aiProviderMode, timestamp }` | Returns `"UP"`, `"nifty-backend"`, active provider mode, ISO-8601 timestamp (`HealthController`) |
+| `GET` | `/actuator/health` | Public | — | Spring Boot Actuator health JSON | Docker Compose healthcheck target |
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
-- **Auth (`/api/v1/auth/**`):** `POST /auth/login` (professor), `POST /auth/invite/{token}` (candidate session from an invite link) (`openspec/specs/auth-access/spec.md`).
-- **Interviewer Studio (`/api/v1/ranking/studio/**`):** assessment form CRUD, config versions, publish, skill/tag taxonomy and inferred-tag review (the evidence pipeline proposes tags through the `studio` service), assessment deletion (`DELETE /ranking/studio/configs/{id}`), invite links (`POST /ranking/studio/configs/{id}/invites`, CSV import) (`openspec/specs/interviewer-studio/spec.md`).
-- **Assessment Chat (`/api/v1/assessment/sessions/**`):** (Decision 1.11, `openspec/specs/assessment-chat/spec.md`)
-  - `POST /assessment/sessions` → `text/event-stream`: greeting and question 1. Each question event carries `expiresAt`. `409` when the attempts are used up.
-  - `POST /assessment/sessions/{id}/answers` (`{ text }`) → `text/event-stream`: the interviewer reply, then the next question with `expiresAt`, or `done`. `409` after `expiresAt` plus the grace period, or when the state does not allow an answer.
-  - `GET /assessment/sessions/{id}` → session state from the ledger: messages, open question, `expiresAt`.
-  - `POST /assessment/sessions/{id}/bfi10` (`{ items: [1..5 x 10] }`) → `204`. `400` names each missing item.
-- **Evidence Pipeline (`/api/v1/ranking/transcripts/**`):** `assessment-transcript/v1` export, evidence per attempt (`openspec/specs/evidence-pipeline/spec.md`). The evaluator starts from an event, not from an endpoint.
-- **Formula Engine (`/api/v1/ranking/formulas/**`):** preset list, formula version per config, what-if preview. No free-form expressions in MVP (`openspec/specs/formula-engine/spec.md`).
-- **Skills Matrix & Review (`/api/v1/ranking/matrix/**`, `/api/v1/ranking/reviews/**`):** matrix cells (`status: "SCORED" | "N/A"`, `value: number | null`), Evidence Drawer, "Needs attention" queue, attempt approval, audited overrides, full conversation log per attempt (`openspec/specs/skills-matrix-review/spec.md`).
-- **Team Builder (`/api/v1/ranking/teams/**`):** Timefold proposals with configured team size and BFI-10 balance, deterministic validation, professor publishing (`openspec/specs/team-builder/spec.md`).
-- **Candidate Results (`/api/v1/assessment/results/**`):** released scores, verified evidence, formula and weights, deterministic advice, own conversation log, own BFI-10 traits (`openspec/specs/candidate-results/spec.md`).
+- **Auth (`/api/v1/auth/**`, `/api/v1/ranking/studio/configs/{id}/invites`):**
+  - `POST /api/v1/auth/login` (Public) → professor sign-in (`401` on unknown email or wrong password).
+  - `POST /api/v1/auth/invite/{token}` (Public) → candidate session from personal invite link (`401` on unknown/revoked token).
+  - `POST /api/v1/ranking/studio/configs/{id}/invites` (`PROFESSOR`) → create single invite or CSV import returning invite links.
+  - `DELETE /api/v1/ranking/studio/configs/{id}/invites/{inviteId}` (`PROFESSOR`) → revoke an invite link.
+- **Studio (`studio`, `/api/v1/ranking/studio/configs/**`, `PROFESSOR` — Decisions 1.19, 2.21):**
+  - `POST /api/v1/ranking/studio/configs` (Header `Idempotency-Key: <uuid>`) → one-shot immutable config creation (`201` created / `200` idempotent replay / `400` ProblemDetail with all `errors[]`).
+  - `GET /api/v1/ranking/studio/configs` → list professor's own configs newest first (`AssessmentSummary[]`).
+  - `GET /api/v1/ranking/studio/configs/{configId}` → full config detail including hidden rubrics (`404` for unknown or other professor's config).
+  - `DELETE /api/v1/ranking/studio/configs/{configId}` → GDPR purge of all assessment and candidate data (`204`, emits `AssessmentDeletedEvent`, Decision 4.4).
+  - `PUT` / `PATCH` on `/api/v1/ranking/studio/configs/{configId}` → `405 Method Not Allowed`.
+- **Context Creation (`context`, `/api/v1/ranking/context/**`, `PROFESSOR` — Decision 1.18):**
+  - `POST /api/v1/ranking/context/preview/interviewer` → dry-run preview of the rubric-blind Agent 1 prompt (`{ templateVersion, systemPrompt, promptSha256, rubricLeakCheckPassed }`).
+- **Assessment Chat (`assessment`, `/api/v1/assessment/sessions/**`, `CANDIDATE` — Decisions 1.11, 2.20, 2.23, 2.24):**
+  - `POST /api/v1/assessment/sessions` → `text/event-stream` greeting + question 1 with `expiresAt` (or JSON `BFI10` start for `SOFT_SKILLS`-only). `409` if `max_attempts` is exceeded.
+  - `POST /api/v1/assessment/sessions/{id}/answers` (`{ content }`) → `text/event-stream` reply + next question with `expiresAt` or `done`. `409` after `expiresAt + grace` or invalid state.
+  - `GET /api/v1/assessment/sessions/{id}` → session state from ledger (`messages`, `status`, `questionsRemaining`, `expiresAt`, `bfi10Enabled`).
+  - `POST /api/v1/assessment/sessions/{id}/bfi10` (`{ items: [1..5 x 10] }`) → `204` (`400` naming each missing/invalid item, `409` if wrong state or already submitted).
+- **Evaluation, Matrix, Review, Cohort Gaps & Candidate Results (`evaluation` — Decisions 1.18, 1.19, 2.10, 2.22):**
+  - `GET /api/v1/ranking/transcripts/{attemptId}` (`PROFESSOR`) → `assessment-transcript/v1` export (`*.transcript.json`) + `timedOut`/`pasteSuspected`/`injectionSuspected` markers.
+  - `GET /api/v1/ranking/configs/{configId}/matrix` (`PROFESSOR`) → candidate skill matrix (`status: "SCORED" | "N/A"`, `value: number | null`, `fit`, `coverage`, `releaseStatus`, `flaggedCount`) over each candidate's latest counted attempt.
+  - `GET /api/v1/ranking/attempts/{attemptId}/evaluations` (`PROFESSOR`) → Evidence Drawer drilldown (`response_evaluation` rows, verified quotes, judge runs, confidence, flags, override history).
+  - `POST /api/v1/ranking/evaluations/approve` (`PROFESSOR`) → bulk-approve unflagged responses (`flagged` items skipped).
+  - `POST /api/v1/ranking/evaluations/{responseEvalId}/override` (`PROFESSOR`) → `{ newLevel, reason }` writes `audit_log` via `AuditService`, updates `effectiveLevel`, recalculates Formula B deterministically.
+  - `POST /api/v1/ranking/attempts/{attemptId}/release` (`PROFESSOR`) → approve and release reviewed attempt after all flagged items are resolved.
+  - `GET /api/v1/ranking/formula-presets` (`PROFESSOR`) → named formula presets (MVP: `WEIGHTED_MEAN`, REQ-FE-05).
+  - `POST /api/v1/ranking/configs/{configId}/formula` (`PROFESSOR`, `{ preset }`) → saves a new immutable `formula_version` and recomputes scores, `fit` and `coverage` in Java with zero LLM calls (REQ-FE-02). `400` ProblemDetail on an unknown preset or a free-form expression field (Decision 2.19).
+  - `POST /api/v1/ranking/configs/{configId}/formula/preview` (`PROFESSOR`, `{ preset }`) → what-if scores, `fit` and `coverage` for the cohort, stores nothing.
+  - `GET /api/v1/ranking/configs/{configId}/cohort-gaps` (`PROFESSOR`) → SQL-only skill level distribution, `N/A` shares, and weakest domains over released counted attempts.
+  - `GET /api/v1/assessment/results/{configId}` (`CANDIDATE`) → candidate's own released scores (`N/A` explicit), verified quotes, question weights, formula version, full conversation log, deterministic strengths/improvements advice, and own BFI-10 traits (`200` with `pending` status and no score fields before release; `403` for an assessment outside the candidate's invite).
+- **Team Builder (`teams`, `/api/v1/ranking/configs/{configId}/teams/**` and `/api/v1/ranking/teams/**`, `PROFESSOR` — Decisions 1.20, 2.23):**
+  - `POST /api/v1/ranking/configs/{configId}/teams/generate` → run seeded Simulated Annealing optimizer (`numTeams?`, `groupingMode?`, `alpha?`, `seed?`) and save `DRAFT` proposal with balance & diversity diagnostics.
+  - `POST /api/v1/ranking/teams/{proposalId}/recalculate` → deterministic live drag-and-drop balance/diversity recalculation (zero LLM calls).
+  - `POST /api/v1/ranking/teams/{proposalId}/publish` → professor approval moving `DRAFT -> PUBLISHED` (`audit_log` entry).
+  - `GET /api/v1/ranking/configs/{configId}/teams` → list proposals with member skill averages and BFI-10 trait scores (`PROFESSOR` only).

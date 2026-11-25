@@ -399,7 +399,7 @@ flowchart LR
 | 5. Confidence | Code | Calculates a value for each (question, skill) score from measurable signals, not the LLM's own estimate (see §11.3) |
 | 6. Release gate | Code, then professor | Code releases the result when every threshold is met. Otherwise the professor reviews, ordered by flags and impact (Decision 2.10) |
 | 7. Totals | SQL | The LLM never calculates numbers. It may only write text around numbers that it receives. |
-| 8. Balancer | Timefold Solver (Java) | Constraint-based, with explainable scores |
+| 8. Balancer | Seeded Simulated Annealing (pure Java, Decision 1.20) | Balance and diversity cost, with team diagnostics |
 | 9. Team approval | Human | Final approval |
 
 The interviewer reply streams to the browser through SSE after each POSTed answer (Decision 1.11). BFI-10 scoring is code only. It sits outside this chain (Decision 4.3).
@@ -556,7 +556,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 |---|---|---|
 | Backend | Java 21, **Spring Boot 4.x**, Spring Security (2 roles, PROFESSOR and CANDIDATE, Decision 1.15), Spring Web (POST answers with SSE reply streaming, Decision 1.11) | Decided |
 | AI integration | **Spring AI 2.0** (ChatClient, provider-native structured output, self-correcting schema validation, MCP SDK 2.0) with **ki:connect NRW** for interviewer and evaluator (Decisions 1.6, 1.13) | Decided |
-| Team formation | **Timefold Solver** (Java constraint solver) | Decided |
+| Team formation | **Seeded Simulated Annealing + 2-opt** (pure Java, Decision 1.20) | Decided |
 | Formula engine | Presets in MVP. Restricted SpEL editor Post-MVP (Decision 2.19) | Decided |
 | Database | **PostgreSQL 17** (relational tables for scores and evidence, append-only ledger for the interview, JSONB for transcripts, pgvector optional later), **Flyway** migrations | Decided (DB was open) |
 | Frontend | **Vue 3.5 + TypeScript + Vite 8**, Vue Router, Pinia, TanStack Query (Vue) | Decided |
@@ -624,7 +624,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 | No ground truth for accuracy | Small set of human-rated transcripts. Report agreement between humans and the pipeline. |
 | N/A distorts rankings | Fit and coverage shown separately. Minimum coverage sends the assessment to review. |
 | Review fatigue / rubber-stamping | Per-question confidence thresholds with automatic release. The professor reviews only results below them. Track override rate. |
-| Unexplainable teams | Timefold constraint scores as reasoning. The system always verifies LLM output. |
+| Unexplainable teams | Team diagnostics (balance, diversity, `N/A` counts) as reasoning. No LLM forms teams in MVP. |
 | Legal / ethical (high-risk AI) | Professor-set thresholds, human review below them, audit log, candidate transparency, no single global leaderboard in the recruiter scope |
 | LLM latency and cost | Background pipeline jobs with status in the UI. Stream the chat. |
 | Non-deterministic tests | Record and replay LLM responses |
@@ -669,7 +669,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 |---|---|---|
 | Ranking View: Studio, formula, review UI | 1 | UX-01–07 frontend |
 | Ranking View: evidence pipeline & scoring | 1 | Extractor, verifier, scorer, confidence |
-| Ranking View: team builder | 1 | Timefold integration, UX-08 |
+| Ranking View: team builder | 1 | Team optimizer, UX-08 |
 | Assessment View: chat UI + results page | 1 | UX-09, UX-10 |
 | Assessment View: interviewer backend + harness/CI | 1 | Interviewer orchestration, SSE, agent harness, pipeline |
 
