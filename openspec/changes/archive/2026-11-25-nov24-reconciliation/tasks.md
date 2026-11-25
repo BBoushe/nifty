@@ -4,9 +4,9 @@
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
 - **Current:** Tasks 1–7 done; Delivery next
-- **Next action:** ask the user, then push and open the PR/MR
+- **Next action:** user approved the merge; merge on GitHub, `forge.mjs sync dev`, branch cleanup
 - **Uncommitted changes:** no
-- **PR / MR:** none yet
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/16 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/15
 - **Open review findings:** cold review REQUEST CHANGES (7 Blocking, 10 Convention Candidates); all fixed in the review-fix commit
 
 ## Tasks
@@ -59,9 +59,9 @@
 - [x] `git fetch origin && git merge origin/dev`
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive nov24-reconciliation -y` (syncs the delta specs), fix the `auth-access` Purpose if needed, history entry in `docs/feature_history.md`
 - [x] Verify: `openspec validate --all --strict`; `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`
-- [ ] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
+- [x] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
 - [x] Cold review (fresh `reviewer` agent)
-- [ ] CI green on both forges (`node scripts/forge.mjs prs`)
+- [x] CI green on both forges (`node scripts/forge.mjs prs`)
 - [ ] Ask the user with the architecture summary, then merge on GitHub and `node scripts/forge.mjs sync dev`
 - [ ] Branch cleanup
 
