@@ -209,3 +209,21 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** Keep H2 and skip trigger tests; a separate integration-test profile
 - **Rationale / Justification:** Tests run on the same database as production, so triggers, JSONB and Flyway are tested for real before five slices depend on them.
 - **Affected Files / Pointers:** backend/src/test/java/de/fhdortmund/nifty/PostgresContainerBase.java, .gitlab-ci.yml, docs/feature_backlog.md
+
+## 1.23 — Server session cookie for professors and candidates
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** Decision 1.17 left the session format (JWT or server session) to the auth change. Studio, assessment and evaluation need a signed-in principal.
+- **Decision:** Spring Security HTTP sessions for both roles. Login (POST /api/v1/auth/login) and invite sign-in (POST /api/v1/auth/invite/{token}) create a session; the cookie is HttpOnly and SameSite=Lax (Secure outside local dev). CSRF protection stays on through a cookie CSRF token that frontend/src/api/client.ts sends back as a header. POST /api/v1/auth/logout ends the session. Revoking an invite ends its sessions at once. httpBasic is removed.
+- **Alternatives Considered:** Signed short-lived JWT bearer tokens with a revocation denylist
+- **Rationale / Justification:** Works with the POST-SSE streams, gives instant logout and revocation, and keeps tokens out of JavaScript.
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/shared/config/SecurityConfig.java, openspec/specs/auth-access/spec.md, frontend/src/api/client.ts
+
+## 1.24 — Professor accounts are bootstrapped from environment variables
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** MVP has no sign-up page, so the system needs a way to create professor accounts without a secret in the repo.
+- **Decision:** On startup, if NIFTY_BOOTSTRAP_PROFESSOR_EMAIL and NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD are set and no account with that email exists, auth creates one PROFESSOR account with a DelegatingPasswordEncoder hash. An existing account is never changed. Both keys go into .env.example without values. The password is never logged.
+- **Alternatives Considered:** Admin CLI command; a dev-only Flyway seed with a known password hash
+- **Rationale / Justification:** No credential in the repo and the least code. More professors can come later through the same service.
+- **Affected Files / Pointers:** docs/feature_backlog.md, .env.example, openspec/specs/auth-access/spec.md

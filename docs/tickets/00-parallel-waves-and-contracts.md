@@ -8,8 +8,8 @@
 | Owner | Feature / Change | Backend Package | Frontend Folder | Flyway | Branch |
 |---|---|---|---|---|---|
 | Shared (Wave 0) | `backend-foundation` + `frontend-foundation` | `shared/`, `pom.xml` | `frontend/` shell | — | `feat/backend-foundation`, `feat/frontend-foundation` |
-| Shared (Wave 1/3) | `auth-accounts`, `invite-links` | `auth` | `views/auth/` | `V2`, `V4` | `feat/auth-accounts`, `feat/invite-links` |
-| Shared (Wave 1) | `audit-log-service` | `audit` | — | `V1` (existing) | `feat/audit-log-service` |
+| **#1 Teammate R** (Wave 1/3) | `auth-accounts`, `invite-links` ([ticket 01](01-studio.md)) | `auth` | `views/auth/` | `V2`, `V4` | `feat/auth-accounts`, `feat/invite-links` |
+| **#1 Teammate R** (Wave 1) | `audit-log-service` ([ticket 01](01-studio.md)) | `audit` | — | `V1` (existing) | `feat/audit-log-service` |
 | **#1 Teammate R** | [`studio-assessment-creation`](01-studio.md) | `studio` | `views/studio/` | `V3__studio.sql` | `feat/studio-assessment-creation` |
 | **#2 Teammate A** | [`context-creation`](02-context-creation.md) | `context` | — | — (stateless) | `feat/context-creation` |
 | **#3 Teammate S** | [`assessment-chat`](03-assessment-chat.md) | `assessment` | `views/assessment/` (chat + BFI-10) | `V6__assessment.sql` | `feat/assessment-chat` |
@@ -106,6 +106,7 @@ public record CandidateSessionPrincipal(UUID inviteId, UUID configId, String can
 ```java
 public interface StudioQueryService {
     boolean exists(UUID configId);
+    boolean ownedBy(UUID configId, UUID professorId); // added by studio-assessment-creation; used by invite-links
     InterviewerView interviewerView(UUID configId); // Throws DomainException(404) if missing
     EvaluatorView   evaluatorView(UUID configId);
     ScoringView     scoringView(UUID configId);
