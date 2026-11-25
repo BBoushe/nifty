@@ -84,6 +84,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **2.24** | — | Design | Deterministic prompt-injection and character-velocity anomaly flags | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#224--deterministic-prompt-injection-and-character-velocity-anomaly-flags) |
 | **1.21** | — | Architecture | Context builder keeps separate per-attempt contexts for interviewer and evaluator | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#121--context-builder-keeps-separate-per-attempt-contexts-for-interviewer-and-evaluator) |
 | **2.25** | — | Design | Evaluator returns machine-parsable output; code computes every aggregate and ranking | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#225--evaluator-returns-machine-parsable-output-code-computes-every-aggregate-and-ranking) |
+| **1.22** | — | Architecture | All Spring tests run on PostgreSQL Testcontainers from Wave 0 | Decided | 2026-11-25 | team | [1-architecture.md](./1-architecture.md#122--all-spring-tests-run-on-postgresql-testcontainers-from-wave-0) |
 <!-- DECISION_INDEX_END -->
 
 ---

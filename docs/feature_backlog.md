@@ -14,7 +14,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 
 | # | Feature (spec / change) | Wave | Status | Owner / Slice | Depends on | Migration |
 |---|---|---|---|---|---|---|
-| 1 | `backend-foundation` | 0 | queued | Shared (`shared`, `backend/pom.xml`, CI) | — | — |
+| 1 | `backend-foundation` | 0 | done | Shared (`shared`, `backend/pom.xml`, CI) | — | — |
 | 2 | `frontend-foundation` | 0 | done | Shared (`frontend/` shell, CI) | — | — |
 | 3 | `auth-accounts` ([`auth-access`](../openspec/specs/auth-access/spec.md)) | 1 | queued | Shared (`auth`, `views/auth/`) | 1, 2 | `V2__auth_accounts.sql` |
 | 4 | `audit-log-service` | 1 | queued | Shared (`audit`) | 1 | — (uses `V1`) |

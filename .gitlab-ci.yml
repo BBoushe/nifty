@@ -19,8 +19,16 @@ default:
 backend:
   stage: verify
   image: eclipse-temurin:21-jdk
+  # Testcontainers (PostgreSQL) talks to a docker:dind sidecar; needs a privileged runner.
+  services:
+    - name: docker:27-dind
+      alias: docker
+      command: ["--tls=false"]
   variables:
     MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    TESTCONTAINERS_HOST_OVERRIDE: docker
   cache:
     key: "maven-${CI_COMMIT_REF_SLUG}"
     paths:
