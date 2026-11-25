@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Orchestrated delivery (Decision 3.11):** the `orchestrate-changes` skill runs several changes from one session (builder agents in `../nifty-<change>` worktrees, a cold reviewer per PR, PR/MR handling by branch, a user question with an architecture summary before every merge). `node scripts/forge.mjs prs` shows GitHub PRs and GitLab MRs side by side by branch, and `forge.mjs` now reads the main checkout's `.env` from a worktree.
+
 ### Changed
 - **Docs in ASD-STE100 (Decision 3.5):** the agent entry points, `.agents/rules/`, README, setup, workflow, architecture, API, design-system and discovery-canvas docs, and the Purpose paragraphs of the 7 domain specs now use Simplified Technical English. Obligation keywords, numbers, paths, commands, REQ IDs and every EARS statement are unchanged (checked per file).
 

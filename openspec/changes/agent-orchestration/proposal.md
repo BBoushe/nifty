@@ -2,14 +2,14 @@
 
 ## Context & Problem
 
-The 2026-11-24 harness upgrade ran five changes in five terminal sessions. The user had to answer each session, copy `.env` into each worktree, and match GitHub PR numbers to different GitLab MR numbers (`#9` is `!8`, `#13` is `!12`). The F6 rewrite on 2026-11-25 ran as subagents from one session instead, and that worked: the user answered questions in one place only.
+The 2026-11-24 harness upgrade ran five changes in five terminal sessions. The user had to answer each session and copy `.env` into each worktree. The user also had to match GitHub PR numbers to different GitLab MR numbers (`#9` is `!8`, `#13` is `!12`). The F6 rewrite on 2026-11-25 ran as subagents from one session instead, and that worked: the user answered questions in one place only.
 
 Two tool gaps remain:
 
 - `node scripts/forge.mjs` reads `GIT_FORGE` from the `.env` of the current folder. A worktree has no `.env`, so `forge.mjs` falls back to GitHub only, and the F6 push had to be done by hand.
 - No command shows a branch's GitHub PR and GitLab MR side by side with their CI state.
 
-Decision 3.11 sets the model: one orchestrator session, a builder agent per change, a cold reviewer per PR, PR/MR handling by branch name, and a user question with an architecture summary before every merge.
+Decision 3.11 sets the model. One orchestrator session runs a builder agent per change and a cold reviewer per PR. It handles PRs/MRs by branch name, and it asks the user before every merge, with an architecture summary.
 
 ## Scope
 

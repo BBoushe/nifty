@@ -46,6 +46,7 @@ These tools do not auto-parse `.agents/rules/*.md` YAML frontmatter: Claude Code
 | Using a library API from the pinned stack | `docs/ai_docs/<lib>.md` (index: `docs/ai_docs/README.md`). Read the note before you write the code. |
 | Proposing or archiving an OpenSpec change | `docs/feature_backlog.md` + `docs/feature_history.md`. When you propose a change, set its backlog row to `in progress`. When you archive it, remove the row and add a history entry (the harness test fails without it). |
 | Writing or editing docs/specs | `asd-ste100` skill (`.agents/skills/asd-ste100/`), `.agents/rules/spec-driven.md` rule 6 |
+| Running several changes in parallel, or managing their PRs/MRs | `orchestrate-changes` skill (`.agents/skills/orchestrate-changes/`), `node scripts/forge.mjs prs`. Agents never merge. Ask the user before every merge, with an architecture summary (Decision 3.11). |
 
 ## 4. Git, Forge Switch (`gh` / `glab`) & Commit Rules
 

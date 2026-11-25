@@ -4,9 +4,9 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see .agents/skills/orchestrate-changes/SKILL.md). -->
 - **Branch:** `feat/agent-orchestration`
 - **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
-- **Current:** change written; Task 1 next
-- **Next action:** Task 1, first step
-- **Uncommitted changes:** yes
+- **Current:** Tasks 1-3 done; Delivery next
+- **Next action:** archive, history entry, push, PR/MR, cold review, ask the user with the architecture summary
+- **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
 
@@ -26,11 +26,11 @@ Owned files: `scripts/check-setup.mjs`, `scripts/forge.mjs`, a new `describe` at
   - [x] Implement the helpers and the `prs` command; run it against the live forges.
   - [x] Run the tests. Expect: exit 0.
   - [x] Commit `feat(forge): show PRs and MRs side by side by branch`.
-- [ ] **3. Skill and docs** — REQ-OR-03, REQ-OR-04
-  - [ ] Write `.agents/skills/orchestrate-changes/SKILL.md` (design §3) and the `.claude/skills/` symlink.
-  - [ ] `AGENTS.md` dispatch row, `docs/workflow.md` §4 subsection, `docs/setup.md` inventory rows, board pointer, CHANGELOG.
-  - [ ] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` and `OPENSPEC_TELEMETRY=0 openspec validate --all --strict`. Expect: exit 0.
-  - [ ] Commit `docs(agents): add the orchestrate-changes skill`.
+- [x] **3. Skill and docs** — REQ-OR-03, REQ-OR-04
+  - [x] Write `.agents/skills/orchestrate-changes/SKILL.md` (design §3) and the `.claude/skills/` symlink.
+  - [x] `AGENTS.md` dispatch row, `docs/workflow.md` §4 subsection, `docs/setup.md` inventory rows, board pointer, CHANGELOG.
+  - [x] Run `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` and `OPENSPEC_TELEMETRY=0 openspec validate --all --strict`. Expect: exit 0.
+  - [x] Commit `docs(agents): add the orchestrate-changes skill`.
 
 ## Delivery
 
@@ -43,3 +43,13 @@ Owned files: `scripts/check-setup.mjs`, `scripts/forge.mjs`, a new `describe` at
 - [ ] Delete the branch on both remotes and locally.
 
 ## Handoff Log
+
+### 2026-11-25 — Tasks 1-2 (main session)
+- **Did:** `findEnvPath` in `check-setup.mjs` (worktree falls back to the main checkout's `.env`); `checksSummary`, `prRows` and the `prs` command in `forge.mjs`. GitLab lookup uses `glab mr list/view -R <url> -F json`, because the FH instance serves from a sub-path and the hand-built API path returned 404. One commit for both tasks: the new tests share one `describe`.
+- **Verification:** RED: `node --test scripts/harness-scripts.test.mjs` → FAIL (module has no `checksSummary` export); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (43/43). `node scripts/forge.mjs prs` → exit 0 against both live forges.
+- **Decisions:** 3.11 (recorded in this change).
+
+### 2026-11-25 — Task 3 (main session)
+- **Did:** `orchestrate-changes` skill (+ `.claude/skills` symlink); `AGENTS.md` dispatch row; `docs/workflow.md` §4 subsection and forge-command row; two `docs/setup.md` inventory rows; board pointer; CHANGELOG.
+- **Verification:** RED: n/a (no behaviour). ste-lint: 0 hard findings on the skill, proposal and design; harness tests 43/43; `openspec validate --all --strict` 8/8.
+- **Next:** Delivery.

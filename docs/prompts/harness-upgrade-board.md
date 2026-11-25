@@ -21,6 +21,7 @@ Lessons for the next parallel run:
 - Update a pushed branch with `git merge origin/dev`, not a rebase. A rebase needs a force push, and the guard blocks force pushes for agents. Both CI commit checks skip `Merge ...` commits.
 - Every change reaches `dev` through a PR, including `docs:` fixes (Decision 3.10).
 - Every session command must start in the right worktree. Prompts begin with a `pwd` check (§4–§6).
+- Next time, run the changes from one session with the `orchestrate-changes` skill (Decision 3.11) instead of one terminal per change.
 
 ## 1. Changes
 
