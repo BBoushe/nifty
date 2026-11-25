@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/frontend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-frontend-foundation`
-- **Current:** Task 4 done
-- **Next action:** Task 5
+- **Current:** Tasks 1-5 done; `## Delivery` not started
+- **Next action:** Delivery (merge `origin/dev`, archive, push, PR/MR)
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -32,8 +32,8 @@
 - [x] Verify: frontend checks → exit 0; commit `feat(frontend): add the shared API client`
 
 ### Task 5: Docs
-- [ ] `docs/architecture.md` (frontend structure), `docs/feature_backlog.md` row 2 → done, `CHANGELOG.md`
-- [ ] Verify: harness tests → exit 0; commit `docs: record frontend-foundation`
+- [x] `docs/architecture.md` (frontend structure), `docs/feature_backlog.md` row 2 → done, `CHANGELOG.md`
+- [x] Verify: harness tests → exit 0; commit `docs: record frontend-foundation`
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev` (after `backend-foundation` merges; keep both sides in the CI files and shared docs)
@@ -64,5 +64,12 @@
 - Commits: `da4336e refactor(frontend): feature folders with one routes file each`
 - Verification: RED: `cd frontend && npm run test` → FAIL (`Failed to resolve import "@/views/assessment/AssessmentView.vue"`); GREEN: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0 (15 tests)
 - Contracts/Migrations added: `views/{auth,studio,assessment,ranking,teams}/routes.ts` (default export `RouteRecordRaw[]`; paths unchanged)
+- Decisions: none
+- Open Questions: none
+
+### Task 4: Shared API client
+- Commits: `36360d3 feat(frontend): add the shared API client`
+- Verification: RED: `cd frontend && npm run test` → FAIL (`Failed to resolve import "./client"`); GREEN: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0 (23 tests); `node --test scripts/harness-scripts.test.mjs` → exit 0
+- Contracts/Migrations added: `src/api/client.ts` (`ApiProblem`, `apiFetch<T>`, `postSse` yields `{ event, data }`; no backend endpoint change, so `docs/api.md` is unchanged)
 - Decisions: none
 - Open Questions: none
