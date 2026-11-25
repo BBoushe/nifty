@@ -4,7 +4,7 @@
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
 - **Current:** Tasks 1–7 done; Delivery next
-- **Next action:** Delivery: merge origin/dev, archive, history entry, push, PR/MR, cold review
+- **Next action:** push, PR/MR, cold review, ask the user with the architecture summary (archived at openspec/changes/archive/2026-11-25-nov24-reconciliation/)
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -56,9 +56,9 @@
 - [x] Commit `docs(backlog): rebuild the backlog as atomic stories in delivery waves`
 
 ## Delivery
-- [ ] `git fetch origin && git merge origin/dev`
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive nov24-reconciliation -y` (syncs the delta specs), fix the `auth-access` Purpose if needed, history entry in `docs/feature_history.md`
-- [ ] Verify: `openspec validate --all --strict`; `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`
+- [x] `git fetch origin && git merge origin/dev`
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive nov24-reconciliation -y` (syncs the delta specs), fix the `auth-access` Purpose if needed, history entry in `docs/feature_history.md`
+- [x] Verify: `openspec validate --all --strict`; `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`
 - [ ] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
 - [ ] Cold review (fresh `reviewer` agent)
 - [ ] CI green on both forges (`node scripts/forge.mjs prs`)

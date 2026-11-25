@@ -61,7 +61,7 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
-- **Auth (`/api/v1/auth/**`):** `POST /auth/login` (professor), `POST /auth/invite/{token}` (candidate session from an invite link) (`openspec/specs/auth-access/spec.md`, after archive).
+- **Auth (`/api/v1/auth/**`):** `POST /auth/login` (professor), `POST /auth/invite/{token}` (candidate session from an invite link) (`openspec/specs/auth-access/spec.md`).
 - **Interviewer Studio (`/api/v1/ranking/studio/**`):** assessment form CRUD, config versions, publish, skill/tag taxonomy, assessment deletion (`DELETE /ranking/studio/configs/{id}`), invite links (`POST /ranking/studio/configs/{id}/invites`, CSV import) (`openspec/specs/interviewer-studio/spec.md`).
 - **Assessment Chat (`/api/v1/assessment/sessions/**`):** (Decision 1.11, `openspec/specs/assessment-chat/spec.md`)
   - `POST /assessment/sessions` → `text/event-stream`: greeting and question 1. Each question event carries `expiresAt`. `409` when the attempts are used up.

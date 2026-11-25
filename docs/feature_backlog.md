@@ -28,8 +28,6 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 | 12 | [`team-builder`](../openspec/specs/team-builder/spec.md) | 6 | queued | `teams`, `views/teams/` | 8 (BFI-10), 10 | `V9__teams.sql` |
 | 13 | `harness-review-followups` | any | queued | harness, CI, `shared` | — | — |
 
-`auth-access` is a new spec. It exists in `openspec/specs/` after the `nov24-reconciliation` change is archived.
-
 ## Stories
 
 ### 1. `backend-foundation`
