@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** Task 1 done
-- **Next action:** Task 2
+- **Current:** Task 2 done
+- **Next action:** Task 3
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -17,9 +17,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `build(backend): use the webmvc starter and the Spring AI 2 model property`
 
 ### Task 2: US-BF-02 PostgreSQL Testcontainers for all Spring tests (REQ-BF-01)
-- [ ] RED: add `FlywayBaselineTest` (`@DataJpaTest`, extends `PostgresContainerBase`) that checks `audit_log` exists; it fails to compile before the base class exists.
-- [ ] GREEN: add `spring-boot-starter-data-jpa-test`, the base class, move `HealthEndpointTest` and `RoleAccessTest` onto it, drop the H2 datasource and the `h2` test dependency.
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0 (Docker running); commit `test(backend): run Spring tests on PostgreSQL Testcontainers`
+- [x] RED: add `FlywayBaselineTest` (`@DataJpaTest`, extends `PostgresContainerBase`) that checks `audit_log` exists; it fails to compile before the base class exists.
+- [x] GREEN: add `spring-boot-starter-data-jpa-test`, the base class, move `HealthEndpointTest` and `RoleAccessTest` onto it, drop the H2 datasource and the `h2` test dependency.
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0 (Docker running); commit `test(backend): run Spring tests on PostgreSQL Testcontainers`
 
 ### Task 3: US-BF-03 GitLab dind
 - [ ] GREEN: `services: [docker:dind]` and Testcontainers variables on the GitLab `backend` job (design §2). No command changes.
@@ -49,3 +49,10 @@
 - [ ] Branch and worktree cleanup
 
 ## Handoff Log
+
+### Task 1 (US-BF-01)
+- Commits: 3db4f72 build(backend): use the webmvc starter and the Spring AI 2 model property
+- Verification: RED: n/a (dependency rename; baseline `cd backend && ./mvnw -B test` → BUILD SUCCESS, 24 tests); GREEN: `cd backend && ./mvnw -B test` → exit 0, 24 tests
+- Contracts/Migrations added: none
+- Decisions: none
+- Open Questions: none

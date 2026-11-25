@@ -14,7 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class HealthEndpointTest {
+class HealthEndpointTest extends PostgresContainerBase {
 
     @Autowired
     private MockMvc mockMvc;
