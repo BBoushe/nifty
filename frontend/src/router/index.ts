@@ -1,24 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import AssessmentView from '@/views/AssessmentView.vue'
-import RankingView from '@/views/RankingView.vue'
+import assessmentRoutes from '@/views/assessment/routes'
+import authRoutes from '@/views/auth/routes'
+import rankingRoutes from '@/views/ranking/routes'
+import studioRoutes from '@/views/studio/routes'
+import teamsRoutes from '@/views/teams/routes'
 
+// Each feature folder owns its routes file, so a ticket edits only its own routes (US-FF-03).
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    {
-      path: '/',
-      redirect: '/ranking',
-    },
-    {
-      path: '/ranking',
-      name: 'ranking',
-      component: RankingView,
-    },
-    {
-      path: '/assessment',
-      name: 'assessment',
-      component: AssessmentView,
-    },
+    { path: '/', redirect: '/ranking' },
+    ...authRoutes,
+    ...studioRoutes,
+    ...assessmentRoutes,
+    ...rankingRoutes,
+    ...teamsRoutes,
   ],
 })
 

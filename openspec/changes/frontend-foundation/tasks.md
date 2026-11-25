@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/frontend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-frontend-foundation`
-- **Current:** Task 2 done
-- **Next action:** Task 3
+- **Current:** Task 3 done
+- **Next action:** Task 4
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -22,9 +22,9 @@
 - [x] Verify: frontend checks → exit 0; commit `feat(frontend): add the PrimeVue preset and ScoreBadge`
 
 ### Task 3: US-FF-03 Feature folders and route files
-- [ ] RED: `router/index.test.ts` checks the existing paths resolve to the moved views.
-- [ ] GREEN: move the two views; add the five `routes.ts` files; spread them in `router/index.ts`.
-- [ ] Verify: frontend checks → exit 0; commit `refactor(frontend): feature folders with one routes file each`
+- [x] RED: `router/index.test.ts` checks the existing paths resolve to the moved views.
+- [x] GREEN: move the two views; add the five `routes.ts` files; spread them in `router/index.ts`.
+- [x] Verify: frontend checks → exit 0; commit `refactor(frontend): feature folders with one routes file each`
 
 ### Task 4: US-FF-04 Shared API client (REQ-FF-02, REQ-FF-03)
 - [ ] RED: `client.test.ts` for `ApiProblem` (2 field errors) and `postSse` (3 events across chunks).
@@ -51,4 +51,11 @@
 - Verification: RED: `cd frontend && npm run test` → FAIL (`Missing script: "test"`); GREEN: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0; `node --test scripts/harness-scripts.test.mjs` → exit 0 (18 pass, CI drift test included)
 - Contracts/Migrations added: none (`vitest` 5.1.0, `@vue/test-utils` 2.5.1, `jsdom` 31.0.0 pinned exact; `src/test/echarts-mock.ts` is a global `setupFiles` stub)
 - Decisions: none
+- Open Questions: none
+
+### Task 2: PrimeVue preset and ScoreBadge
+- Commits: `c2bb75c feat(frontend): add the PrimeVue preset and ScoreBadge`
+- Verification: RED: `cd frontend && npm run test` → FAIL (`Failed to resolve import "./ScoreBadge.vue"`); GREEN: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0 (12 tests)
+- Contracts/Migrations added: none (`primevue` 4.5.5 and `@primeuix/themes` 2.0.3, MIT, exact; PrimeVue 5 needs a license key; see design.md; `@theme` tokens in `src/style.css`, preset in `src/theme/preset.ts`)
+- Decisions: 1.14 (inline pointers in `style.css`, `preset.ts`, `ScoreBadge.vue`, `main.ts`)
 - Open Questions: none
