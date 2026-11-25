@@ -3,10 +3,10 @@
 ## Status
 - **Branch:** `feat/audit-log-service`
 - **Worktree:** `../nifty-audit-log-service`
-- **Current:** all tasks done; archived; waiting for the human to approve push and PR/MR
-- **Next action:** after approval, `node scripts/forge.mjs push`, then `node scripts/forge.mjs pr ... --base dev`; fill the PR/MR numbers into `docs/feature_history.md`
+- **Current:** delivered; PR/MR open; waiting for cold review and merge by Teammate A
+- **Next action:** none for the builder (Teammate A reviews, checks CI and merges)
 - **Uncommitted changes:** no
-- **PR / MR:** none yet
+- **PR / MR:** GitHub #21, GitLab !20
 - **Open review findings:** none
 
 ## Tasks
@@ -29,7 +29,7 @@
 - [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
 - [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive audit-log-service -y --skip-specs`, set its `docs/feature_backlog.md` row to `done`, add a `docs/feature_history.md` entry (`PR/MR: pending`), commit `chore(specs): archive audit-log-service`
-- [ ] Ask the human, then `node scripts/forge.mjs push` and open the PR/MR with `pr-memo` (`node scripts/forge.mjs pr ... --base dev`)
+- [x] Ask the human, then `node scripts/forge.mjs push` and open the PR/MR with `pr-memo` (`node scripts/forge.mjs pr ... --base dev`)
 - [ ] Stop. Teammate A runs the cold review, checks CI and merges.
 
 ## Handoff Log

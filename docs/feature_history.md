@@ -7,7 +7,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-25 — audit-log-service
 - **What:** `AuditService.record(...)` writes one `audit_log` row in the transaction of the caller. It rejects a missing actor, role, entity or action. `AuditLogEntity` is `@Immutable`, and `AuditLogRepository` has no update or delete method. `AuditServicePlaceholder` is gone.
 - **Why:** Studio, context, evaluation and teams must write real audit rows for overrides, deletions and injection flags (Decision 1.16).
-- **PR/MR:** pending
+- **PR/MR:** GitHub #21, GitLab !20
 - **Specs:** REQ-AL-01..02 (change-local, archived with `--skip-specs`)   **Decisions:** none; applies 1.10, 1.16
 
 ## 2026-11-25 — frontend-foundation
