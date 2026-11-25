@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — context-creation
+- **What:** Built the stateless `context` slice, the only place that builds LLM prompts. A rubric-blind `interviewer-v1` builder and a per-(entry, skill) `evaluator-judge-v1` builder (levels `0..4` in order, evidence-only JSON, timed-out partial answers kept). Candidate text goes through a zero-Stream sanitizer and a deterministic injection detector, then inside `<candidate_answer>` or `<transcript_entry>` tags. A flagged answer writes one `PROMPT_INJECTION_DETECTED` audit row with a SHA-256 and rule IDs, never raw text. Added the `PROFESSOR` preview endpoint `POST /api/v1/ranking/context/preview/interviewer`. Deleted `ContextCreationServicePlaceholder`.
+- **Why:** `assessment` and `evaluation` must not write their own prompts. One slice keeps the interviewer rubric-blind and treats candidate text as untrusted data.
+- **PR/MR:** pending
+- **Specs:** REQ-CC-09 (added to the main spec), REQ-CC-01..08 (implemented)   **Decisions:** applies 1.12, 1.18, 1.19, 1.21, 2.20, 2.24, 2.25
+
 ## 2026-11-25 — frontend-foundation
 - **What:** Added Vitest (jsdom, ECharts mock) and `npm run test` in both CI files. Added the PrimeVue 4 preset from Tailwind `@theme` tokens and `ScoreBadge`, which never shows `N/A` as `0`. Moved views into feature folders with one `routes.ts` each. Added the shared API client for RFC 9457 errors and SSE streams from a `POST`. `npm run typecheck` now checks the app sources and `vite.config.ts`. `ScoreBadge` shows bad levels as invalid, and the preset maps the full primary scale.
 - **Why:** The five teammate tickets need a test runner, the design system, separate route files and one client. Then they do not edit the same files.

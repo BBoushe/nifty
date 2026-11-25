@@ -3,10 +3,10 @@
 ## Status
 - **Branch:** `feat/context-creation` (branch off `dev`)
 - **Worktree:** `../nifty-context-creation`
-- **Current:** US-CC-06 done and committed; Delivery steps next (merge dev, verify, archive)
-- **Next action:** Run Delivery: git fetch origin && git merge origin/dev, verify, archive
+- **Current:** All stories and the archive step are done. Waiting for human approval to push.
+- **Next action:** Human approves, then `git push` and open the PR via `node scripts/forge.mjs` (never merge)
 - **Uncommitted changes:** none
-- **PR / MR:** —
+- **PR / MR:** not opened (human approves the push first)
 - **Open review findings:** —
 
 ## Tasks
@@ -49,9 +49,9 @@
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
-- [ ] Run `cd backend && ./mvnw -B test`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive context-creation -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive context-creation`.
+- [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [x] Run `cd backend && ./mvnw -B test`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive context-creation -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive context-creation`.
 - [ ] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
@@ -93,7 +93,7 @@
 - Open Questions: none
 
 ### US-CC-06
-- Commits: `feat(context): add professor prompt preview endpoint and update api docs`
+- Commits: `d684622 feat(context): add professor prompt preview endpoint and update api docs`
 - Verification: RED: `./mvnw -B test -Dtest='ContextControllerTest,ContextPreviewIntegrationTest'` → FAIL (compile error: `ContextController` not found; after the class landed, 4 tests failed with an unnamed 400 because Jackson 3 rejects a missing primitive, fixed with boxed `Integer followUpLimit`); GREEN: `cd backend && ./mvnw -B test` → exit 0 (88 tests, 1 skipped by design, `ArchitectureTest` 13 green)
 - Contracts/Migrations added: `docs/api.md` preview row; `docs/ai_logs/2026-11-26-context-creation.md` (+ index row); no migration
 - Decisions: 1.18 (preview endpoint), 1.12 (`rubricLeakCheckPassed`)

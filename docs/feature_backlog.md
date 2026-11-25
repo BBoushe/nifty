@@ -18,7 +18,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 | 2 | `frontend-foundation` | 0 | done | Shared (`frontend/` shell, CI) | — | — |
 | 3 | `auth-accounts` ([`auth-access`](../openspec/specs/auth-access/spec.md)) | 1 | queued | Shared (`auth`, `views/auth/`) | 1, 2 | `V2__auth_accounts.sql` |
 | 4 | `audit-log-service` | 1 | queued | Shared (`audit`) | 1 | — (uses `V1`) |
-| 5 | `context-creation` ([change](../openspec/changes/context-creation/), [ticket](tickets/02-context-creation.md)) | 1 | in progress | Teammate A (`context`) | 1, 4 (mockable) | — (stateless) |
+| 5 | `context-creation` ([spec](../openspec/specs/context-creation/spec.md), [ticket](tickets/02-context-creation.md)) | 1 | done | Teammate A (`context`) | 1, 4 (mockable) | — (stateless) |
 | 6 | `studio-assessment-creation` ([change](../openspec/changes/studio-assessment-creation/), [ticket](tickets/01-studio.md)) | 2 | in progress | Teammate R (`studio`, `views/studio/`) | 1, 2, 3, 4 | `V3__studio.sql` |
 | 7 | `invite-links` ([`auth-access`](../openspec/specs/auth-access/spec.md)) | 3 | queued | Shared (`auth`, `views/studio/` invite route) | 3, 6 | `V4__auth_invites.sql` |
 | 8 | `assessment-chat` ([change](../openspec/changes/assessment-chat/), [ticket](tickets/03-assessment-chat.md)) | 4 | in progress | Teammate S (`assessment`, `views/assessment/` chat) | 5, 6, 7 (mockable) | `V6__assessment.sql` |
