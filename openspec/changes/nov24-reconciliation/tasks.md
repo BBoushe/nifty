@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
-- **Current:** Tasks 1–4 done
-- **Next action:** Task 5 (design system)
+- **Current:** Tasks 1–6 done
+- **Next action:** Task 7 (backlog)
 - **Uncommitted changes:** yes (change folder)
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -39,15 +39,15 @@
 - [x] Commit `docs(architecture): add the dual-agent model, ledger and domain model`
 
 ### Task 5: Design system (Decision 1.14)
-- [ ] `docs/design_system.md`: 0–4 + hatched `N/A`, PrimeVue on Tailwind v4 tokens, interview framing, time format, advice tone, no Ask AI search in MVP
-- [ ] Verify: `ste-lint.py`
-- [ ] Commit `docs(design): align the design system with the 0-4 scale and PrimeVue`
+- [x] `docs/design_system.md`: 0–4 + hatched `N/A`, PrimeVue on Tailwind v4 tokens, interview framing, time format, advice tone, no Ask AI search in MVP
+- [x] Verify: `ste-lint.py`
+- [x] Commit `docs(design): align the design system with the 0-4 scale and PrimeVue`
 
 ### Task 6: AI logs (Decision 3.12)
-- [ ] `docs/ai_logs/README.md` + `docs/ai_logs/2026-11-25-architecture-handover.md`
-- [ ] `AGENTS.md` dispatch row, `docs/setup.md` inventory row
-- [ ] Verify: `ste-lint.py`; harness tests
-- [ ] Commit `docs(ai-logs): start the prompt-as-code audit trail`
+- [x] `docs/ai_logs/README.md` + `docs/ai_logs/2026-11-25-architecture-handover.md`
+- [x] `AGENTS.md` dispatch row, `docs/setup.md` inventory row
+- [x] Verify: `ste-lint.py`; harness tests
+- [x] Commit `docs(ai-logs): start the prompt-as-code audit trail`
 
 ### Task 7: Backlog (Decision 3.14)
 - [ ] Rebuild `docs/feature_backlog.md`: foundation, auth, audit, domain slices with waves, reserved migrations and US-NN stories; Post-MVP section; harness follow-ups
@@ -81,3 +81,7 @@
 ### 2026-11-25 — Task 4 (main session)
 - **Did:** `docs/architecture.md` §2–§5 rewritten (two roles, dual-agent pipeline, interview request flow, ledger and transcript contract, enum table with `auto_released`, domain model ER diagram) and the slice map with `auth` and `audit`; `docs/api.md` role table, Docker OpenAPI row, planned endpoints.
 - **Verification:** RED: n/a (no behaviour). ste-lint: 0 hard findings in both files.
+
+### 2026-11-25 — Tasks 5–6 (main session)
+- **Did:** `docs/design_system.md` (0–4 + hatched `N/A` level table, PrimeVue preset from Tailwind `@theme` tokens, interview framing, `mm:ss` timers, advice tone, Countdown/ConversationLog/LikertScale, Ask AI Post-MVP); `docs/ai_logs/` README and the 2026-11-25 handover; `AGENTS.md` dispatch row; `docs/setup.md` inventory row.
+- **Verification:** RED: n/a (no behaviour). ste-lint: 0 hard findings in the new text.

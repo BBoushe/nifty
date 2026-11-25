@@ -83,6 +83,7 @@ This section is the **canonical source of truth** for any AI agent that must und
 | `.claude/settings.json` `enabledPlugins` | Declares `superpowers@claude-plugins-official` (Decision 3.7). Declaring it does not install it. Each teammate runs `claude plugin install superpowers@claude-plugins-official --scope project` once per clone. Other tools use the inline Build Loop in `.claude/agents/spec-builder.md` | Claude Code | **Adapter** |
 | `.agents/skills/orchestrate-changes/` | Orchestrator procedure (Decision 3.11): builder agents per change in `../nifty-<change>` worktrees, a cold reviewer per PR, PR/MR handling by branch, merge order, and a user question with an architecture summary before every merge. Symlinked to `.claude/skills/orchestrate-changes` | Claude Code (other tools follow it by hand) | **Canonical (Delivery)** |
 | `scripts/forge.mjs prs` | Prints each open branch's GitHub PR and checks next to its GitLab MR and pipeline. `forge.mjs` also reads the main checkout's `.env` from a worktree | All tools | **Canonical (Forge)** |
+| `docs/ai_logs/` | Prompt-as-code audit trail (Decision 3.12): one dated file per architecture handover or decision session. Format and index in `docs/ai_logs/README.md` | All agents and humans | **Canonical (Process)** |
 
 ### 2. Modification Rules (Zero-Drift Policy)
 
