@@ -4,8 +4,8 @@
 <!-- Overwrite this block at every stop. Any tool resumes from here (see docs/prompts/harness-upgrade-board.md). -->
 - **Branch:** `docs/docs-ste-rewrite` (off `origin/dev` f915727; the five harness changes are archived there)
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-docs-ste-rewrite`
-- **Current:** Tasks 1, 2, 4, 5, 6 done; Task 3 waits for PR #13, then Task 7. Method: one Sonnet subagent per task, one after another; the main session checks each diff and commits it
-- **Next action:** after PR #13 merges: `git merge origin/dev`, then Task 3 (README, setup, workflow). Task 3 (`README.md`, `docs/setup.md`) waits until `bash-guard-gaps` merges, because that change edits both files
+- **Current:** Tasks 1-7 done; Delivery next
+- **Next action:** Delivery: archive, history entry, push, PR/MR, cold review with the word diff
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -18,16 +18,16 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
   - [x] Steps (a)–(f)
 - [x] **2. Rules** — `.agents/rules/*.md`
   - [x] Steps (a)–(f)
-- [ ] **3. Onboarding** — `README.md`, `docs/setup.md`, `docs/workflow.md`
-  - [ ] Steps (a)–(f)
+- [x] **3. Onboarding** — `README.md`, `docs/setup.md`, `docs/workflow.md`
+  - [x] Steps (a)–(f)
 - [x] **4. Architecture docs** — `docs/architecture.md`, `docs/api.md`, `docs/design_system.md`
   - [x] Steps (a)–(f)
 - [x] **5. Product vision** — `docs/discovery-canvas.md`
   - [x] Steps (a)–(f)
 - [x] **6. Domain specs** — `openspec/specs/*/spec.md`
   - [x] Steps (a)–(f)
-- [ ] **7. Changelog**
-  - [ ] Add a `CHANGELOG.md` `[Unreleased]` entry. Commit `docs(changelog): note STE rewrite`.
+- [x] **7. Changelog**
+  - [x] Add a `CHANGELOG.md` `[Unreleased]` entry. Commit `docs(changelog): note STE rewrite`.
 
 ## Delivery
 
@@ -70,3 +70,12 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 - **Did:** STE rewrite of the Purpose paragraph in all 7 `openspec/specs/*/spec.md` (the only free prose). EARS statements, scenarios, headings and REQ IDs unchanged (`git diff -U0 | grep SHALL|WHEN|…` prints nothing).
 - **Verification:** RED: n/a (no behaviour). Obligations equal on all 7; prose lint findings 2→0; EARS findings accepted (28, verbatim by rule); `openspec validate --all --strict` 8/8; harness tests 35/35.
 - **Next:** Task 3 after PR #13 merges.
+
+### 2026-11-25 — Task 3 (Sonnet subagent, checked by main session)
+- **Did:** STE rewrite of `README.md`, `docs/setup.md`, `docs/workflow.md`; headings, anchors, tables, code and the guard form/limit lists unchanged (keyword counts compared before/after).
+- **Verification:** RED: n/a (no behaviour). Obligations equal on all 3; ste-lint hard findings 11→0, 23→1, 12→1 (exceptions: synonym rotation forced by the kept labels "Verify End-to-End" and "Implement & Verify"); `openspec validate --all` exit 0; harness tests 40/40.
+
+### 2026-11-25 — Task 7 (main session)
+- **Did:** CHANGELOG `[Unreleased]` entry for the STE rewrite.
+- **Verification:** RED: n/a (no behaviour). Harness tests exit 0.
+- **Next:** Delivery.
