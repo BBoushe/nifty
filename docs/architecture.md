@@ -186,3 +186,17 @@ The backend uses package-by-feature (Decision 1.10), enforced by `ArchitectureTe
 - **Contract stubs:** each shared interface, record and enum of `docs/tickets/00-parallel-waves-and-contracts.md` §3 exists in its owner package. Enums carry `@JsonValue` with the JSON and database literal.
 - **Placeholders:** each of the 6 shared interfaces has one `<Interface>Placeholder` `@Service` in the same package. Every placeholder method throws `UnsupportedOperationException`. The owner deletes the placeholder when the real bean lands.
 - **Shared errors and events:** `FieldValidationException` (`400` with `errors[]`) is in `shared/exception`. `AttemptCompletedEvent` and `AssessmentDeletedEvent` are in `shared/config`.
+
+## Frontend Structure (`frontend-foundation`)
+
+Each feature owns one folder under `frontend/src/views/<feature>/`: `auth`, `studio`, `assessment`, `ranking` and `teams`. Each folder has one `routes.ts` that exports a `RouteRecordRaw[]`. `router/index.ts` spreads the five arrays. A ticket changes only the `routes.ts` of its own folder.
+
+| Path | Purpose |
+|---|---|
+| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json`. `postSse()` reads an SSE stream from a `POST`. |
+| `src/style.css` | The design tokens as Tailwind `@theme` variables. |
+| `src/theme/preset.ts` | The one PrimeVue preset. It maps the `@theme` variables (Decision 1.14). |
+| `src/components/` | Shared components. `ScoreBadge` shows `<level>/4 · <label>` or a hatched `N/A · not enough evidence`. It never shows `N/A` as `0`. |
+| `src/test/echarts-mock.ts` | Replaces `vue-echarts` in every Vitest test, because jsdom has no canvas. |
+
+Run the tests with `cd frontend && npm run test`. Vitest uses `jsdom` and finds each `*.test.ts` next to its code. Both CI files run `npm run test` after `npm run lint`.

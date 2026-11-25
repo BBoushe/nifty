@@ -20,7 +20,7 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 - Whenever the user/prompter changes direction or answers a `question-round`, record the decision with `node scripts/record-decision.mjs`. Never skip recording.
 - Check the active Git forge with `node scripts/check-setup.mjs --forge` (`gh`, `glab`, or `node scripts/forge.mjs` for `both`). Never read `.env` directly.
 - When you open or update a PR/MR, **always** fill `.github/PULL_REQUEST_TEMPLATE.md` (mirrored in `.gitlab/merge_request_templates/Default.md`) with the `pr-memo` skill. Never write an ad-hoc summary that drops the Spec/Issue or Verification checklists.
-- Run real verification commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run lint && npm run build`) before you claim completion.
+- Run real verification commands (`cd backend && ./mvnw test`, `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build`) before you claim completion.
 - Keep diffs small, atomic and scoped to the active spec.
 
 ---
