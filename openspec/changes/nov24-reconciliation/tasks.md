@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
-- **Current:** Task 1 done; Tasks 2–7 in progress
-- **Next action:** Task 2 (canvas) runs in a subagent; continue with Task 3
+- **Current:** Tasks 1–3 done
+- **Next action:** Task 4 (architecture and API)
 - **Uncommitted changes:** yes (change folder)
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -17,20 +17,20 @@
 - [x] Commit `docs(specs): add nov24-reconciliation change with delta specs`
 
 ### Task 2: Discovery canvas (Decision 4.1)
-- [ ] Copy the 2026-11-22 canvas to `docs/archive/discovery-canvas-2026-11-22.md` with the OUTDATED banner
-- [ ] Update `docs/discovery-canvas.md` to the feature list and decisions 1.11–4.4; keep heading anchors
-- [ ] Verify: `ste-lint.py` on changed prose; no stale hits for `.kiro/specs`, `TBD`, `/100`, pause/resume, re-probe
-- [ ] Commit `docs(canvas): archive the discovery canvas and update it to the Nov 24 decisions`
+- [x] Copy the 2026-11-22 canvas to `docs/archive/discovery-canvas-2026-11-22.md` with the OUTDATED banner
+- [x] Update `docs/discovery-canvas.md` to the feature list and decisions 1.11–4.4; keep heading anchors
+- [x] Verify: `ste-lint.py` on changed prose; no stale hits for `.kiro/specs`, `TBD`, `/100`, pause/resume, re-probe
+- [x] Commit `docs(canvas): archive the discovery canvas and update it to the Nov 24 decisions`
 
 ### Task 3: Invariants and rules
-- [ ] `AGENTS.md` §1–§3, `openspec/config.yaml`, `README.md`, `.agents/rules/spec-driven.md`: two roles, threshold-gated release, dual-agent isolation, real data rule, PrimeVue, `specs/` instead of `requirements.md`
-- [ ] `CLAUDE.md` + `AGENTS.md`: context read order (Decision 3.13)
-- [ ] `.agents/rules/backend-java.md`: roles, ledger instead of a mutable JSONB transcript, Java/Spring conventions (Decision 3.13)
-- [ ] `.agents/rules/frontend-vue.md`: O1 resolved, duplicate rule 11 removed, per-question flags, countdown
-- [ ] `docs/workflow.md`: `specs/` instead of `requirements.md`
-- [ ] `openspec/specs/*/spec.md`: `Primary View` and `Purpose` lines (design §7)
-- [ ] Verify: `ste-lint.py` on the changed files; `openspec validate --all --strict`; harness tests
-- [ ] Commit `docs(rules): align invariants and rules with the Nov 24 decisions`
+- [x] `AGENTS.md` §1–§3, `openspec/config.yaml`, `README.md`, `.agents/rules/spec-driven.md`: two roles, threshold-gated release, dual-agent isolation, real data rule, PrimeVue, `specs/` instead of `requirements.md`
+- [x] `CLAUDE.md` + `AGENTS.md`: context read order (Decision 3.13)
+- [x] `.agents/rules/backend-java.md`: roles, ledger instead of a mutable JSONB transcript, Java/Spring conventions (Decision 3.13)
+- [x] `.agents/rules/frontend-vue.md`: O1 resolved, duplicate rule 11 removed, per-question flags, countdown
+- [x] `docs/workflow.md`: `specs/` instead of `requirements.md`
+- [x] `openspec/specs/*/spec.md`: `Primary View` and `Purpose` lines (design §7)
+- [x] Verify: `ste-lint.py` on the changed files; `openspec validate --all --strict`; harness tests
+- [x] Commit `docs(rules): align invariants and rules with the Nov 24 decisions`
 
 ### Task 4: Architecture and API
 - [ ] `docs/architecture.md`: two views, dual-agent pipeline, ledger contract, domain model + ER diagram, enum table, slice map (design §2–§6)
@@ -72,3 +72,8 @@
 - **Verification:** RED: n/a (no behaviour). `OPENSPEC_TELEMETRY=0 openspec validate nov24-reconciliation --strict` → valid.
 - **Decisions:** all of the above; the user chose POST answers that stream the reply (1.11) and invite-link sign-in (1.17).
 - **Open questions:** a timed-out partial answer is logged but not scored (Decision 2.14 + feature list); confirm with the user.
+
+### 2026-11-25 — Tasks 2–3 (main session + canvas subagent)
+- **Did:** archived the canvas as OUTDATED in `docs/archive/` and updated the live canvas (subagent); aligned `AGENTS.md` (invariants 4–6, 8–10, read order), `CLAUDE.md`, `README.md`, `openspec/config.yaml`, `spec-driven.md`, `backend-java.md` (roles, ledger, Java conventions as new rule 7, so Architecture is now §9), `frontend-vue.md` (PrimeVue, countdown, duplicate rule removed), `workflow.md`, reviewer and check skills, spec header lines.
+- **Verification:** RED: n/a (no behaviour). ste-lint: no new hard findings in written text (EARS lines exempt); `openspec validate --all --strict` 8/8; harness tests 43/43.
+- **Open questions:** canvas subagent notes: interview budget has no decision; rubber-stamp metrics kept in UX-04.

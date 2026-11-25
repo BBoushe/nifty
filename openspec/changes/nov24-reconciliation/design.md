@@ -6,7 +6,7 @@ This change edits specs and docs only. The sections below fix the shapes that th
 
 | Decision | Topic | Artifacts |
 |---|---|---|
-| 4.1 | Feature list wins; canvas archived | `docs/archive/discovery-canvas-2026-11-22.md`, `docs/discovery-canvas.md` |
+| 4.1 | Feature list wins, canvas archived | `docs/archive/discovery-canvas-2026-11-22.md`, `docs/discovery-canvas.md` |
 | 4.2 | Post-MVP and removed items | `docs/feature_backlog.md` |
 | 4.3 | BFI-10 step | REQ-AC-14..16, REQ-TB-06..07, REQ-CR-06 |
 | 4.4 (O7) | Real data, kept until deleted | REQ-IS-07, `AGENTS.md` §2 rule 8 |
@@ -19,12 +19,12 @@ This change edits specs and docs only. The sections below fix the shapes that th
 | 2.16 | Deterministic advice | REQ-CR-05, `docs/design_system.md` |
 | 2.17 (O3), 2.18 (O4) | Professor form, no hard-coded values | REQ-IS-05..06, REQ-TB-05 |
 | 2.19 (O5) | Presets only | REQ-FE-04 removed, REQ-FE-05 |
-| 1.11 | Answers stream the reply; ledger | REQ-AC-04..06, `docs/api.md`, `docs/architecture.md` |
+| 1.11 | Answers stream the reply, ledger | REQ-AC-04..06, `docs/api.md`, `docs/architecture.md` |
 | 1.12 | Dual-agent isolation | REQ-AC-12..13, REQ-EP-05, `AGENTS.md` §2 |
 | 1.13 (O2) | Interviewer on ki:connect NRW | `docs/architecture.md` |
 | 1.14 (O1) | PrimeVue, 0–4 + hatched N/A | `docs/design_system.md`, `.agents/rules/frontend-vue.md` |
 | 1.15 | Two roles | REQ-AA-01, `Role` in the enum table, `AGENTS.md`, `backend-java.md` |
-| 1.16 | `auth` and `audit` slices; `studio` owns tags | REQ-IS-02, slice map |
+| 1.16 | `auth` and `audit` slices, `studio` owns tags | REQ-IS-02, slice map |
 | 1.17 | Invite-link sign-in | REQ-AA-03..05 |
 | 3.12 | `docs/ai_logs/` | `docs/ai_logs/README.md`, `architecture_handover.md` |
 | 3.13 | Java/Spring conventions, read order | `backend-java.md`, `AGENTS.md`, `CLAUDE.md` |
@@ -42,9 +42,9 @@ One append-only table, `conversation_entry`, owned by the `assessment` slice:
 | `author` | `interviewer \| candidate` | |
 | `core_question_id` | UUID FK, nullable | Set for questions, follow-ups and answers |
 | `origin` | `core \| follow_up \| invented`, nullable | Questions only |
-| `content` | text | Message text; empty for a timeout without text |
+| `content` | text | Message text. Empty for a timeout without text |
 | `target_skills` | text[] | Questions only |
-| `created_at` | timestamptz | Server time; `askedAt` for a question |
+| `created_at` | timestamptz | Server time. `askedAt` for a question |
 | `expires_at` | timestamptz, nullable | Questions only (REQ-AC-07) |
 | `timed_out` | boolean | Answers only (REQ-AC-08) |
 | `paste_suspected` | boolean | Answers only (REQ-AC-09) |
@@ -62,7 +62,7 @@ GET  /sessions/{id}           → state from the ledger (refresh)
 POST /sessions/{id}/bfi10     → 204 (only WHERE BFI-10 is on, after the last core question)
 ```
 
-The state machine (`assessment` slice, Java) holds: `IN_PROGRESS → BFI10 → COMPLETED`, or `IN_PROGRESS → COMPLETED` when BFI-10 is off. It enforces question order, the follow-up limit and the deadlines. An input that the state does not allow gets `409`. On every request, the service first closes any question whose `expiresAt` plus the grace period has passed (REQ-AC-08). `COMPLETED` publishes `AttemptCompletedEvent`; the evaluator listens `AFTER_COMMIT` (REQ-EP-05).
+The state machine (`assessment` slice, Java) holds: `IN_PROGRESS → BFI10 → COMPLETED`, or `IN_PROGRESS → COMPLETED` when BFI-10 is off. It enforces question order, the follow-up limit and the deadlines. An input that the state does not allow gets `409`. On every request, the service first closes any question whose `expiresAt` plus the grace period lies in the past (REQ-AC-08). `COMPLETED` publishes `AttemptCompletedEvent`. The evaluator listens `AFTER_COMMIT` (REQ-EP-05).
 
 ## 4. BFI-10 Items
 

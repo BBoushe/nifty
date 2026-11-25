@@ -1,11 +1,11 @@
 # Domain Spec: Skills Matrix, Review Queue & Audit Log (`skills-matrix-review`)
 
 > **Status:** Seed baseline (from `docs/discovery-canvas.md` §8 UX-04, UX-05, UX-06, UX-07, UX-12 & §14)
-> **Primary View:** Ranking View (`PROFESSOR` / `REVIEWER`)
+> **Primary View:** Ranking View (`PROFESSOR`)
 
 ## Purpose
 
-Provide an evidence-first visual review workspace. Professors and TAs use it to inspect candidate skill matrices and to open verified quotes in one click. They also prioritize uncertain or high-impact scores, record auditable overrides, and inspect SQL-calculated cohort gaps.
+Provide an evidence-first visual review workspace. Professors use it to inspect candidate skill matrices and to open verified quotes in one click. They also prioritize uncertain or high-impact scores, record auditable overrides, and inspect SQL-calculated cohort gaps.
 
 ## Requirements
 

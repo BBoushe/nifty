@@ -1,7 +1,7 @@
 # Domain Spec: Interviewer Studio (`interviewer-studio`)
 
 > **Status:** Seed baseline (from `docs/discovery-canvas.md` §8 UX-01, UX-02 & §14)
-> **Primary View:** Ranking View (`PROFESSOR` / `REVIEWER`)
+> **Primary View:** Ranking View (`PROFESSOR`)
 
 ## Purpose
 

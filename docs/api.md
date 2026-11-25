@@ -20,7 +20,7 @@
 
 ## 3. Standard Error Envelope
 
-Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Rules are in `.agents/rules/backend-java.md` §8. Responses never contain stack traces or exception class names.
+Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Rules are in `.agents/rules/backend-java.md` §9. Responses never contain stack traces or exception class names.
 
 | Field | Meaning |
 |---|---|

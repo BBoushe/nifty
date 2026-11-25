@@ -25,7 +25,7 @@ Do not rely on the builder's verbal claims — verify every invariant, coding ru
 
 ## Blocking Criteria (Only Block On These)
 
-- Violation of any `AGENTS.md` §2 domain/regulatory invariant (LLM-computed math, `0`/`1` instead of `N/A`, unverified quotes, self-reported confidence, missing human approval or audit log on overrides, mid-interview score leak, non-empty Team Builder LLM context, committed secrets or real PII).
+- Violation of any `AGENTS.md` §2 domain/regulatory invariant (LLM-computed math, `0`/`1` instead of `N/A`, unverified quotes, self-reported confidence, missing human approval or audit log on overrides, mid-interview score leak, rubric or score data in the interviewer prompt, update or delete of ledger rows, non-empty Team Builder LLM context, committed secrets or real PII).
 - Clear `.agents/rules/coding-standards.md` blocking violations: copy-pasted/DRY-violating logic or duplicate classes/interfaces re-implementing existing logic, Java Streams inside repeatedly called/hot-path centralized functions, backend API/controller changes missing `docs/api.md` updates, or un-grouped bespoke Vue views violating `frontend/src/views/<feature>/`.
 - Undocumented architectural/direction shifts lacking a valid `docs/decisions/` `X.Y` entry or invalid `Decision X.Y` code pointers.
 - Unmet or broken EARS acceptance criteria in `openspec/`, failing builds/tests, or rule drift across canonical and thin-pointer harness files.

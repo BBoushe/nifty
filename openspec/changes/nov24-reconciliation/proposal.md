@@ -19,4 +19,4 @@ The 2026-11-25 decisions close all of this: 1.11–1.17, 2.10–2.19, 3.12–3.1
 
 - Code changes (`backend/**`, `frontend/**`, CI). The backlog lists them as features: foundation, auth, audit, and the domain slices.
 - Post-MVP items (Decision 4.2): case-study matching, LLM-suggested Studio questions, the SpEL editor, the dispute workflow, Team Builder Mode C.
-- A rewrite of `docs/decisions/` entries older than 2026-11-25. They stay as history; newer decisions supersede them.
+- A rewrite of `docs/decisions/` entries older than 2026-11-25. They stay as history. Newer decisions supersede them.

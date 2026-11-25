@@ -29,7 +29,7 @@ All significant features follow the Kiro-style spec workflow. The workflow files
 
 1. **Propose & Specify (`openspec/changes/<feature>/`):**
    - `proposal.md` — Problem, scope, out-of-scope.
-   - `requirements.md` — Acceptance criteria in **EARS notation** (`WHEN … THE SYSTEM SHALL …`, `WHILE …`, `WHERE …`, `IF … THEN …`).
+   - `specs/<capability>/spec.md` — Acceptance criteria in **EARS notation** (`WHEN … THE SYSTEM SHALL …`, `WHILE …`, `WHERE …`, `IF … THEN …`).
    - `design.md` — Data model, API contracts, UI flows, edge cases.
    - `tasks.md` — Ordered, verifiable implementation checklist.
 2. **Human Review Gate:** A teammate reviews and approves the spec before heavy code generation begins.
@@ -144,5 +144,5 @@ Other tools follow the same steps by hand, with one session per change.
 
 ## 5. Human-in-the-Loop Policy (Product & Engineering)
 
-- **In the product:** Humans approve interviewer configurations, flagged/final candidate scores, and final team assignments (EU AI Act Annex III & GDPR alignment).
+- **In the product:** Humans approve interviewer configurations and final team assignments. A human approves every attempt below the professor's thresholds before release (Decision 2.10; EU AI Act Annex III & GDPR alignment).
 - **In our repo:** Agents propose specs, code, and audits. Humans review and approve merges to `alpha` and `master`.

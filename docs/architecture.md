@@ -93,7 +93,7 @@ All backend Java enums, PostgreSQL columns/JSONB payloads, OpenAPI schemas, and 
 
 ## Feature Slice Map
 
-The backend is package-by-feature (Decision 1.10). Rules and enforcement are in [`.agents/rules/backend-java.md`](../.agents/rules/backend-java.md) §8. Each OpenSpec spec maps to one backend package `de.fhdortmund.nifty.<package>`. Each package has `web/`, `service/` and `repository/` layers as needed. Cross-cutting code lives in `shared/{config,exception}`.
+The backend is package-by-feature (Decision 1.10). Rules and enforcement are in [`.agents/rules/backend-java.md`](../.agents/rules/backend-java.md) §9. Each OpenSpec spec maps to one backend package `de.fhdortmund.nifty.<package>`. Each package has `web/`, `service/` and `repository/` layers as needed. Cross-cutting code lives in `shared/{config,exception}`.
 
 | OpenSpec spec | Backend package | Frontend views |
 |---|---|---|

@@ -2,7 +2,7 @@
 
 Nifty is an evidence-first AI skill assessment and deterministic team-formation platform. The team built it during the **FH Dortmund Innovation Driven Software Engineering Block Week**.
 
-Every skill score traces to a word-for-word verified quote in an `assessment-transcript/v1` transcript. The system records untested skills explicitly as `N/A`. Java/SQL/Timefold compute all totals and team placements deterministically. A human approves every configuration, score, and team before publication.
+Every skill score traces to a word-for-word verified quote in an `assessment-transcript/v1` transcript. The system records untested skills explicitly as `N/A`. Java/SQL/Timefold compute all totals and team placements deterministically. A human approves every configuration and team. The professor sets the trust thresholds, and a human approves every result below them before release.
 
 - **Product Vision & Requirements:** [`docs/discovery-canvas.md`](docs/discovery-canvas.md)
 - **Architecture & 9-Step Pipeline:** [`docs/architecture.md`](docs/architecture.md)
