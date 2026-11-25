@@ -16,7 +16,7 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and Time
    - Never edit a Flyway migration that the database already applied. Always add a new `V<n>__description.sql` under `src/main/resources/db/migration/`.
    - Store `assessment-transcript/v1` payloads as PostgreSQL `JSONB`. Use relational tables for scores, evidence, and audit logs.
 4. **Spring AI 2.0 Provider Portability & Deterministic Boundaries:**
-   - Use Spring AI 2.0 abstractions (`ChatClient` / `ChatModel`) cleanly. Then a later switch to other providers, or the addition of providers, stays config-driven. The provider today is `ki:connect` NRW / FH AI. Later providers can be the Gemini, Claude, or OpenAI APIs.
+   - Use Spring AI 2.0 abstractions (`ChatClient` / `ChatModel`) cleanly. This way, a later switch to other providers, or the addition of providers, stays config-driven. The provider today is `ki:connect` NRW / FH AI. Later providers can be the Gemini, Claude, or OpenAI APIs.
    - Do **not** add an artificial offline demo stub gateway.
    - Keep automated tests deterministic. Mock or replay `ChatClient` responses with synthetic fixtures.
    - App MUST boot cleanly when the configuration has no LLM API key (env-var driven, EU-endpoint ready).

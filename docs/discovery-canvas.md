@@ -117,7 +117,7 @@ The single-candidate output also had structural flaws, although its averages wer
 ### P2: Lena Petrova, Student / Candidate
 
 - M.Sc. Computer Science student with a TypeScript/Node full-stack background. She is strong in LLM orchestration. She is just starting Java/Spring.
-- She felt her AI-generated profile undersold her strengths. It also mislabelled skills that nobody tested.
+- She felt that her AI-generated profile undersold her strengths and mislabelled skills that nobody tested.
 - **Goal:** be assessed fairly and join a team where she can contribute and learn.
 - **Fear:** a black-box score that follows her around.
 
@@ -300,7 +300,7 @@ The professor configures how the LLM interviewer behaves:
 - **Three modes:**
   - **A, Formula/solver:** the professor picks constraint presets (team size, one strong member per key domain, balanced averages).
   - **B, Text criteria → constraints:** the professor writes criteria in plain language. An LLM in a **fresh, empty context** turns them into solver constraints. The professor approves them. The solver computes the teams.
-  - **C, LLM proposal (optional):** an LLM in a fresh context proposes teams from *computed* scores only. A **deterministic validator** verifies the proposal (it assigns everyone exactly once, the sizes are right, it has no invented candidates or scores). The system shows the proposal next to the solver result.
+  - **C, LLM proposal (optional):** an LLM in a fresh context proposes teams from *computed* scores only. A **deterministic validator** verifies the proposal (the proposal assigns everyone exactly once, has the right team sizes, and has no invented candidates or scores). The system shows the proposal next to the solver result.
 - Drag and drop to adjust. The balance indicators recalculate live.
 - Click a team or member → **reasoning** (which constraints and scores drove the placement).
 

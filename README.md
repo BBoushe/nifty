@@ -153,5 +153,5 @@ The guard does not inspect interpreter one-liners (`python -c`, `node -e`), `fin
 
 - Branch off `dev` (`feat/*`, `fix/*`, `refactor/*`, `chore/*`, `docs/*`).
 - Promotion path: `feat/* -> dev` (PR, CI passes) `-> alpha` (PR, ≥2 approvals) `-> master` (PR, ≥4 approvals).
-- The repo blocks direct pushes to `master`/`main` and `alpha`. It allows direct pushes to `dev` only for `docs:` and `hotfix:` commits.
+- The repo blocks direct pushes to `master`/`main` and `alpha`. GitHub also rejects every direct push to `dev`, including `docs:` and `hotfix:` commits (Decision 3.10).
 - Use **Conventional Commits** (`feat(scope): ...`, `fix(scope): ...`, `docs(scope): ...`, `chore(scope): ...`).
