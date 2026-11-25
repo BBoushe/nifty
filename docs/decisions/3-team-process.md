@@ -129,3 +129,12 @@ Engineering workflow, AI harness governance, coding standards, and review polici
 - **Alternatives Considered:** Keep module-level rows.
 - **Rationale / Justification:** Parallel worktrees never collide on migration numbers, and builders pick one story per loop.
 - **Affected Files / Pointers:** docs/feature_backlog.md
+
+## 3.15 — Builders use the ponytail plugin and install it when it is missing
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** The prompter wants implementer agents to write the smallest complete change. The ponytail plugin (DietrichGebert/ponytail) encodes that: reuse before adding, no speculative abstractions, a shortcut comment for every known limit.
+- **Decision:** spec-builder and the spec-implementer skill use the ponytail:ponytail skill (level full) for every code task. If no ponytail skill is available, the builder runs 'claude plugin marketplace add DietrichGebert/ponytail' and 'claude plugin install ponytail@ponytail --scope project', tells the human that a session restart loads it, and follows the inline fallback until then. .claude/settings.json declares the marketplace and enables ponytail@ponytail. Other tools follow the inline fallback.
+- **Alternatives Considered:** A rule in coding-standards.md only; leaving the plugin optional per developer
+- **Rationale / Justification:** One plugin gives every Claude session the same minimal-diff discipline, and the inline fallback keeps other tools at parity.
+- **Affected Files / Pointers:** .claude/agents/spec-builder.md, .claude/skills/spec-implementer/SKILL.md, .claude/settings.json, docs/setup.md

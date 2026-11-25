@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Builders use ponytail (Decision 3.15):** `spec-builder` and `spec-implementer` write code with the `ponytail:ponytail` skill and install the plugin when it is missing. `.claude/settings.json` declares the `DietrichGebert/ponytail` marketplace and enables `ponytail@ponytail`.
 - **Five-service convergence (Decisions 1.18–1.21, 2.21–2.25):** one contract for the five teammate services: 7 backend slices, UUID keys, shared events, professor routes under `/api/v1/ranking/**`, one-shot immutable assessments, question-only weights and grouping modes. The context builder keeps two separate contexts per attempt, and the evaluator returns machine-parsable levels only. Team formation uses a seeded Simulated Annealing optimizer: Timefold is removed from the build. New `context-creation` spec, five teammate changes and `docs/tickets/`. `docs/artifacts/` and `docs/pdfs/` are now gitignored.
 - **Nov 24 follow-ups (Decisions 2.20, 4.5, 1.15):** answers submitted at timeout are now evaluated, and only a question without answer text is `N/A`. There is no cost limit per interview. The `REVIEWER` role is gone from the code: `/api/v1/ranking/**` allows only `PROFESSOR`, and `/api/v1/assessment/**` allows only `CANDIDATE` (`RoleAccessTest`).
 
