@@ -4,7 +4,53 @@
 - **Branch / Worktree:** `feat/studio-assessment-creation` (`../nifty-studio-assessment-creation`)
 - **Owned Folders:** `backend/src/main/java/de/fhdortmund/nifty/studio/`, `frontend/src/views/studio/`, `frontend/src/stores/assessmentForm.ts`
 - **Reserved Migration:** `V3__studio.sql` (single file or `V3_1`..`V3_4` — never touch `V1`, `V2`, `V4`, `V6`, `V7`, `V8`)
-- **Wave:** Wave 2 (start `US-ST-01` hand-off records + fixtures immediately on Day 1!)
+- **Wave:** Wave 2. You can start now: Wave 0 is on `dev`, and the `StudioQueryService` stubs already exist.
+
+## Before You Start (Teammate R, do these steps yourself)
+
+### 1. Machine setup (once)
+
+1. Install Node 22+, Java 21, Docker Desktop and Claude Code. Start Docker. The backend tests need it, because they run PostgreSQL in Testcontainers.
+2. Install and sign in to `gh` (GitHub) and `glab` (GitLab, host `git.inf.fh-dortmund.de`).
+3. Get the repo and the latest `dev`. Skip the clone if you already have the repo:
+   ```
+   git clone https://github.com/BBoushe/nifty.git
+   cd nifty
+   git checkout dev
+   git pull
+   ```
+4. Copy `.env.example` to `.env` and set `GIT_FORGE=both` and `GITLAB_HOST=git.inf.fh-dortmund.de`. Keep the other defaults. Your agent never reads this file.
+5. Run `node scripts/check-setup.mjs` and fix every item that it reports. This also turns on the git hooks.
+6. Install the two Claude Code plugins for this project:
+   ```
+   claude plugin install superpowers@claude-plugins-official --scope project
+   claude plugin marketplace add DietrichGebert/ponytail
+   claude plugin install ponytail@ponytail --scope project
+   ```
+
+### 2. Launch the agent
+
+1. Open a terminal in the main `nifty` folder (not in a worktree) and run `claude`. Your agent creates its own worktree `../nifty-studio-assessment-creation`.
+2. Paste exactly this prompt:
+   ```text
+   Read docs/tickets/01-studio.md. Run the "Ready-to-Paste Agent Launch Prompt" in that file exactly as written, starting with Setup step 1. Also obey the "Known gaps" section of that file. Ask me before you push or open a PR/MR, and never merge.
+   ```
+3. Approve the push and the PR/MR when the agent asks. It commits after every task, so you can stop at any time. To continue later, start `claude` in the main folder again and paste: `Resume docs/tickets/01-studio.md from the Status block in openspec/changes/studio-assessment-creation/tasks.md.`
+
+### 3. Known gaps (your agent must obey these)
+
+- **Auth and audit are not built yet.** `auth-accounts` (professor login, `AuthContextService`) and `audit-log-service` (`AuditService`) are separate shared changes. Do not build them in this ticket. On `dev`, both interfaces have placeholder beans that throw `UnsupportedOperationException`.
+  - Unit tests: mock both interfaces with Mockito.
+  - Spring tests (`@SpringBootTest`, `@WebMvcTest`): replace both with `@MockitoBean`, because the placeholders throw.
+  - Production code: inject the interfaces. Never refer to the placeholder classes by name.
+- **No login yet.** You cannot open the studio pages against a real backend in the browser. Test the frontend with Vitest and a mocked `fetch`.
+- **No foreign key to `professor_account`.** That table belongs to `auth` (`V2`). Store `professor_id UUID NOT NULL` without a foreign key (contract pack §1).
+- **Use what Wave 0 built:** `apiFetch` and `ApiProblem` from `frontend/src/api/client.ts`, PrimeVue (themed by `src/theme/preset.ts`), and `PostgresContainerBase` for every Spring test. Add your routes only in `frontend/src/views/studio/routes.ts`.
+- **US-ST-01:** the `StudioQueryService` records already exist as stubs. Check them against the contract pack §3 and add the reflection guard test. Never write a second copy. Delete `StudioQueryServicePlaceholder` when `StudioQueryServiceImpl` lands in US-ST-04.
+
+### 4. When the agent finishes
+
+The agent archives the change, pushes, opens the PR/MR, and stops. Then tell Teammate A (repo maintainer). Teammate A runs a cold review, checks CI on both forges, merges on GitHub, and syncs GitLab. Only a GitLab Maintainer can run that sync.
 
 ## Key Convergence Fixes Applied to Original Draft
 1. **ArchUnit fix (Blocking):** Put ALL `@Entity` classes inside `studio/repository/` (NOT `studio/domain/`). `ArchitectureRules.java` rejects `domain/`.
