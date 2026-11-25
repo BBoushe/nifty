@@ -102,3 +102,30 @@ Engineering workflow, AI harness governance, coding standards, and review polici
 - **Alternatives Considered:** One terminal session per change (the 2026-11-24 board); merging automatically on green CI plus an approving review.
 - **Rationale / Justification:** The user talks to one session and never needs PR/MR numbers; the per-merge architecture summary keeps a human steering direction; the tasks.md Status block keeps every change resumable from any tool.
 - **Affected Files / Pointers:** .agents/skills/orchestrate-changes/SKILL.md, scripts/forge.mjs, docs/workflow.md
+
+## 3.12 — docs/ai_logs/ prompt-as-code audit trail
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** PDF 4 asks for docs/ai_logs/ as an audit trail of AI handovers for the Friday defense.
+- **Decision:** docs/ai_logs/ holds one dated handover file per significant AI session or architecture handover (what was asked, what was decided, which decisions and PRs). tasks.md Handoff Logs stay the per-task record.
+- **Alternatives Considered:** Rely only on tasks.md Handoff Logs and docs/prompts/done/.
+- **Rationale / Justification:** Graders can follow the AI-assisted process in one place.
+- **Affected Files / Pointers:** docs/ai_logs/README.md, AGENTS.md
+
+## 3.13 — Java/Spring conventions and context read order from PDF 4
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** PDF 4 lists Java 21 and Spring conventions and a context-distillation read order that our rules do not have.
+- **Decision:** Services are @Transactional(readOnly = true) at class level; write methods add @Transactional; never on controllers or repositories. Optional only as a return type. Prefer records, pattern matching, sealed types and .toList(). No Lombok in MVP; if added, only @RequiredArgsConstructor and @Getter, never @Data on an @Entity. Agents read docs/architecture.md and docs/feature_history.md before they scan source, and docs/api.md before they change a controller.
+- **Alternatives Considered:** Keep the current rules only.
+- **Rationale / Justification:** Fewer transaction and null bugs, and less context spent on scanning code.
+- **Affected Files / Pointers:** .agents/rules/backend-java.md, AGENTS.md, CLAUDE.md
+
+## 3.14 — Backlog of atomic TDD stories with reserved migrations
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** PDF 4 step 2 asks for atomic user stories split into MVP and Post-MVP. Our backlog has 8 coarse rows, most blocked.
+- **Decision:** docs/feature_backlog.md lists each feature with its slice, Flyway migration number reserved in advance, delivery wave, and US-NN stories sized for one RED-GREEN loop, plus a Post-MVP section.
+- **Alternatives Considered:** Keep module-level rows.
+- **Rationale / Justification:** Parallel worktrees never collide on migration numbers, and builders pick one story per loop.
+- **Affected Files / Pointers:** docs/feature_backlog.md
