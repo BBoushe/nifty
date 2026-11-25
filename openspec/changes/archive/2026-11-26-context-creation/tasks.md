@@ -3,11 +3,11 @@
 ## Status
 - **Branch:** `feat/context-creation` (branch off `dev`)
 - **Worktree:** `../nifty-context-creation`
-- **Current:** All stories and the archive step are done. Waiting for human approval to push.
-- **Next action:** Human approves, then `git push` and open the PR via `node scripts/forge.mjs` (never merge)
+- **Current:** All stories, the archive step and cold review round 1 (APPROVE, follow-ups applied) are done. Waiting for human approval to push.
+- **Next action:** Human approves, then `node scripts/forge.mjs push` and open the PR/MR via `node scripts/forge.mjs pr` (never merge)
 - **Uncommitted changes:** none
 - **PR / MR:** not opened (human approves the push first)
-- **Open review findings:** —
+- **Open review findings:** none Blocking. Convention Candidates not applied: rename audit key `promptSha256` to `answerSha256`; name `inspectCandidateInput` in REQ-CC-04 text; `PromptContextBuilder.role()` unused in production.
 
 ## Tasks
 
@@ -97,4 +97,11 @@
 - Verification: RED: `./mvnw -B test -Dtest='ContextControllerTest,ContextPreviewIntegrationTest'` → FAIL (compile error: `ContextController` not found; after the class landed, 4 tests failed with an unnamed 400 because Jackson 3 rejects a missing primitive, fixed with boxed `Integer followUpLimit`); GREEN: `cd backend && ./mvnw -B test` → exit 0 (88 tests, 1 skipped by design, `ArchitectureTest` 13 green)
 - Contracts/Migrations added: `docs/api.md` preview row; `docs/ai_logs/2026-11-26-context-creation.md` (+ index row); no migration
 - Decisions: 1.18 (preview endpoint), 1.12 (`rubricLeakCheckPassed`)
+- Open Questions: none
+
+### Review round 1 follow-ups
+- Commits: `fix(context): strip unicode tag characters and keep placeholder checks running`
+- Verification: RED: `./mvnw -B test -Dtest=PromptSanitizerTest` → FAIL (`unicodeTagCharactersAreStrippedSoHiddenTextCannotReachThePrompt`: U+E0078 survived); GREEN: `cd backend && ./mvnw -B test` → exit 0 (89 tests, 0 skipped: `ContractStubsTest` now returns per real bean instead of aborting); `openspec validate --all --strict` → exit 0; harness `node --test` → 43 pass
+- Contracts/Migrations added: none. Rubric guard also forbids `confidence|evaluat` field names. Design audit line aligned with the code. Ticket 02 links the archived path.
+- Decisions: 2.24 (tag characters are a spoofing vector)
 - Open Questions: none

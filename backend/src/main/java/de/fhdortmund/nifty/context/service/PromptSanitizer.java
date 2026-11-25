@@ -49,7 +49,10 @@ final class PromptSanitizer {
         StringBuilder out = new StringBuilder(raw.length());
         for (int i = 0; i < raw.length(); i++) {
             char c = raw.charAt(i);
-            if (!isSpoofing(c)) {
+            // Unicode tag characters (U+E0000..E007F) are invisible and can hide instructions: drop the pair.
+            if (c == 0xDB40 && i + 1 < raw.length() && raw.charAt(i + 1) >= 0xDC00 && raw.charAt(i + 1) <= 0xDC7F) {
+                i++;
+            } else if (!isSpoofing(c)) {
                 out.append(c);
             }
         }

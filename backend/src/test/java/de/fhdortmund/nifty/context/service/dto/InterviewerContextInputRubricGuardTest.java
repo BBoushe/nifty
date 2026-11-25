@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class InterviewerContextInputRubricGuardTest {
 
     private static final Pattern FORBIDDEN =
-            Pattern.compile("rubric|level|weight|threshold|score|bfi", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("rubric|level|weight|threshold|score|bfi|confidence|evaluat", Pattern.CASE_INSENSITIVE);
 
     @Test
     void interviewerInputAndNestedRecordsDeclareNoRubricFields() {
