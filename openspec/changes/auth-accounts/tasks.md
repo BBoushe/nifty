@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/auth-accounts`
 - **Worktree:** `../nifty-auth-accounts`
-- **Current:** Task 3 done
-- **Next action:** Task 4
+- **Current:** Task 4 done
+- **Next action:** Delivery (merge dev, validate, archive, ask human before push/PR)
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -27,8 +27,8 @@
 - [x] Verify: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0; commit `feat(frontend): sign-in page, auth store and route guards`
 
 ### Task 4: Docs
-- [ ] `docs/architecture.md` (sessions, bootstrap), `docs/setup.md` (bootstrap keys), `CHANGELOG.md`
-- [ ] Verify: harness tests → exit 0; commit `docs: record auth-accounts`
+- [x] `docs/architecture.md` (sessions, bootstrap), `docs/setup.md` (bootstrap keys), `CHANGELOG.md`
+- [x] Verify: harness tests → exit 0; commit `docs: record auth-accounts`
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
@@ -59,4 +59,11 @@
 - Verification: RED: `cd frontend && npm run test` → FAIL (`client.test.ts` CSRF header null; `@/stores/auth` and `./guard` missing); GREEN: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0 (7 files, 42 passed)
 - Contracts/Migrations added: `X-XSRF-TOKEN` in `client.ts` (`apiFetch`, `postSse`), `stores/auth.ts`, `views/auth/SignInView.vue`, `views/auth/guard.ts` registered in `router/index.ts`
 - Decisions: applies 1.14, 1.15, 1.23
+- Open Questions: none
+
+### Task 4 (Docs)
+- Commits: `docs: record auth-accounts`
+- Verification: RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
+- Contracts/Migrations added: none
+- Decisions: applies 1.23, 1.24
 - Open Questions: none
