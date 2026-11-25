@@ -84,3 +84,10 @@
 - Contracts/Migrations added: every §3 type in `audit.service`, `auth.service`, `studio.service(.view)`, `context.service(.dto)`, `assessment.service`, `evaluation.service`; 6 package-private `<Interface>Placeholder` beans; `RoleAccessTest` uses `/api/v1/{ranking,assessment}/__probe`; no migration
 - Decisions: none (`@JsonValue` literals per design §2; `com.fasterxml.jackson.annotation` stays under Jackson 3)
 - Open Questions: none
+
+### Task 6 (docs)
+- Commits: 66eadda docs: record backend-foundation
+- Verification: RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (43 pass); `ste-lint.py` shows no hit in the new `docs/architecture.md` lines
+- Contracts/Migrations added: none
+- Decisions: none
+- Open Questions: none
