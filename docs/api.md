@@ -7,20 +7,23 @@
 | Environment | Base URL | OpenAPI JSON | Swagger UI |
 |---|---|---|---|
 | **Local Backend** | `http://localhost:8080` | `http://localhost:8080/v3/api-docs` | `http://localhost:8080/swagger-ui.html` |
-| **Docker / Nginx Proxy** | `http://localhost:3000/api` | `http://localhost:3000/v3/api-docs` *(via backend `:8080`)* | `http://localhost:8080/swagger-ui.html` |
+| **Docker / Nginx Proxy** | `http://localhost:3000/api` | `http://localhost:8080/v3/api-docs` *(Nginx does not proxy `/v3/api-docs`)* | `http://localhost:8080/swagger-ui.html` |
 
 ## 2. Authentication & Role Boundaries (`SecurityConfig`)
 
 | Path Prefix | Allowed Roles | Notes |
 |---|---|---|
 | `/api/v1/health`, `/actuator/health/**`, `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` | Public (`permitAll`) | Liveness, readiness, and OpenAPI schema |
-| `/api/v1/ranking/**` | `PROFESSOR`, `REVIEWER` | Ranking View, Studio, Matrix, Approval Queue, Team Builder |
-| `/api/v1/assessment/**` | `CANDIDATE`, `PROFESSOR` | Assessment Chat SSE & post-approval Candidate Results (candidates see only their own data and never see unapproved scores) |
+| `/api/v1/auth/**` | Public | Professor sign-in, invite-link sign-in (Decision 1.17) |
+| `/api/v1/ranking/**` | `PROFESSOR` | Ranking View: Studio, invites, Matrix, review queue, conversation logs, Team Builder |
+| `/api/v1/assessment/**` | `CANDIDATE` | Assessment Chat and Candidate Results. A candidate session reaches only the assessment and candidate of its invite link. Results stay closed until release. |
 | All other routes | Authenticated | Default deny for unauthenticated callers |
+
+MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules. A new role (for example `REVIEWER`) is one `Role` value plus rules in these two places. `SecurityConfig` still allows `REVIEWER` and `PROFESSOR` on the old paths until the `auth-accounts` feature ships.
 
 ## 3. Standard Error Envelope
 
-Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Rules are in `.agents/rules/backend-java.md` §8. Responses never contain stack traces or exception class names.
+Every API error is an RFC 9457 `ProblemDetail` with media type `application/problem+json`. `shared/exception/GlobalExceptionHandler` (`@RestControllerAdvice`) produces it. Rules are in `.agents/rules/backend-java.md` §9. Responses never contain stack traces or exception class names.
 
 | Field | Meaning |
 |---|---|
@@ -58,10 +61,15 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
-- **Interviewer Studio (`/api/v1/ranking/studio/**`):** Versioned interviewer config CRUD, skill/tag taxonomy, human config approval (`openspec/specs/interviewer-studio/spec.md`).
-- **Assessment Chat (`/api/v1/assessment/sessions/**`):** Invite-link session start, SSE streaming turn exchange, `assessment-transcript/v1` persistence (`openspec/specs/assessment-chat/spec.md`).
-- **Evidence Pipeline (`/api/v1/ranking/transcripts/**`):** Trigger extraction, deterministic verbatim quote verification, inferred-tag review (`openspec/specs/evidence-pipeline/spec.md`).
-- **Formula Engine (`/api/v1/ranking/formulas/**`):** Presets, sandboxed SpEL evaluation, deterministic what-if preview (`openspec/specs/formula-engine/spec.md`).
-- **Skills Matrix & Review (`/api/v1/ranking/matrix/**`, `/api/v1/ranking/reviews/**`):** Matrix cells (`status: "SCORED" | "N/A"`, `value: number | null`), Evidence Drawer, flagged approval queue, audited overrides (`openspec/specs/skills-matrix-review/spec.md`).
-- **Team Builder (`/api/v1/ranking/teams/**`):** Timefold Mode A/B/C team proposals, deterministic validation, human sign-off (`openspec/specs/team-builder/spec.md`).
-- **Candidate Results (`/api/v1/assessment/results/**`):** Post-approval verified evidence, formula/weight breakdown, mocked dispute submission (`openspec/specs/candidate-results/spec.md`).
+- **Auth (`/api/v1/auth/**`):** `POST /auth/login` (professor), `POST /auth/invite/{token}` (candidate session from an invite link) (`openspec/specs/auth-access/spec.md`).
+- **Interviewer Studio (`/api/v1/ranking/studio/**`):** assessment form CRUD, config versions, publish, skill/tag taxonomy and inferred-tag review (the evidence pipeline proposes tags through the `studio` service), assessment deletion (`DELETE /ranking/studio/configs/{id}`), invite links (`POST /ranking/studio/configs/{id}/invites`, CSV import) (`openspec/specs/interviewer-studio/spec.md`).
+- **Assessment Chat (`/api/v1/assessment/sessions/**`):** (Decision 1.11, `openspec/specs/assessment-chat/spec.md`)
+  - `POST /assessment/sessions` → `text/event-stream`: greeting and question 1. Each question event carries `expiresAt`. `409` when the attempts are used up.
+  - `POST /assessment/sessions/{id}/answers` (`{ text }`) → `text/event-stream`: the interviewer reply, then the next question with `expiresAt`, or `done`. `409` after `expiresAt` plus the grace period, or when the state does not allow an answer.
+  - `GET /assessment/sessions/{id}` → session state from the ledger: messages, open question, `expiresAt`.
+  - `POST /assessment/sessions/{id}/bfi10` (`{ items: [1..5 x 10] }`) → `204`. `400` names each missing item.
+- **Evidence Pipeline (`/api/v1/ranking/transcripts/**`):** `assessment-transcript/v1` export, evidence per attempt (`openspec/specs/evidence-pipeline/spec.md`). The evaluator starts from an event, not from an endpoint.
+- **Formula Engine (`/api/v1/ranking/formulas/**`):** preset list, formula version per config, what-if preview. No free-form expressions in MVP (`openspec/specs/formula-engine/spec.md`).
+- **Skills Matrix & Review (`/api/v1/ranking/matrix/**`, `/api/v1/ranking/reviews/**`):** matrix cells (`status: "SCORED" | "N/A"`, `value: number | null`), Evidence Drawer, "Needs attention" queue, attempt approval, audited overrides, full conversation log per attempt (`openspec/specs/skills-matrix-review/spec.md`).
+- **Team Builder (`/api/v1/ranking/teams/**`):** Timefold proposals with configured team size and BFI-10 balance, deterministic validation, professor publishing (`openspec/specs/team-builder/spec.md`).
+- **Candidate Results (`/api/v1/assessment/results/**`):** released scores, verified evidence, formula and weights, deterministic advice, own conversation log, own BFI-10 traits (`openspec/specs/candidate-results/spec.md`).

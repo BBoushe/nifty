@@ -99,3 +99,68 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** Rules in backend-java.md only (not enforced); switch tests to Testcontainers now (couples to CI changes before any entity exists).
 - **Rationale / Justification:** Feature slices keep the blast radius local and let agents read one folder. ArchUnit turns written rules into a failing test, which raises first-time quality for AI-written code.
 - **Affected Files / Pointers:** openspec/changes/backend-architecture-baseline/, .agents/rules/backend-java.md, docs/architecture.md
+
+## 1.11 — Answers stream the interviewer reply; append-only ledger
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** PDF 4/5 suggest a synchronous POST .../turn endpoint without streaming. The team wants the interview to feel like an LLM conversation and to log every message for transparency.
+- **Decision:** POST /api/v1/assessment/sessions starts a session and POST /api/v1/assessment/sessions/{id}/answers sends one answer; both respond with an SSE stream of the interviewer reply. GET /api/v1/assessment/sessions/{id} returns the current state from the ledger, so a page refresh resumes the session. Every student answer and every AI reply is appended to the ledger (an append-only PostgreSQL table with server timestamps). When the server asks a question, it stores expiresAt and sends it to the browser; the browser counts down and auto-submits the current text at zero. The server rejects an answer after expiresAt plus a short grace period with 409 Conflict, and an answer after expiresAt is recorded with timedOut = true (the question is N/A, Decision 2.14). The session state machine enforces question order, time limits and the follow-up limit in Java. assessment-transcript/v1 is built from the ledger.
+- **Alternatives Considered:** One long-lived SSE stream per session plus POST answers returning 202; WebSocket; synchronous POST /turn without streaming (PDF 4/5); a single JSONB transcript updated in place (Decision 1.2).
+- **Rationale / Justification:** Simplest reliable build: no long-lived connection to re-attach after a refresh, streamed replies keep the conversation feel, and server-stored deadlines keep the timers cheat-proof.
+- **Affected Files / Pointers:** docs/architecture.md, docs/api.md, openspec/specs/assessment-chat/spec.md
+
+## 1.12 — Dual-agent rubric isolation
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** PDF 5 separates a rubric-blind interviewer from an asynchronous evaluator, so a candidate cannot prompt-inject the grader.
+- **Decision:** Agent 1 (interviewer) never receives rubrics, level descriptions or scores. It stays on topic, reveals no answers or scores, does not judge the person, and keeps its interviewer role. Agent 2 (evaluator) runs after the session is committed (ApplicationEventPublisher + @TransactionalEventListener(AFTER_COMMIT)) and reads only the ledger plus the rubric. It returns evidence items, never totals; Java verifies quotes and computes confidence and scores.
+- **Alternatives Considered:** One agent that interviews and grades.
+- **Rationale / Justification:** Prompt injection during the interview cannot reach the grading context.
+- **Affected Files / Pointers:** AGENTS.md, docs/architecture.md, openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md
+
+## 1.13 — Interviewer uses ki:connect NRW
+- **Resolves:** O2
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** O2 asked whether the interviewer also uses ki:connect NRW (1.6) or a separate EU endpoint.
+- **Decision:** The interviewer also uses ki:connect NRW through the Spring AI ChatClient, streamed.
+- **Alternatives Considered:** A separate EU-hosted streaming endpoint.
+- **Rationale / Justification:** One provider, one key, EU hosting.
+- **Affected Files / Pointers:** docs/architecture.md, backend/src/main/resources/application.yml
+
+## 1.14 — PrimeVue on Tailwind v4; design system uses 0-4 and hatched N/A
+- **Resolves:** O1
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** O1 asked for the UI kit. docs/design_system.md uses a 0-100 scale, 4 levels, no N/A and plain CSS.
+- **Decision:** The UI kit is PrimeVue, themed from our design tokens on Tailwind v4. The design system uses the 0-4 scale with a hatched N/A state and keeps its visual identity (colours, AI sparkle, type, 4px grid).
+- **Alternatives Considered:** shadcn-vue; plain CSS bundle from the design system draft.
+- **Rationale / Justification:** Ready DataTable, Slider, Drawer and Dialog components save block-week time. 0-4 + N/A matches the domain model.
+- **Affected Files / Pointers:** docs/design_system.md, frontend/package.json, .agents/rules/frontend-vue.md
+
+## 1.15 — Two roles (PROFESSOR, CANDIDATE), easy to extend
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** Role.java has PROFESSOR, REVIEWER and CANDIDATE; the docs say 2 roles and give REVIEWER professor-only routes.
+- **Decision:** MVP has two roles: PROFESSOR and CANDIDATE. The professor does all review work. Route access lives in one place (SecurityConfig plus method-level @PreAuthorize), so a new role such as REVIEWER is one enum value and a few rules.
+- **Alternatives Considered:** Keep three roles now.
+- **Rationale / Justification:** Fewer roles to build and test in block week, with a clear path to add more.
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/shared/config/Role.java, docs/api.md, AGENTS.md
+
+## 1.16 — Backend slice map: auth and audit slices; studio owns inferred tags
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** PDF 2 asks for coarse product slices. Authentication has no slice, audit_log has no owner, and inferredTags ownership differs across 3 documents.
+- **Decision:** Add an auth slice (accounts, login, candidate invite links) and an audit slice (AuditLog entity and a public AuditService; other slices call the service, never the repository). studio owns the skill taxonomy and inferredTags; evidence proposes tags through studio's service. The BFI-10 answers and trait scores belong to assessment. The other slices stay as they are.
+- **Alternatives Considered:** Audit writes from each slice; inferredTags in evidence; merge results into assessment.
+- **Rationale / Justification:** Each slice has one owner, which allows parallel work without merge conflicts and keeps the ArchUnit repository rule.
+- **Affected Files / Pointers:** docs/architecture.md, docs/api.md, openspec/specs/interviewer-studio/spec.md
+
+## 1.17 — Students join by invite link only
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The auth slice needs a student sign-in model. Students take one assessment and have no other use for an account.
+- **Decision:** The professor creates invite links (CSV import or one at a time). Each link holds a personal, unguessable token bound to one assessment and one student. Opening it starts an authenticated CANDIDATE session; the student can reopen the same link until the professor revokes it: to take attempts while any remain, and to open released results afterwards. Students have no passwords. Professors sign in with account credentials. The token format (JWT or server session) is decided in the auth change design.
+- **Alternatives Considered:** Student accounts with email and password registration.
+- **Rationale / Justification:** No registration or password reset to build in block week, and every student is tied to exactly one assessment.
+- **Affected Files / Pointers:** openspec/specs/auth-access/spec.md, docs/api.md

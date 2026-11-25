@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-25 — nov24-reconciliation
+- **What:** Reconciled specs and docs with the Nov 24 feature list and closed O1–O7. Delta specs for 7 domain specs plus the new `auth-access` spec: threshold-gated release, (question, skill) confidence, question-weighted coverage, attempt limit, min/max timers, append-only ledger with streamed replies, rubric-blind interviewer, invite-link sign-in, optional BFI-10. Canvas archived and updated; invariants, rules, architecture (dual-agent pipeline, domain model), API, design system, `docs/ai_logs/` and a wave-based backlog.
+- **Why:** The feature list contradicted the canvas, specs and invariants, and open decisions blocked 6 of 7 MVP features. Builders can now start wave 0 without guessing.
+- **PR/MR:** GitHub #16, GitLab !15
+- **Specs:** REQ-AA-01..05, REQ-IS-05..07, REQ-AC-05..16, REQ-EP-05..07, REQ-FE-05, REQ-SM-05..08, REQ-CR-04..06, REQ-TB-05..07 (added); REQ-IS-02, REQ-AC-01/03/04, REQ-EP-03, REQ-FE-03, REQ-SM-01/03/04, REQ-CR-01/02 (modified); REQ-FE-04 (removed)   **Decisions:** 1.11–1.17, 2.10–2.19, 3.12–3.14, 4.1–4.4
+
 ## 2026-11-25 — agent-orchestration
 - **What:** Added the `orchestrate-changes` skill: one session runs a builder agent per change in its own `../nifty-<change>` worktree and a cold reviewer per PR, handles PRs/MRs by branch name, and asks the user before every merge with an architecture summary. `forge.mjs prs` shows GitHub PRs and GitLab MRs side by side, and `forge.mjs` reads the main checkout's `.env` from a worktree.
 - **Why:** One terminal per change and matching PR numbers to different MR numbers was too much manual work. The user wants to steer direction at every merge.

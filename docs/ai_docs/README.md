@@ -16,7 +16,7 @@ Read the matching note before you use a library API from the pinned stack (`AGEN
 | [`spring-ai-2-kiconnect.md`](spring-ai-2-kiconnect.md) | Spring AI 2.0.x with ki:connect NRW | `backend/pom.xml` |
 | [`timefold-solver.md`](timefold-solver.md) | Timefold Solver 2.8.x | `backend/pom.xml` |
 
-Frontend notes wait for open decision O1 (UI component kit).
+Frontend notes follow the UI kit decision: PrimeVue (Decision 1.14).
 
 ## Rules
 

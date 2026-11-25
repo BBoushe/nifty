@@ -4,8 +4,8 @@ This repository builds the **Evidence-First Skill Assessment Platform** (see [`d
 
 ## 1. Monorepo Map
 
-- `backend/` — Java 21, Spring Boot 4.x, Maven (`./mvnw`), Spring Security (2 roles: `PROFESSOR`/`REVIEWER`, `CANDIDATE`), Spring Web (SSE). It also uses Spring Data JPA, Spring AI 2.0, Timefold Solver, PostgreSQL (JSONB), Flyway, springdoc-openapi, JUnit 5, Mockito and Testcontainers.
-- `frontend/` — Vue 3.5 (**stable only — NEVER upgrade to Vue 3.6 RC**), TypeScript, Vite 8, Vue Router, Pinia, TanStack Query (`@tanstack/vue-query`), Tailwind CSS v4, Apache ECharts (`vue-echarts`). The UI component kit (`PrimeVue` vs. `shadcn-vue`) is still TBD (`docs/decisions/index.md` O1).
+- `backend/` — Java 21, Spring Boot 4.x, Maven (`./mvnw`), Spring Security (2 roles: `PROFESSOR`, `CANDIDATE`, one enum, easy to extend, Decision 1.15), Spring Web (SSE). It also uses Spring Data JPA, Spring AI 2.0, Timefold Solver, PostgreSQL (JSONB), Flyway, springdoc-openapi, JUnit 5, Mockito and Testcontainers.
+- `frontend/` — Vue 3.5 (**stable only — NEVER upgrade to Vue 3.6 RC**), TypeScript, Vite 8, Vue Router, Pinia, TanStack Query (`@tanstack/vue-query`), Tailwind CSS v4, Apache ECharts (`vue-echarts`). The UI component kit is PrimeVue, themed from the design tokens (Decision 1.14).
 - `openspec/` — Source of truth for specs (`config.yaml`, `specs/<module>/spec.md`, `changes/<change>/`).
 - `docs/` — Product vision (`discovery-canvas.md`), `architecture.md`, `api.md`, `workflow.md`, hierarchical decisions (`decisions/index.md`), and AI/SDD/ADD harness guide (`setup.md`).
 - `scripts/` — Harness helpers with no dependencies. `record-decision.mjs` records `X.Y` decisions. `check-setup.mjs` runs preflight checks and the GitHub/GitLab forge switch without showing secrets.
@@ -16,14 +16,17 @@ This repository builds the **Evidence-First Skill Assessment Platform** (see [`d
 1. **Deterministic math only:** LLMs **MUST NEVER** compute totals, fit scores, coverage, rankings, cohort gap statistics, or team-balance metrics. All numerical aggregation runs in Java/SQL/Timefold.
 2. **Explicit `N/A`:** The system **MUST** record missing verified evidence for a skill as `N/A` (never `0` or `1`) and exclude it from fit calculations. Always report fit and coverage separately.
 3. **Verbatim quote verification:** Every evidence quote that an LLM extracts **MUST** appear word-for-word in the referenced `assessment-transcript/v1` entry. Otherwise the system **MUST** discard the quote.
-4. **Calculated confidence:** The system computes confidence (`0..1`) deterministically from measurable signals (evidence count, quote verification ratio, judge agreement, question origin, prompted vs. unprompted terms). Never use LLM self-report.
-5. **Human-in-the-loop (EU AI Act Annex III & GDPR):** Humans approve interviewer configurations, flagged/final scores, and team placements. Every score override requires a reason and writes an immutable audit log entry.
-6. **Candidate transparency timing:** The system reveals the formula, weights and verified evidence to the candidate **only after** human approval. Never reveal them during the interview.
+4. **Calculated confidence:** The system computes confidence (`0..1`) for each (question, skill) score deterministically from measurable signals. The signals are evidence count, quote verification ratio, judge agreement, question origin, and prompted vs. unprompted terms. Never use LLM self-report.
+5. **Human-in-the-loop (EU AI Act Annex III & GDPR):** Humans approve interviewer configurations and team placements. The professor sets a confidence threshold per question and a minimum coverage per assessment. The system releases an attempt automatically only when all gates pass. The gates: every scored (not `N/A`) score meets its threshold, coverage meets the minimum, and no score has a flag. A human reviews and approves every other attempt (Decision 2.10). Every score override requires a reason and writes an immutable audit log entry.
+6. **Candidate transparency timing:** The system reveals the formula, weights and verified evidence to the candidate **only after** the results are released (Decision 2.10). Never reveal them during the interview.
 7. **Fresh context for team-builder LLM:** Mode B (text → constraints) and Mode C (LLM proposal that passed validation) must run in a fresh, empty LLM context. They must pass deterministic validation.
-8. **Zero committed secrets or real PII:** Never commit `.env`, API keys, credentials, or real student transcripts. Use `.env.example` and synthetic fixtures with clear labels.
+8. **Zero committed secrets or real PII:** Never commit `.env`, API keys, credentials, or real student data. Real data lives only in the database until the professor deletes the assessment (Decision 4.4). Tests use `.env.example` and synthetic fixtures with clear labels.
+9. **Rubric-blind interviewer:** The interviewer LLM **MUST NEVER** receive rubrics, level descriptions, scores, or evaluator output. The evaluator runs after commit and reads only the append-only conversation ledger and the rubric (Decision 1.12).
+10. **Append-only ledger:** The system appends every candidate answer and every interviewer reply to the ledger with a server timestamp. Code never updates or deletes ledger rows, except when the professor deletes the assessment (Decision 1.11).
 
 ## 3. Spec-First Workflow, Decision Traceability & Coding Standards
 
+- **Context Read Order (Decision 3.13):** Read `docs/architecture.md` and `docs/feature_history.md` before you scan source code. Read `docs/api.md` before you change a controller. Never scan the whole `backend/src` or `frontend/src` tree to orient yourself.
 - **Specs First (`openspec/`):** Before you build any non-trivial feature, read `openspec/specs/<module>/spec.md`. Then create or update a change spec in `openspec/changes/<change>/` (`proposal.md`, `specs/`, `design.md`, `tasks.md`). Check every claim with real build/test exit codes before you mark a task as complete.
 - **Traceable Decisions (`docs/decisions/`):** Record a decision with `node scripts/record-decision.mjs` (see `record-decision` skill) in each of these cases:
   - A `question-round` gets an answer.
@@ -47,6 +50,7 @@ These tools do not auto-parse `.agents/rules/*.md` YAML frontmatter: Claude Code
 | Proposing or archiving an OpenSpec change | `docs/feature_backlog.md` + `docs/feature_history.md`. When you propose a change, set its backlog row to `in progress`. When you archive it, remove the row and add a history entry (the harness test fails without it). |
 | Writing or editing docs/specs | `asd-ste100` skill (`.agents/skills/asd-ste100/`), `.agents/rules/spec-driven.md` rule 6 |
 | Running several changes in parallel, or managing their PRs/MRs | `orchestrate-changes` skill (`.agents/skills/orchestrate-changes/`), `node scripts/forge.mjs prs`. Agents never merge. Ask the user before every merge, with an architecture summary (Decision 3.11). |
+| Finishing an AI session that made architecture or product decisions, or handed work to builder agents | `docs/ai_logs/README.md`. Add a dated handover file and its index row (Decision 3.12). |
 
 ## 4. Git, Forge Switch (`gh` / `glab`) & Commit Rules
 
@@ -62,7 +66,7 @@ Every harness (Claude Code via `.claude/agents/`, Antigravity `agy`, Codex, Kiro
 
 | Role | Canonical Prompt | Scope & Guardrail |
 |---|---|---|
-| **Spec Builder** | `.claude/agents/spec-builder.md` | Implements unchecked `openspec/changes/<change>/tasks.md` items. Escalates `O1`–`O7` TBDs through `question-round`. Checks builds and tests. Appends a 5-line `## Handoff Log` entry. |
+| **Spec Builder** | `.claude/agents/spec-builder.md` | Implements unchecked `openspec/changes/<change>/tasks.md` items. Escalates open items in `docs/decisions/index.md` §2 through `question-round`. Checks builds and tests. Appends a 5-line `## Handoff Log` entry. |
 | **Cold Reviewer** | `.claude/agents/reviewer.md` | **Read-only** (`guard-agent.mjs --mode readonly`). Audits *only* `git diff dev...HEAD` + `openspec/` specs (no builder chat history). Outputs a <=30-line `Verdict / Blocking / Convention Candidates` report. |
 | **Test Writer** | `.claude/agents/test-writer.md` | **Tests-only** (`guard-agent.mjs --mode tests-only`: `backend/src/test/**`, `frontend/src/**/*.test.*`, `**/*.spec.*`). Writes tests strictly from EARS specs, with invariant-named tests. |
 

@@ -14,6 +14,7 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 
 ## Working Agreement for Claude Code
 
+- Read `docs/architecture.md` and `docs/feature_history.md` before you scan source code. Read `docs/api.md` before you change a controller (Decision 3.13).
 - Implement one logical task at a time from `openspec/changes/<change>/tasks.md`. Follow `.agents/rules/coding-standards.md`. Leave `// Decision X.Y` pointers where the reason is not obvious.
 - Before you edit `backend/**`, read `.agents/rules/backend-java.md` (+ `docs/api.md`). Before you edit `frontend/**`, read `.agents/rules/frontend-vue.md`.
 - Whenever the user/prompter changes direction or answers a `question-round`, record the decision with `node scripts/record-decision.mjs`. Never skip recording.
@@ -41,6 +42,6 @@ Follow [`AGENTS.md`](AGENTS.md) for all project invariants, mandatory tech stack
 2. **Inspect Harness Configuration:**
    - Check that `.claude/skills/` contains the OpenSpec skills, shared skills (`record-decision`, `question-round`, `pr-memo`) and project skills (`spec-implementer`, `backend-spring-check`, `frontend-vue-check`, `evidence-pipeline-guard`).
    - Check that `.claude/agents/` contains `spec-builder.md`, `reviewer.md` and `test-writer.md`.
-3. **Check Team `[TBD]` Decisions (`docs/decisions/index.md`):**
-   - Check if the team resolved open decisions **O1** (UI component library: PrimeVue vs. shadcn-vue) and **O2** (Interviewer LLM provider). The team already resolved the evaluator in **1.6 / D14** — ki:connect NRW.
+3. **Check Team Decisions (`docs/decisions/index.md`):**
+   - O1–O7 are resolved (2026-11-25): PrimeVue (1.14), ki:connect NRW for interviewer and evaluator (1.13, 1.6). Check the index for any new open item.
    - If the team resolved a decision in `docs/decisions/index.md` or `package.json`/`pom.xml`, run the `record-decision` skill (`node scripts/record-decision.mjs ... --resolves O<k>`). This synchronizes `openspec/config.yaml`, `CLAUDE.md` and affected skills. Note developer-specific preferences in untracked `.claude/settings.local.json`.

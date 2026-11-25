@@ -49,20 +49,44 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **3.9** | — | Team & Process | Parallel, resumable delivery by blast radius | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#39--parallel-resumable-delivery-by-blast-radius) |
 | **3.10** | — | Team & Process | All changes reach dev through a pull request | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#310--all-changes-reach-dev-through-a-pull-request) |
 | **3.11** | — | Team & Process | Orchestrated multi-agent delivery from one session | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#311--orchestrated-multi-agent-delivery-from-one-session) |
+| **4.1** | — | Direction | Nov 24 feature list is the source of truth; discovery canvas archived | Decided | 2026-11-25 | prompter-change | [4-direction.md](./4-direction.md#41--nov-24-feature-list-is-the-source-of-truth-discovery-canvas-archived) |
+| **4.2** | — | Direction | Nov 24 open items: Post-MVP scope and removed ideas | Decided | 2026-11-25 | question-round | [4-direction.md](./4-direction.md#42--nov-24-open-items-post-mvp-scope-and-removed-ideas) |
+| **4.3** | — | Direction | Optional BFI-10 personality test in the assessment | Decided | 2026-11-25 | question-round | [4-direction.md](./4-direction.md#43--optional-bfi-10-personality-test-in-the-assessment) |
+| **4.4** | — | Direction | Real data only; kept until the professor deletes it | Decided | 2026-11-25 | question-round | [4-direction.md](./4-direction.md#44--real-data-only-kept-until-the-professor-deletes-it) |
+| **2.10** | — | Design | Threshold-gated release of results (supersedes 2.8 timing) | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#210--threshold-gated-release-of-results-supersedes-28-timing) |
+| **2.11** | — | Design | Confidence per (question, skill) with a per-question threshold | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#211--confidence-per-question-skill-with-a-per-question-threshold) |
+| **2.12** | — | Design | Coverage over weighted questions with a professor-set minimum | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#212--coverage-over-weighted-questions-with-a-professor-set-minimum) |
+| **2.13** | — | Design | Attempt limit; the latest attempt counts | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#213--attempt-limit-the-latest-attempt-counts) |
+| **2.14** | — | Design | Min/max time per question; no pause and resume | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#214--minmax-time-per-question-no-pause-and-resume) |
+| **2.15** | — | Design | Full conversation log visible to the student after release | Decided | 2026-11-25 | prompter-change | [2-design.md](./2-design.md#215--full-conversation-log-visible-to-the-student-after-release) |
+| **2.16** | — | Design | Results page advice is deterministic first | Decided | 2026-11-25 | prompter-change | [2-design.md](./2-design.md#216--results-page-advice-is-deterministic-first) |
+| **2.17** | — | Design | Assessment configuration is a professor form, nothing hard-coded | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#217--assessment-configuration-is-a-professor-form-nothing-hard-coded) |
+| **2.18** | — | Design | Team size and solver constraints come from the assessment form | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#218--team-size-and-solver-constraints-come-from-the-assessment-form) |
+| **2.19** | — | Design | Formula presets only in MVP | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#219--formula-presets-only-in-mvp) |
+| **1.11** | — | Architecture | Answers stream the interviewer reply; append-only ledger | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#111--answers-stream-the-interviewer-reply-append-only-ledger) |
+| **1.12** | — | Architecture | Dual-agent rubric isolation | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#112--dual-agent-rubric-isolation) |
+| **1.13** | — | Architecture | Interviewer uses ki:connect NRW | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#113--interviewer-uses-kiconnect-nrw) |
+| **1.14** | — | Architecture | PrimeVue on Tailwind v4; design system uses 0-4 and hatched N/A | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#114--primevue-on-tailwind-v4-design-system-uses-0-4-and-hatched-na) |
+| **1.15** | — | Architecture | Two roles (PROFESSOR, CANDIDATE), easy to extend | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#115--two-roles-professor-candidate-easy-to-extend) |
+| **1.16** | — | Architecture | Backend slice map: auth and audit slices; studio owns inferred tags | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#116--backend-slice-map-auth-and-audit-slices-studio-owns-inferred-tags) |
+| **3.12** | — | Team & Process | docs/ai_logs/ prompt-as-code audit trail | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#312--docsai_logs-prompt-as-code-audit-trail) |
+| **3.13** | — | Team & Process | Java/Spring conventions and context read order from PDF 4 | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#313--javaspring-conventions-and-context-read-order-from-pdf-4) |
+| **3.14** | — | Team & Process | Backlog of atomic TDD stories with reserved migrations | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#314--backlog-of-atomic-tdd-stories-with-reserved-migrations) |
+| **1.17** | — | Architecture | Students join by invite link only | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#117--students-join-by-invite-link-only) |
 <!-- DECISION_INDEX_END -->
 
 ---
 
 ## 2. Open Team Decisions (TBD)
 
-These items remain open for Day-1 team alignment (resolve via `question-round` + `node scripts/record-decision.mjs ... --resolves O<k>`):
+O1–O7 are resolved (2026-11-25). Add a new open item here when one comes up, and resolve it via `question-round` + `node scripts/record-decision.mjs ... --resolves O<k>`:
 
 | ID | Question | Options / Constraints | Owner | Status |
 |---|---|---|---|---|
-| **O1** | **Frontend UI component library** | **PrimeVue** (rich data tables/sliders out of the box) vs. **shadcn-vue** (copy-paste Radix/Reka primitives on Tailwind CSS v4). | Frontend leads | Open |
-| **O2** | **Interviewer LLM provider** *(evaluator resolved in 1.6 / D14)* | Evaluator uses **ki:connect NRW** (1.6). Decide whether conversational interviewer (Step 1) also uses ki:connect NRW or a separate EU-hosted streaming endpoint. | Backend / AI lead | Open |
-| **O3** | **MVP skill taxonomy size** | Keep all 16 course sub-skills or trim to 6–8 core project-readiness skills for block-week velocity. | Whole team + Lecturer | Open |
-| **O4** | **Team size & solver constraints** | Confirm lecturer's exact team size (default 5) and hard/soft constraints (e.g., >=1 strong backend/frontend per team). | Team Builder lead + Lecturer | Open |
-| **O5** | **Formula expression editor in MVP** | Ship presets only in MVP or include the sandboxed SpEL expression editor. | Formula Engine lead | Open |
-| **O6** | **Candidate result visibility timing** | Show results immediately after individual score approval, or only after final teams are published? | Whole team | Open |
-| **O7** | **Demo transcript data retention** | Define retention / purge window for real or synthetic transcripts in the demo environment. | Whole team | Open |
+| **O1** | **Frontend UI component library** | **PrimeVue** (rich data tables/sliders out of the box) vs. **shadcn-vue** (copy-paste Radix/Reka primitives on Tailwind CSS v4). | Frontend leads | Resolved -> **1.14** |
+| **O2** | **Interviewer LLM provider** *(evaluator resolved in 1.6 / D14)* | Evaluator uses **ki:connect NRW** (1.6). Decide whether conversational interviewer (Step 1) also uses ki:connect NRW or a separate EU-hosted streaming endpoint. | Backend / AI lead | Resolved -> **1.13** |
+| **O3** | **MVP skill taxonomy size** | Keep all 16 course sub-skills or trim to 6–8 core project-readiness skills for block-week velocity. | Whole team + Lecturer | Resolved -> **2.17** |
+| **O4** | **Team size & solver constraints** | Confirm lecturer's exact team size (default 5) and hard/soft constraints (e.g., >=1 strong backend/frontend per team). | Team Builder lead + Lecturer | Resolved -> **2.18** |
+| **O5** | **Formula expression editor in MVP** | Ship presets only in MVP or include the sandboxed SpEL expression editor. | Formula Engine lead | Resolved -> **2.19** |
+| **O6** | **Candidate result visibility timing** | Show results immediately after individual score approval, or only after final teams are published? | Whole team | Resolved -> **2.10** |
+| **O7** | **Demo transcript data retention** | Define retention / purge window for real or synthetic transcripts in the demo environment. | Whole team | Resolved -> **4.4** |

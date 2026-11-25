@@ -9,7 +9,7 @@ Use this skill before committing or reviewing any change under `frontend/`.
 
 ## Team Settings (Update via First-Run Bootstrap once resolved)
 
-- **UI Component Library:** `[TBD — PrimeVue vs. shadcn-vue; see docs/decisions.md O1]`
+- **UI Component Library:** PrimeVue, themed from the design tokens (Decision 1.14)
 - **Vue Version Pin:** `^3.5.x` stable (**do not** upgrade to Vue 3.6 RC).
 
 ## Checklist & Verification Commands
