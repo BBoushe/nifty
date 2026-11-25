@@ -339,8 +339,15 @@ describe('CI parity', () => {
 // REQ-OR-01, REQ-OR-02 (Decision 3.11): orchestrated delivery across worktrees and both forges.
 describe('agent orchestration helpers', () => {
   const gitIn = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] });
+  // The GitLab harness job runs in node:22-alpine, which has no git; GitHub and local runs cover this test.
+  let hasGit = true;
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+  } catch {
+    hasGit = false;
+  }
 
-  it('reads the main checkout .env from a linked worktree without its own .env', () => {
+  it('reads the main checkout .env from a linked worktree without its own .env', { skip: !hasGit && 'git is not installed' }, () => {
     const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'nifty-wt-')));
     try {
       const main = path.join(tmp, 'nifty');

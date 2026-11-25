@@ -5,10 +5,10 @@
 - **Branch:** `feat/agent-orchestration`
 - **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
 - **Current:** Tasks 1-3 done; Delivery next
-- **Next action:** push, PR/MR, cold review, ask the user with the architecture summary (archived at openspec/changes/archive/2026-11-25-agent-orchestration/)
+- **Next action:** CI green on both forges, then ask the user with the architecture summary
 - **Uncommitted changes:** no
-- **PR / MR:** —
-- **Open review findings:** —
+- **PR / MR:** https://github.com/BBoushe/nifty/pull/15 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/14
+- **Open review findings:** cold review APPROVE (0 Blocking); Convention Candidates fixed in the review-fix commit
 
 ## Tasks
 
@@ -36,8 +36,8 @@ Owned files: `scripts/check-setup.mjs`, `scripts/forge.mjs`, a new `describe` at
 
 - [x] `git fetch origin && git merge origin/dev` (no rebase). Re-run the tests.
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive agent-orchestration -y --skip-specs`; history entry; commit `chore(specs): archive agent-orchestration`.
-- [ ] `node scripts/forge.mjs push`; PR/MR via `pr-memo` + `node scripts/forge.mjs pr`. Record links in Status.
-- [ ] Cold review (fresh `reviewer` agent): no Blocking items.
+- [x] `node scripts/forge.mjs push`; PR/MR via `pr-memo` + `node scripts/forge.mjs pr`. Record links in Status.
+- [x] Cold review (fresh `reviewer` agent): no Blocking items.
 - [ ] Both forges green (`node scripts/forge.mjs prs`).
 - [ ] Ask the user with the architecture summary (REQ-OR-04); merge on GitHub only; `node scripts/forge.mjs sync dev`; `status` 0/0.
 - [ ] Delete the branch on both remotes and locally.
@@ -53,3 +53,7 @@ Owned files: `scripts/check-setup.mjs`, `scripts/forge.mjs`, a new `describe` at
 - **Did:** `orchestrate-changes` skill (+ `.claude/skills` symlink); `AGENTS.md` dispatch row; `docs/workflow.md` §4 subsection and forge-command row; two `docs/setup.md` inventory rows; board pointer; CHANGELOG.
 - **Verification:** RED: n/a (no behaviour). ste-lint: 0 hard findings on the skill, proposal and design; harness tests 43/43; `openspec validate --all --strict` 8/8.
 - **Next:** Delivery.
+
+### 2026-11-25 — Review fixes (main session)
+- **Did:** cold review APPROVE. Fixed its Convention Candidates: `resolveForgeConfig` doc comment back in place; `findEnvPath` trusts only a `<main>/.git` common dir; `STALE` checks count as passed; `prs` prints `error` columns for a failing forge and exits 1; skill text: no private model policy, portable worktree path, "ready" means 0 Blocking and both forges green. Note: `openspec validate` counts 7 after the archive (the Task 3 line said 8 before it).
+- **Verification:** RED: n/a (hardening, covered by the existing tests). `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` exit 0; `node scripts/forge.mjs prs` exit 0.

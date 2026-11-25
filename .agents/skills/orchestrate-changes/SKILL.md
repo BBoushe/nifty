@@ -22,11 +22,11 @@ git fetch origin
 git worktree add ../nifty-<change> -b <branch> origin/dev
 ```
 
-No `.env` copy is needed. `forge.mjs` reads the main checkout's `.env` from a worktree (REQ-OR-01). Worktrees live only at `/Users/<you>/…/nifty-<change>` next to the main checkout. Never use the Agent tool's own worktree isolation, because it creates folders outside that pattern.
+No `.env` copy is needed. `forge.mjs` reads the main checkout's `.env` from a worktree (REQ-OR-01). Worktrees live only next to the main checkout, as `../nifty-<change>`. Never use the Agent tool's own worktree isolation, because it creates folders outside that pattern.
 
 ## 3. Builder agents
 
-Start one background agent per change. Pick the model from the user's subagent policy (Sonnet for builders). Run agents in parallel only when their files do not overlap. The prompt must contain:
+Start one background agent per change. Use a capable mid-tier model for builders (Sonnet in this team) and the strongest model for reviewers. Run agents in parallel only when their files do not overlap. The prompt must contain:
 
 - **Working directory:** "Every Bash command starts with `cd <absolute worktree> && pwd && …`. If pwd differs, stop and report. Never touch the main checkout."
 - **Task:** the change path, which tasks to do, `spec-implementer` + the Build Loop in `.claude/agents/spec-builder.md` (RED → GREEN, Handoff line).
@@ -51,7 +51,7 @@ Start a fresh `reviewer` agent per PR. Give it the worktree path and pwd rule, t
 
 ## 7. Merge (ask every time)
 
-Merge in the planned order. Before each merge, ask the user (AskUserQuestion when available) and start with:
+Merge in the planned order. A change is ready when the cold review has no Blocking items and both forges are green (`node scripts/forge.mjs prs`). Before each merge, ask the user (AskUserQuestion when available) and start with:
 
 ```text
 <change name> is ready.

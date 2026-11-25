@@ -73,7 +73,8 @@ export function planSync(forge, branches = MIRRORED) {
 }
 
 const FAILED_STATES = new Set(['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE']);
-const PASSED_STATES = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED']);
+// `STALE` marks a check that a newer run replaced; it no longer gates the PR.
+const PASSED_STATES = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED', 'STALE']);
 
 /** One-line state of a PR's checks: failed wins over pending, pending over pass (REQ-OR-02). */
 export function checksSummary(states) {
@@ -176,22 +177,36 @@ function prs(forge) {
   const urls = remoteUrls(forge);
   const github = [];
   const gitlab = [];
-  if (urls.github) {
+  // One forge failing (auth, network) must not hide the other forge's rows.
+  const tryForge = (name, fn) => {
+    try {
+      fn();
+    } catch (err) {
+      process.stderr.write(`${name}: ${String(err.message).split('\n')[0]}\n`);
+      return false;
+    }
+    return true;
+  };
+  const ghOk = !urls.github || tryForge('GitHub', () => {
     const repo = urls.github.replace(/^https:\/\//, '');
     for (const p of runJson('gh', ['pr', 'list', '--repo', repo, '--state', 'open', '--json', 'number,headRefName,statusCheckRollup'])) {
       const states = (p.statusCheckRollup ?? []).map((c) => c.conclusion || c.state || 'PENDING');
       github.push({ branch: p.headRefName, number: p.number, checks: checksSummary(states) });
     }
-  }
-  if (urls.gitlab) {
+  });
+  const glOk = !urls.gitlab || tryForge('GitLab', () => {
     // `-R <url>` lets glab resolve the project; instances under a sub-path (`/01/…`) break hand-built API paths.
     for (const m of runJson('glab', ['mr', 'list', '-R', urls.gitlab, '-F', 'json'])) {
       const full = runJson('glab', ['mr', 'view', String(m.iid), '-R', urls.gitlab, '-F', 'json']);
       gitlab.push({ branch: m.source_branch, iid: m.iid, pipeline: full.head_pipeline?.status ?? 'none' });
     }
-  }
+  });
   const rows = prRows(github, gitlab);
-  if (!rows.length) {
+  for (const r of rows) {
+    if (!ghOk) Object.assign(r, { pr: 'error', checks: 'error' });
+    if (!glOk) Object.assign(r, { mr: 'error', pipeline: 'error' });
+  }
+  if (!rows.length && ghOk && glOk) {
     process.stdout.write('No open PRs or MRs.\n');
     return 0;
   }
@@ -201,7 +216,7 @@ function prs(forge) {
   const line = (r) => cols.map((c) => String(r[c]).padEnd(width[c])).join('  ').trimEnd();
   process.stdout.write(`${line(header)}\n`);
   for (const r of rows) process.stdout.write(`${line(r)}\n`);
-  return 0;
+  return ghOk && glOk ? 0 : 1;
 }
 
 function main(argv) {
