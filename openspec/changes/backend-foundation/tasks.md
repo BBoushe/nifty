@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** Task 5 done (GitLab dind config unverified until the pipeline runs)
-- **Next action:** Task 6
+- **Current:** Tasks 1-6 done (GitLab dind config unverified until the pipeline runs)
+- **Next action:** `## Delivery` (merge `origin/dev`, archive, push, PR/MR, cold review)
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -36,8 +36,8 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(contracts): add cross-slice contract stubs with placeholder beans`
 
 ### Task 6: Docs
-- [ ] `docs/architecture.md` (test base, placeholders), `docs/feature_backlog.md` row 1 → done, `CHANGELOG.md`
-- [ ] Verify: harness tests → exit 0; commit `docs: record backend-foundation`
+- [x] `docs/architecture.md` (test base, placeholders), `docs/feature_backlog.md` row 1 → done, `CHANGELOG.md`
+- [x] Verify: harness tests → exit 0; commit `docs: record backend-foundation`
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev`
@@ -76,4 +76,11 @@
 - Verification: RED: `cd backend && ./mvnw -B test-compile` → FAIL (`FieldValidationException`, `FieldErrorDetail` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0, 26 tests incl. `ArchitectureTest`
 - Contracts/Migrations added: `shared/exception/{FieldErrorDetail,FieldValidationException}`, `shared/config/{AttemptCompletedEvent,AssessmentDeletedEvent}`; no migration
 - Decisions: none (Decision 4.4 pointer in `AssessmentDeletedEvent` javadoc)
+- Open Questions: none
+
+### Task 5 (US-BF-06, REQ-BF-03)
+- Commits: ce84729 feat(contracts): add cross-slice contract stubs with placeholder beans
+- Verification: RED: `cd backend && ./mvnw -B test-compile` → FAIL (`ContractStubsTest`: owner packages and types missing); GREEN: `cd backend && ./mvnw -B test` → exit 0, 29 tests, 0 skipped, incl. `ArchitectureTest`
+- Contracts/Migrations added: every §3 type in `audit.service`, `auth.service`, `studio.service(.view)`, `context.service(.dto)`, `assessment.service`, `evaluation.service`; 6 package-private `<Interface>Placeholder` beans; `RoleAccessTest` uses `/api/v1/{ranking,assessment}/__probe`; no migration
+- Decisions: none (`@JsonValue` literals per design §2; `com.fasterxml.jackson.annotation` stays under Jackson 3)
 - Open Questions: none
