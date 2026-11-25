@@ -24,7 +24,7 @@ Give candidates full transparency into their skill profile after release. The pr
 - **THEN** the backend withholds all provisional scores, weights, formulas and trait scores and shows a pending-review status.
 
 ### Requirement: REQ-CR-03 Strict Candidate Isolation
-**THE SYSTEM SHALL** restrict candidate result queries so a candidate can view only their own approved profile and **SHALL NOT** access another candidate's transcript or scores.
+**THE SYSTEM SHALL** restrict candidate result queries so a candidate can view only their own released profile and **SHALL NOT** access another candidate's transcript or scores.
 
 #### Scenario: Candidate requests another candidate's ID
 - **WHEN** an authenticated `CANDIDATE` requests `/api/v1/assessment/results/{otherCandidateId}`

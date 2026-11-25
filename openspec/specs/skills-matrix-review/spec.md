@@ -38,7 +38,7 @@ Provide an evidence-first visual review workspace. Professors use it to inspect 
 - **THEN** skill level distributions, `N/A` shares, and weakest domains are aggregated exclusively in SQL over released scores of counted attempts and link directly to underlying candidate evidence.
 
 ### Requirement: REQ-SM-05 Threshold-Gated Auto-Release
-**WHEN** the evaluation of an attempt completes, every (question, skill) score meets its question's threshold, coverage meets the minimum, and no score is flagged, **THE SYSTEM SHALL** set every score of the attempt to `auto_released` and release the results to the candidate (Decision 2.10).
+**WHEN** the evaluation of an attempt completes, every (question, skill) score meets its question's threshold, coverage meets the minimum, and no score is flagged, **THE SYSTEM SHALL** set every score of the attempt to `auto_released` and release the results to the candidate (Decision 2.10). `N/A` scores are left out of the threshold check. Coverage covers them (REQ-FE-03).
 
 #### Scenario: Confident, complete attempt
 - **WHEN** all scores of an attempt are at or above their thresholds, coverage is 0.90 with minimum 0.70, and no entry is paste-suspected

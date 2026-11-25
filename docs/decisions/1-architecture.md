@@ -160,7 +160,7 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Date:** 2026-11-25
 - **Triggered By:** question-round
 - **Context:** The auth slice needs a student sign-in model. Students take one assessment and have no other use for an account.
-- **Decision:** The professor creates invite links (CSV import or one at a time). Each link holds a personal, unguessable token bound to one assessment and one student. Opening it starts an authenticated CANDIDATE session; the student can reopen the same link until the attempts run out or the professor revokes it. Students have no passwords. Professors sign in with account credentials. The token format (JWT or server session) is decided in the auth change design.
+- **Decision:** The professor creates invite links (CSV import or one at a time). Each link holds a personal, unguessable token bound to one assessment and one student. Opening it starts an authenticated CANDIDATE session; the student can reopen the same link until the professor revokes it: to take attempts while any remain, and to open released results afterwards. Students have no passwords. Professors sign in with account credentials. The token format (JWT or server session) is decided in the auth change design.
 - **Alternatives Considered:** Student accounts with email and password registration.
 - **Rationale / Justification:** No registration or password reset to build in block week, and every student is tied to exactly one assessment.
 - **Affected Files / Pointers:** openspec/specs/auth-access/spec.md, docs/api.md

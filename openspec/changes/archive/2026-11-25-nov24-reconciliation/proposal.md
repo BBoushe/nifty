@@ -2,7 +2,7 @@
 
 ## Context & Problem
 
-The Nov 23 team meeting produced [`docs/feature-list-2026-11-24.md`](../../../docs/feature-list-2026-11-24.md). It contradicts the discovery canvas, older decisions, the seed specs, the design system and the invariants in `AGENTS.md`. Open decisions O1–O7 blocked 6 of 7 MVP features. The professor's PDFs (`docs/pdfs/`) add gaps: dual-agent rubric isolation, a domain model, an `auth` slice, `docs/ai_logs/`, and Java/Spring conventions.
+The Nov 23 team meeting produced [`docs/feature-list-2026-11-24.md`](../../../../docs/feature-list-2026-11-24.md). It contradicts the discovery canvas, older decisions, the seed specs, the design system and the invariants in `AGENTS.md`. Open decisions O1–O7 blocked 6 of 7 MVP features. The professor's PDFs (`docs/pdfs/`) add gaps: dual-agent rubric isolation, a domain model, an `auth` slice, `docs/ai_logs/`, and Java/Spring conventions.
 
 The 2026-11-25 decisions close all of this: 1.11–1.17, 2.10–2.19, 3.12–3.14 and 4.1–4.4. O1–O7 are resolved. This change writes those decisions into the specs and docs, so builders can start the MVP features without guessing.
 

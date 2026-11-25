@@ -27,7 +27,7 @@
 - **THEN** the evaluator does not start.
 
 ### Requirement: REQ-EP-06 Timed-Out Questions Produce N/A
-**IF** a core question timed out **THEN THE SYSTEM SHALL** record `N/A` for every (question, skill) score of that question and its follow-ups, and **SHALL NOT** send their entries to the evaluator (Decision 2.14).
+**IF** a core question timed out **THEN THE SYSTEM SHALL** record `N/A` for every (question, skill) score of that question and its follow-ups, and **SHALL NOT** send their entries to the evaluator (Decision 2.14). **IF** only a follow-up timed out **THEN THE SYSTEM SHALL** leave out only that follow-up entry and keep the core question scored.
 
 #### Scenario: Partial answer at timeout
 - **WHEN** question 3 has a ledger answer with `timedOut = true`

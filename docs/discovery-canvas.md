@@ -284,7 +284,7 @@ The professor configures how the LLM interviewer behaves:
 - The system stores every formula version. Each score records which version produced it.
 - The system **shows the formula to the candidate** on their results page after release, never during the interview.
 
-### UX-04: Confidence Bounds & Attention Flags
+### UX-04: Confidence Thresholds & Attention Flags
 - The professor sets **one minimum confidence per core question** (Decision 2.11). Code calculates confidence for each (question, skill) score.
 - A question passes only when every skill that it scores meets the threshold. A weak skill cannot hide behind a strong one.
 - When every question passes, coverage meets the minimum and the system flags no answer, the system releases the result to the student automatically (Decision 2.10).
@@ -335,7 +335,7 @@ The professor configures how the LLM interviewer behaves:
 - Each question shows the professor's minimum and maximum time with a visible countdown. At zero, the browser submits the current text. The server decides by its own timestamps (Decision 2.14).
 - Pause and resume does not exist.
 
-### UX-10: Candidate Results Page (after approval)
+### UX-10: Candidate Results Page (after release)
 - The candidate sees the page once the system releases the result: automatically, or after the professor approves it (Decision 2.10).
 - The candidate sees their own scores, linked evidence, confidence, the formula that the system used and the weights.
 - The page shows friendly advice: the strongest skills and the next areas to improve. Code selects them. An optional AI sentence only phrases them and carries an AI label (Decision 2.16).
@@ -364,7 +364,7 @@ The professor configures how the LLM interviewer behaves:
 ### UX-14: Invite Link, Attempts & Release
 - The professor creates invite links from a CSV import or one at a time (Decision 1.17).
 - Each link holds a personal, unguessable token. The token binds to one assessment and one student. Opening the link starts a CANDIDATE session.
-- The student can reopen the link until the attempts run out or the professor revokes it. Students have no passwords.
+- The student can reopen the link until the professor revokes it. It starts attempts while any remain, and it opens released results afterwards. Students have no passwords.
 - The professor sets the maximum attempts per assessment. The latest completed attempt counts (Decision 2.13).
 - Older attempts stay in the ledger for audit. They leave the matrix, the cohort statistics and team building.
 - The system keeps transcripts, scores and BFI-10 answers until the professor deletes the assessment (Decision 4.4). That action also drops all candidate data of that assessment and writes an audit log entry.

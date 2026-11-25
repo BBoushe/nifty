@@ -9,7 +9,7 @@ Use this skill when implementing any change under `openspec/changes/<change>/`.
 
 ## Procedure
 
-1. Read `AGENTS.md`, `openspec/config.yaml`, `openspec/changes/<change>/proposal.md`, `requirements.md`, `design.md`, and `tasks.md`.
+1. Read `AGENTS.md`, `openspec/config.yaml`, `openspec/changes/<change>/proposal.md`, `specs/<capability>/spec.md`, `design.md`, and `tasks.md`.
 2. Identify the next unchecked task in `tasks.md`.
 3. Check the corresponding domain spec in `openspec/specs/<module>/spec.md` so no EARS invariant is broken.
 4. Follow the Build Loop in `.claude/agents/spec-builder.md` for each step: brainstorm unclear points, write the failing test and run it (RED), write the minimal code (GREEN), use systematic debugging on any failure.

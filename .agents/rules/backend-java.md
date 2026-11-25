@@ -26,7 +26,7 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and Time
    - Never pass rubrics, level descriptions, scores or evaluator output to the interviewer `ChatClient` (Decision 1.12). Start the evaluator from an `AFTER_COMMIT` event listener.
 5. **Strict Controller DTO & Error Boundary:** Controllers MUST ONLY validate input (`@Valid` record DTOs), delegate to a single service method, and return explicit response records. Follow §9 for entity exposure, repository access and error handling.
 6. **Formula Engine & Timefold:**
-   - Evaluate custom formula expressions strictly inside a sandboxed context (for example, SpEL `SimpleEvaluationContext` with allowlisted functions).
+   - MVP uses formula presets only (Decision 2.19). Never evaluate free-form formula expressions. The sandboxed SpEL editor is Post-MVP.
    - Keep Timefold Solver constraints pure, deterministic, and explainable.
 7. **Java 21 & Spring Conventions (Decision 3.13):**
    - Annotate each `@Service` class with `@Transactional(readOnly = true)`. Annotate each write method with `@Transactional`. Never put `@Transactional` on controllers or repositories.

@@ -63,7 +63,7 @@ Run an adaptive and standardized conversational assessment. The candidate posts 
 - **THEN** the ledger stores `expiresAt` 10:03:00 for the follow-up.
 
 ### Requirement: REQ-AC-08 Timeout Handling
-**IF** an answer arrives after `expiresAt` **THEN THE SYSTEM SHALL** record it with `timedOut = true` and mark the question `N/A`. **IF** an answer arrives after `expiresAt` plus the grace period, or no answer arrives, **THEN THE SYSTEM SHALL** reject a late answer with `409`, record the question as timed out without answer text, and move to the next question.
+**IF** an answer arrives after `expiresAt` **THEN THE SYSTEM SHALL** record it with `timedOut = true` and mark the question `N/A`. For a follow-up, only that follow-up entry is `N/A` (REQ-EP-06). **IF** an answer arrives after `expiresAt` plus the grace period, or no answer arrives, **THEN THE SYSTEM SHALL** reject a late answer with `409`, record the question as timed out without answer text, and move to the next question.
 
 #### Scenario: Browser auto-submits at zero
 - **WHEN** the countdown reaches zero and the browser submits the text typed so far 0.4 s after `expiresAt`

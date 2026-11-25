@@ -4,10 +4,10 @@
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
 - **Current:** Tasks 1–7 done; Delivery next
-- **Next action:** push, PR/MR, cold review, ask the user with the architecture summary (archived at openspec/changes/archive/2026-11-25-nov24-reconciliation/)
+- **Next action:** ask the user, then push and open the PR/MR
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
-- **Open review findings:** none
+- **Open review findings:** cold review REQUEST CHANGES (7 Blocking, 10 Convention Candidates); all fixed in the review-fix commit
 
 ## Tasks
 
@@ -60,7 +60,7 @@
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive nov24-reconciliation -y` (syncs the delta specs), fix the `auth-access` Purpose if needed, history entry in `docs/feature_history.md`
 - [x] Verify: `openspec validate --all --strict`; `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`
 - [ ] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
-- [ ] Cold review (fresh `reviewer` agent)
+- [x] Cold review (fresh `reviewer` agent)
 - [ ] CI green on both forges (`node scripts/forge.mjs prs`)
 - [ ] Ask the user with the architecture summary, then merge on GitHub and `node scripts/forge.mjs sync dev`
 - [ ] Branch cleanup
@@ -89,3 +89,7 @@
 ### 2026-11-25 — Task 7 (main session)
 - **Did:** rebuilt `docs/feature_backlog.md`: 13 rows in waves 0–6 (backend and frontend foundation, auth accounts, audit service, studio, invite links, formula, assessment chat, evidence, matrix, results, teams, harness follow-ups), reserved Flyway files V2–V9, `US-` stories per feature with REQ links, Post-MVP section, notes. Auth needs two migrations (account → configuration → invite), so design §6 now reserves V2 and V4 for `auth`. CHANGELOG entry.
 - **Verification:** RED: n/a (no behaviour). ste-lint: no hard findings in new text (remaining ones are in the carried-over notes).
+
+### 2026-11-25 — Cold review fixes (main session)
+- **Did:** fixed every Blocking item: archived proposal link depth; invite link stays valid after the attempts run out (1.17 refined in place, canvas aligned); `N/A` scores are left out of the threshold check (REQ-SM-05, `AGENTS.md` rule 5, architecture); a follow-up timeout drops only that entry (REQ-AC-08, REQ-EP-06, 2.14 refined in place); `backend-java.md` presets only; inferred-tag review moved to `/ranking/studio/**`; `spec-implementer`, `ai_docs` README and `AGENTS.md` role row drift. Convention Candidates: `auth-accounts` name, `pending -> flagged` transition, `paste_suspected` signal on `SKILL_SCORE` with `matrix` setting `flagged`, scheduled sweep for abandoned sessions, REQ-CR-03 "released", canvas UX-04/UX-10 headings, decisions index §2 text, frontend rule 20, check-skill pointer.
+- **Verification:** RED: n/a (no behaviour). `openspec validate --all --strict` 8/8; harness tests 43/43.

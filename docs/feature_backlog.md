@@ -79,7 +79,7 @@ Check each dependency change against `docs/ai_docs/` first.
 - **US-AC-01:** Add the ledger table with a trigger that blocks `UPDATE` and an unflagged `DELETE` (REQ-AC-04).
 - **US-AC-02:** Starting a session streams the greeting and question 1 with `expiresAt`. The attempt limit gives `409` (REQ-AC-05, REQ-AC-11).
 - **US-AC-03:** An answer streams the reply. The state machine checks question order and the follow-up limit, and answers `409` for a disallowed input (REQ-AC-01, REQ-AC-05).
-- **US-AC-04:** Deadlines: store `expiresAt`, set `timedOut`, give `409` after the grace period, and close expired questions on the next request (REQ-AC-07, REQ-AC-08).
+- **US-AC-04:** Deadlines: store `expiresAt`, set `timedOut`, give `409` after the grace period, and close expired questions on the next request and in a scheduled job that completes abandoned attempts (REQ-AC-07, REQ-AC-08).
 - **US-AC-05:** An answer under the minimum time gets `pasteSuspected` (REQ-AC-09).
 - **US-AC-06:** `GET` returns the session state from the ledger for a page refresh (REQ-AC-06).
 - **US-AC-07:** The interviewer prompt builder contains no rubric or score data and has the guardrails. A test captures the prompt (REQ-AC-12, REQ-AC-13).

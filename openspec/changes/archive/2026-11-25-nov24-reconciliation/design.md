@@ -26,7 +26,7 @@ This change edits specs and docs only. The sections below fix the shapes that th
 | 1.15 | Two roles | REQ-AA-01, `Role` in the enum table, `AGENTS.md`, `backend-java.md` |
 | 1.16 | `auth` and `audit` slices, `studio` owns tags | REQ-IS-02, slice map |
 | 1.17 | Invite-link sign-in | REQ-AA-03..05 |
-| 3.12 | `docs/ai_logs/` | `docs/ai_logs/README.md`, `architecture_handover.md` |
+| 3.12 | `docs/ai_logs/` | `docs/ai_logs/README.md`, `2026-11-25-architecture-handover.md` |
 | 3.13 | Java/Spring conventions, read order | `backend-java.md`, `AGENTS.md`, `CLAUDE.md` |
 | 3.14 | Backlog format | `docs/feature_backlog.md` |
 
@@ -62,7 +62,7 @@ GET  /sessions/{id}           → state from the ledger (refresh)
 POST /sessions/{id}/bfi10     → 204 (only WHERE BFI-10 is on, after the last core question)
 ```
 
-The state machine (`assessment` slice, Java) holds: `IN_PROGRESS → BFI10 → COMPLETED`, or `IN_PROGRESS → COMPLETED` when BFI-10 is off. It enforces question order, the follow-up limit and the deadlines. An input that the state does not allow gets `409`. On every request, the service first closes any question whose `expiresAt` plus the grace period lies in the past (REQ-AC-08). `COMPLETED` publishes `AttemptCompletedEvent`. The evaluator listens `AFTER_COMMIT` (REQ-EP-05).
+The state machine (`assessment` slice, Java) holds: `IN_PROGRESS → BFI10 → COMPLETED`, or `IN_PROGRESS → COMPLETED` when BFI-10 is off. It enforces question order, the follow-up limit and the deadlines. An input that the state does not allow gets `409`. On every request, the service first closes any question whose `expiresAt` plus the grace period lies in the past (REQ-AC-08). A scheduled job closes them for abandoned sessions and completes the attempt. `COMPLETED` publishes `AttemptCompletedEvent`. The evaluator listens `AFTER_COMMIT` (REQ-EP-05).
 
 ## 4. BFI-10 Items
 
@@ -89,6 +89,7 @@ Fixed in code (Rammstedt & John, 2007). Stem: "I see myself as someone who…"
 
 ```text
 pending ──(all gates pass, REQ-SM-05)──> auto_released ──(override)──> overridden
+pending ──(any score below threshold or paste-suspected)──> flagged
 pending | flagged ──(professor)──> approved | overridden
 ```
 

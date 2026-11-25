@@ -79,7 +79,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 
 ## 2. Open Team Decisions (TBD)
 
-These items remain open for Day-1 team alignment (resolve via `question-round` + `node scripts/record-decision.mjs ... --resolves O<k>`):
+O1–O7 are resolved (2026-11-25). Add a new open item here when one comes up, and resolve it via `question-round` + `node scripts/record-decision.mjs ... --resolves O<k>`:
 
 | ID | Question | Options / Constraints | Owner | Status |
 |---|---|---|---|---|

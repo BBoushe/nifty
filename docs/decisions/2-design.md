@@ -134,7 +134,7 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Date:** 2026-11-25
 - **Triggered By:** question-round
 - **Context:** The feature list replaces AI detectors with a minimum and maximum time per question and removes pause/resume from UX-09.
-- **Decision:** The professor sets a minimum and maximum time for each core question. The server measures time from its own timestamps in the ledger. An answer under the minimum is flagged paste_suspected for review. WHEN the maximum passes, the question is N/A (unanswered, not wrong). The chat shows a countdown and the questions-left indicator. Pause and resume is removed. Follow-up questions use the time limits of their core question.
+- **Decision:** The professor sets a minimum and maximum time for each core question. The server measures time from its own timestamps in the ledger. An answer under the minimum is flagged paste_suspected for review. WHEN the maximum passes, the question is N/A (unanswered, not wrong). The chat shows a countdown and the questions-left indicator. Pause and resume is removed. Follow-up questions use the time limits of their core question. A follow-up that times out drops only that follow-up entry. The core question keeps its other entries.
 - **Alternatives Considered:** AI text detectors; client-side timers; keep pause and resume.
 - **Rationale / Justification:** Server timestamps cannot be faked by the client, and timing signals are deterministic, unlike AI detectors.
 - **Affected Files / Pointers:** openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md

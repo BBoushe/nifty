@@ -54,4 +54,4 @@ Three question rounds with the prompter. All answers are recorded with `scripts/
 
 - A timed-out partial answer is logged but not scored (feature list rule). The prompter can reverse this.
 - The interview budget per session has no decision yet.
-- Code drift: `Role.java` and `SecurityConfig` still have `REVIEWER` until the `auth-and-invites` feature ships.
+- Code drift: `Role.java` and `SecurityConfig` still have `REVIEWER` until the `auth-accounts` feature ships.

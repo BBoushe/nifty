@@ -19,7 +19,7 @@
 | `/api/v1/assessment/**` | `CANDIDATE` | Assessment Chat and Candidate Results. A candidate session reaches only the assessment and candidate of its invite link. Results stay closed until release. |
 | All other routes | Authenticated | Default deny for unauthenticated callers |
 
-MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules. A new role (for example `REVIEWER`) is one `Role` value plus rules in these two places. `SecurityConfig` still allows `REVIEWER` and `PROFESSOR` on the old paths until the `auth-and-invites` feature ships.
+MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules. A new role (for example `REVIEWER`) is one `Role` value plus rules in these two places. `SecurityConfig` still allows `REVIEWER` and `PROFESSOR` on the old paths until the `auth-accounts` feature ships.
 
 ## 3. Standard Error Envelope
 
@@ -62,13 +62,13 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
 - **Auth (`/api/v1/auth/**`):** `POST /auth/login` (professor), `POST /auth/invite/{token}` (candidate session from an invite link) (`openspec/specs/auth-access/spec.md`).
-- **Interviewer Studio (`/api/v1/ranking/studio/**`):** assessment form CRUD, config versions, publish, skill/tag taxonomy, assessment deletion (`DELETE /ranking/studio/configs/{id}`), invite links (`POST /ranking/studio/configs/{id}/invites`, CSV import) (`openspec/specs/interviewer-studio/spec.md`).
+- **Interviewer Studio (`/api/v1/ranking/studio/**`):** assessment form CRUD, config versions, publish, skill/tag taxonomy and inferred-tag review (the evidence pipeline proposes tags through the `studio` service), assessment deletion (`DELETE /ranking/studio/configs/{id}`), invite links (`POST /ranking/studio/configs/{id}/invites`, CSV import) (`openspec/specs/interviewer-studio/spec.md`).
 - **Assessment Chat (`/api/v1/assessment/sessions/**`):** (Decision 1.11, `openspec/specs/assessment-chat/spec.md`)
   - `POST /assessment/sessions` → `text/event-stream`: greeting and question 1. Each question event carries `expiresAt`. `409` when the attempts are used up.
   - `POST /assessment/sessions/{id}/answers` (`{ text }`) → `text/event-stream`: the interviewer reply, then the next question with `expiresAt`, or `done`. `409` after `expiresAt` plus the grace period, or when the state does not allow an answer.
   - `GET /assessment/sessions/{id}` → session state from the ledger: messages, open question, `expiresAt`.
   - `POST /assessment/sessions/{id}/bfi10` (`{ items: [1..5 x 10] }`) → `204`. `400` names each missing item.
-- **Evidence Pipeline (`/api/v1/ranking/transcripts/**`):** `assessment-transcript/v1` export, evidence per attempt, inferred-tag suggestions (`openspec/specs/evidence-pipeline/spec.md`). The evaluator starts from an event, not from an endpoint.
+- **Evidence Pipeline (`/api/v1/ranking/transcripts/**`):** `assessment-transcript/v1` export, evidence per attempt (`openspec/specs/evidence-pipeline/spec.md`). The evaluator starts from an event, not from an endpoint.
 - **Formula Engine (`/api/v1/ranking/formulas/**`):** preset list, formula version per config, what-if preview. No free-form expressions in MVP (`openspec/specs/formula-engine/spec.md`).
 - **Skills Matrix & Review (`/api/v1/ranking/matrix/**`, `/api/v1/ranking/reviews/**`):** matrix cells (`status: "SCORED" | "N/A"`, `value: number | null`), Evidence Drawer, "Needs attention" queue, attempt approval, audited overrides, full conversation log per attempt (`openspec/specs/skills-matrix-review/spec.md`).
 - **Team Builder (`/api/v1/ranking/teams/**`):** Timefold proposals with configured team size and BFI-10 balance, deterministic validation, professor publishing (`openspec/specs/team-builder/spec.md`).

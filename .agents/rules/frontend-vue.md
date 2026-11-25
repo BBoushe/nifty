@@ -38,7 +38,7 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
 17. Cleanup: clear timers and listeners in onUnmounted or onWatcherCleanup.
 18. Use shallowRef for big objects or third-party instances (maps, charts, editors).
 19. Typing: ref<string | null>(null), PropType is unnecessary with type-based defineProps, and run vue-tsc for type checks (plain tsc can't read .vue).
-21. Testing: Vitest + @vue/test-utils (mount, shallowMount) and await nextTick() after state changes.
+20. Testing: Vitest + @vue/test-utils (mount, shallowMount) and await nextTick() after state changes.
 22. React habits to ban: no useState/useEffect patterns, no className, no onClick (use @click), no JSX unless explicitly configured. Also ban key on non-list elements for forced remounting without good reason.
 
 ## Quick gotchas

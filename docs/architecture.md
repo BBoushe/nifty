@@ -60,7 +60,7 @@ flowchart LR
 | 3. Quote Verifier | Deterministic Java | Every quote must appear word-for-word in the referenced ledger entry. It **discards unverified quotes**. |
 | 4. Scorer | Formula preset (Decision 2.19) + 2-run LLM judge | Missing verified evidence gives **`N/A`** (never `0` or `1`). A timed-out question gives `N/A` for all its skills. |
 | 5. Confidence | Deterministic Java | One confidence per (question, skill) from measurable signals (Decision 2.11). It **never** uses LLM self-report. |
-| 6. Release gate | Deterministic Java + professor | All scores at or above their question's threshold, coverage at or above the minimum, and no flag → `auto_released`. Otherwise the attempt waits in the professor's queue (Decision 2.10). An override needs a reason and writes `audit_log`. |
+| 6. Release gate | Deterministic Java + professor | All scored (not `N/A`) scores at or above their question's threshold, coverage at or above the minimum, and no flag → `auto_released`. Otherwise the attempt waits in the professor's queue (Decision 2.10). An override needs a reason and writes `audit_log`. |
 | 7. Totals & Cohort Gaps | Deterministic SQL | Only released scores of each candidate's latest attempt count (Decision 2.13). Fit and coverage show separately. |
 | 8. Team Balancer | Timefold Solver | Team size and soft-constraint weights come from the config (Decision 2.18). The BFI-10 balance constraint applies when BFI-10 is on (Decision 4.3). Mode B parses text in a fresh LLM context, and the professor approves the constraints. |
 | 9. Team Approval | Professor | A human publishes the teams. |
@@ -74,7 +74,7 @@ flowchart LR
 | `GET /api/v1/assessment/sessions/{id}` | Session state from the ledger | Resumes after a page refresh |
 | `POST /api/v1/assessment/sessions/{id}/bfi10` | `204` | Only when BFI-10 is on, after the last core question |
 
-The server stores `expiresAt` when it asks a question. The browser counts down and submits the current text at zero. On every request, the service first closes questions whose deadline plus the grace period lies in the past.
+The server stores `expiresAt` when it asks a question. The browser counts down and submits the current text at zero. On every request, the service first closes questions whose deadline plus the grace period lies in the past. A scheduled job does the same for sessions that get no more requests, and it completes an abandoned attempt, so the evaluator still runs.
 
 ## 4. Conversation Ledger & Transcript Contract
 
@@ -100,7 +100,7 @@ All backend Java enums, PostgreSQL columns, OpenAPI schemas, and frontend TypeSc
 | `question.origin` | `core`, `follow_up`, `invented` | Stored, immutable | `assessment` |
 | `inferredTag.status` | `pending`, `approved`, `rejected` | Only the professor moves `pending -> approved \| rejected`. The evidence pipeline proposes tags through the `studio` service (Decision 1.16). | `studio` |
 | `score` (`N/A` wire format) | `value: number (0..4) \| null`, `status: "SCORED" \| "N/A"` | Computed in Java/SQL for each (question, skill). `null` + `"N/A"` when there is no verified quote or the question timed out (NEVER `0` or `1`). Excluded from fit. | `evidence` |
-| `reviewStatus` | `pending`, `flagged`, `auto_released`, `approved`, `overridden` | `pending -> auto_released` when the release gate passes. `pending \| flagged -> approved \| overridden` by the professor. `auto_released -> overridden` by the professor. `flagged` blocks bulk-approve. `overridden` needs a reason and an `audit_log` row. | `matrix` |
+| `reviewStatus` | `pending`, `flagged`, `auto_released`, `approved`, `overridden` | `pending -> flagged` when a scored value is below its threshold or comes from a paste-suspected entry. `pending -> auto_released` when the release gate passes. `pending \| flagged -> approved \| overridden` by the professor. `auto_released -> overridden` by the professor. `flagged` blocks bulk-approve. `overridden` needs a reason and an `audit_log` row. | `matrix` |
 
 ## 5. Domain Model
 
@@ -138,7 +138,7 @@ erDiagram
 | `CONVERSATION_ENTRY` | `assessment` | §4 ledger columns |
 | `BFI_RESPONSE` | `assessment` | `attempt_id`, `item_1..item_10` (1–5), five trait means |
 | `EVIDENCE_ITEM` | `evidence` | `id`, `entry_id`, `skill_id`, `quote`, `quote_verified`, `suggested_level`, `judge_runs`, `rationale` |
-| `SKILL_SCORE` | `evidence` | `id`, `attempt_id`, `core_question_id`, `skill_id`, `value`, `status`, `confidence`, `formula_version` |
+| `SKILL_SCORE` | `evidence` | `id`, `attempt_id`, `core_question_id`, `skill_id`, `value`, `status`, `confidence`, `paste_suspected`, `formula_version`. `evidence` stores the signals. `matrix` sets `flagged` from them. |
 | `FORMULA_VERSION` | `formula` | `id`, `config_id`, `version`, `preset`, `weights` |
 | `SCORE_REVIEW` | `matrix` | `score_id`, `review_status`, `override_value`, `reason`, `reviewed_at` |
 | `TEAM_PROPOSAL` / `TEAM_MEMBER` | `teams` | `id`, `config_id`, `status` (`DRAFT \| PUBLISHED`), `team_no`, `invite_id` |
