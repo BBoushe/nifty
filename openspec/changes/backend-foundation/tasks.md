@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** Task 4 done (GitLab dind config unverified until the pipeline runs)
-- **Next action:** Task 5
+- **Current:** Task 5 done (GitLab dind config unverified until the pipeline runs)
+- **Next action:** Task 6
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -31,9 +31,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; commit `feat(shared): add field validation errors and cross-slice events`
 
 ### Task 5: US-BF-06 Contract stubs, placeholders and role probes (REQ-BF-03)
-- [ ] RED: `ContractStubsTest` (`@SpringBootTest`): one bean per shared interface, placeholder call throws `UnsupportedOperationException`, enum JSON literals (`"N/A"`, `"follow_up"`, `"auto_released"`).
-- [ ] GREEN: every §3 type of `docs/tickets/00-parallel-waves-and-contracts.md` in its owner package; 6 `<Interface>Placeholder` beans; `RoleAccessTest` probes `/api/v1/ranking/__probe` and `/api/v1/assessment/__probe`.
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(contracts): add cross-slice contract stubs with placeholder beans`
+- [x] RED: `ContractStubsTest` (`@SpringBootTest`): one bean per shared interface, placeholder call throws `UnsupportedOperationException`, enum JSON literals (`"N/A"`, `"follow_up"`, `"auto_released"`).
+- [x] GREEN: every §3 type of `docs/tickets/00-parallel-waves-and-contracts.md` in its owner package; 6 `<Interface>Placeholder` beans; `RoleAccessTest` probes `/api/v1/ranking/__probe` and `/api/v1/assessment/__probe`.
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(contracts): add cross-slice contract stubs with placeholder beans`
 
 ### Task 6: Docs
 - [ ] `docs/architecture.md` (test base, placeholders), `docs/feature_backlog.md` row 1 → done, `CHANGELOG.md`
@@ -70,3 +70,10 @@
 - Contracts/Migrations added: none
 - Decisions: none (design §2: `docker:27-dind` service, `DOCKER_HOST=tcp://docker:2375`, `DOCKER_TLS_CERTDIR=""`, `TESTCONTAINERS_HOST_OVERRIDE=docker`)
 - Open Questions: runner must be privileged
+
+### Task 4 (US-BF-04, US-BF-05, REQ-BF-02)
+- Commits: cd6be26 feat(shared): add field validation errors and cross-slice events
+- Verification: RED: `cd backend && ./mvnw -B test-compile` → FAIL (`FieldValidationException`, `FieldErrorDetail` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0, 26 tests incl. `ArchitectureTest`
+- Contracts/Migrations added: `shared/exception/{FieldErrorDetail,FieldValidationException}`, `shared/config/{AttemptCompletedEvent,AssessmentDeletedEvent}`; no migration
+- Decisions: none (Decision 4.4 pointer in `AssessmentDeletedEvent` javadoc)
+- Open Questions: none

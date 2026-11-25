@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * REQ-AA-01: two roles, and each view's routes allow only its role (Decision 1.15).
- * No controllers exist yet, so an allowed request ends in 404 and a denied one in 403.
+ * The __probe paths map to no controller, so an allowed request ends in 404 and a denied one in 403.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -32,25 +32,25 @@ class RoleAccessTest extends PostgresContainerBase {
 
     @Test
     void candidateCannotReachRankingRoutes() throws Exception {
-        mockMvc.perform(get("/api/v1/ranking/matrix").with(user("cand").roles("CANDIDATE")))
+        mockMvc.perform(get("/api/v1/ranking/__probe").with(user("cand").roles("CANDIDATE")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void professorReachesRankingRoutes() throws Exception {
-        mockMvc.perform(get("/api/v1/ranking/matrix").with(user("prof").roles("PROFESSOR")))
+        mockMvc.perform(get("/api/v1/ranking/__probe").with(user("prof").roles("PROFESSOR")))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void professorCannotReachAssessmentRoutes() throws Exception {
-        mockMvc.perform(get("/api/v1/assessment/sessions/1").with(user("prof").roles("PROFESSOR")))
+        mockMvc.perform(get("/api/v1/assessment/__probe").with(user("prof").roles("PROFESSOR")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void candidateReachesAssessmentRoutes() throws Exception {
-        mockMvc.perform(get("/api/v1/assessment/sessions/1").with(user("cand").roles("CANDIDATE")))
+        mockMvc.perform(get("/api/v1/assessment/__probe").with(user("cand").roles("CANDIDATE")))
                 .andExpect(status().isNotFound());
     }
 }
