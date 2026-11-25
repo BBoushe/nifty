@@ -37,7 +37,7 @@ const modules = [
   { name: 'Interviewer Studio', spec: 'openspec/specs/interviewer-studio/spec.md', status: 'Seeded' },
   { name: 'Formula Engine', spec: 'openspec/specs/formula-engine/spec.md', status: 'Seeded' },
   { name: 'Skills Matrix & Review', spec: 'openspec/specs/skills-matrix-review/spec.md', status: 'Seeded' },
-  { name: 'Team Builder (Timefold)', spec: 'openspec/specs/team-builder/spec.md', status: 'Seeded' },
+  { name: 'Team Builder', spec: 'openspec/specs/team-builder/spec.md', status: 'Seeded' },
 ]
 </script>
 

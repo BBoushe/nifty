@@ -27,8 +27,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/api/v1/ranking/**").hasAnyRole(Role.PROFESSOR.name(), Role.REVIEWER.name())
-                        .requestMatchers("/api/v1/assessment/**").hasAnyRole(Role.CANDIDATE.name(), Role.PROFESSOR.name())
+                        // Decision 1.15 / REQ-AA-01: each view's routes allow only its role.
+                        .requestMatchers("/api/v1/ranking/**").hasRole(Role.PROFESSOR.name())
+                        .requestMatchers("/api/v1/assessment/**").hasRole(Role.CANDIDATE.name())
                         .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults())

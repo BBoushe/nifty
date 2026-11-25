@@ -14,7 +14,6 @@ Read the matching note before you use a library API from the pinned stack (`AGEN
 |---|---|---|
 | [`spring-boot-4.md`](spring-boot-4.md) | Spring Boot 4.0.x (tests, errors, Testcontainers, Jackson 3) | `backend/pom.xml` |
 | [`spring-ai-2-kiconnect.md`](spring-ai-2-kiconnect.md) | Spring AI 2.0.x with ki:connect NRW | `backend/pom.xml` |
-| [`timefold-solver.md`](timefold-solver.md) | Timefold Solver 2.8.x | `backend/pom.xml` |
 
 Frontend notes follow the UI kit decision: PrimeVue (Decision 1.14).
 

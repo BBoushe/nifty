@@ -4,7 +4,7 @@ This repository builds the **Evidence-First Skill Assessment Platform** (see [`d
 
 ## 1. Monorepo Map
 
-- `backend/` — Java 21, Spring Boot 4.x, Maven (`./mvnw`), Spring Security (2 roles: `PROFESSOR`, `CANDIDATE`, one enum, easy to extend, Decision 1.15), Spring Web (SSE). It also uses Spring Data JPA, Spring AI 2.0, Timefold Solver, PostgreSQL (JSONB), Flyway, springdoc-openapi, JUnit 5, Mockito and Testcontainers.
+- `backend/` — Java 21, Spring Boot 4.x, Maven (`./mvnw`), Spring Security (2 roles: `PROFESSOR`, `CANDIDATE`, one enum, easy to extend, Decision 1.15), Spring Web (SSE). It also uses Spring Data JPA, Spring AI 2.0, PostgreSQL (JSONB), Flyway, springdoc-openapi, JUnit 5, Mockito and Testcontainers.
 - `frontend/` — Vue 3.5 (**stable only — NEVER upgrade to Vue 3.6 RC**), TypeScript, Vite 8, Vue Router, Pinia, TanStack Query (`@tanstack/vue-query`), Tailwind CSS v4, Apache ECharts (`vue-echarts`). The UI component kit is PrimeVue, themed from the design tokens (Decision 1.14).
 - `openspec/` — Source of truth for specs (`config.yaml`, `specs/<module>/spec.md`, `changes/<change>/`).
 - `docs/` — Product vision (`discovery-canvas.md`), `architecture.md`, `api.md`, `workflow.md`, hierarchical decisions (`decisions/index.md`), and AI/SDD/ADD harness guide (`setup.md`).
@@ -13,10 +13,10 @@ This repository builds the **Evidence-First Skill Assessment Platform** (see [`d
 
 ## 2. Non-Negotiable Domain & Regulatory Invariants
 
-1. **Deterministic math only:** LLMs **MUST NEVER** compute totals, fit scores, coverage, rankings, cohort gap statistics, or team-balance metrics. All numerical aggregation runs in Java/SQL/Timefold.
+1. **Deterministic math only:** LLMs **MUST NEVER** compute totals, fit scores, coverage, rankings, cohort gap statistics, or team-balance metrics. All numerical aggregation runs in Java/SQL. The evaluator LLM returns machine-parsable levels only (Decision 2.25).
 2. **Explicit `N/A`:** The system **MUST** record missing verified evidence for a skill as `N/A` (never `0` or `1`) and exclude it from fit calculations. Always report fit and coverage separately.
 3. **Verbatim quote verification:** Every evidence quote that an LLM extracts **MUST** appear word-for-word in the referenced `assessment-transcript/v1` entry. Otherwise the system **MUST** discard the quote.
-4. **Calculated confidence:** The system computes confidence (`0..1`) for each (question, skill) score deterministically from measurable signals. The signals are evidence count, quote verification ratio, judge agreement, question origin, and prompted vs. unprompted terms. Never use LLM self-report.
+4. **Calculated confidence:** The system computes confidence (`0..1`) for each (question, skill) score deterministically from measurable signals. The signals are evidence count, quote verification ratio, judge agreement, question origin, answer length, and prompted vs. unprompted terms. Never use LLM self-report.
 5. **Human-in-the-loop (EU AI Act Annex III & GDPR):** Humans approve interviewer configurations and team placements. The professor sets a confidence threshold per question and a minimum coverage per assessment. The system releases an attempt automatically only when all gates pass. The gates: every scored (not `N/A`) score meets its threshold, coverage meets the minimum, and no score has a flag. A human reviews and approves every other attempt (Decision 2.10). Every score override requires a reason and writes an immutable audit log entry.
 6. **Candidate transparency timing:** The system reveals the formula, weights and verified evidence to the candidate **only after** the results are released (Decision 2.10). Never reveal them during the interview.
 7. **Fresh context for team-builder LLM:** Mode B (text → constraints) and Mode C (LLM proposal that passed validation) must run in a fresh, empty LLM context. They must pass deterministic validation.

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Five-service convergence (Decisions 1.18–1.21, 2.21–2.25):** one contract for the five teammate services: 7 backend slices, UUID keys, shared events, professor routes under `/api/v1/ranking/**`, one-shot immutable assessments, question-only weights and grouping modes. The context builder keeps two separate contexts per attempt, and the evaluator returns machine-parsable levels only. Team formation uses a seeded Simulated Annealing optimizer: Timefold is removed from the build. New `context-creation` spec, five teammate changes and `docs/tickets/`. `docs/artifacts/` and `docs/pdfs/` are now gitignored.
+- **Nov 24 follow-ups (Decisions 2.20, 4.5, 1.15):** answers submitted at timeout are now evaluated, and only a question without answer text is `N/A`. There is no cost limit per interview. The `REVIEWER` role is gone from the code: `/api/v1/ranking/**` allows only `PROFESSOR`, and `/api/v1/assessment/**` allows only `CANDIDATE` (`RoleAccessTest`).
+
 ### Added
 - **Nov 24 reconciliation (Decisions 1.11–1.17, 2.10–2.19, 3.12–3.14, 4.1–4.4):** O1–O7 are resolved. Specs now cover threshold-gated release, (question, skill) confidence, question-weighted coverage, attempt limits, min/max timers, the append-only conversation ledger with streamed replies, rubric-blind interviewer, invite-link sign-in (new `auth-access` spec) and an optional BFI-10 step. New: `docs/ai_logs/`, the domain model in `docs/architecture.md`, and a backlog of stories in delivery waves with reserved migrations. The 2026-11-22 discovery canvas is archived in `docs/archive/`.
 - **Orchestrated delivery (Decision 3.11):** the `orchestrate-changes` skill runs several changes from one session (builder agents in `../nifty-<change>` worktrees, a cold reviewer per PR, PR/MR handling by branch, a user question with an architecture summary before every merge). `node scripts/forge.mjs prs` shows GitHub PRs and GitLab MRs side by side by branch, and `forge.mjs` now reads the main checkout's `.env` from a worktree.

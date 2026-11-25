@@ -42,3 +42,12 @@ Use `scripts/record-decision.mjs --category 4 --trigger prompter-change ...` whe
 - **Alternatives Considered:** Automatic purge a fixed time after the course; keep forever with no delete.
 - **Rationale / Justification:** Real personal data needs a working delete path (GDPR). A manual delete is enough for the course scope.
 - **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, docs/architecture.md
+
+## 4.5 — No cost limit per interview
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** The canvas listed the LLM budget per interview as an open question.
+- **Decision:** The system sets no cost or token limit per interview. The time limits and the follow-up limit per core question bound the interview length.
+- **Alternatives Considered:** A token or cost budget per interview that ends the session.
+- **Rationale / Justification:** The course uses ki:connect NRW at no cost to students, and the configured limits already bound the length.
+- **Affected Files / Pointers:** docs/discovery-canvas.md

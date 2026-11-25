@@ -308,7 +308,7 @@ The professor configures how the LLM interviewer behaves:
 - Shows one score step by step: **formula → weighted parts → evidence items → verified quotes**, each linked to its exact position in the transcript.
 - Shows whether evidence came from a *core*, *follow-up* or *invented* question.
 - Actions: **Approve**, **Override** (reason required).
-- The drawer shows a `paste_suspected` flag when the student answered faster than the minimum time. A timed-out question shows as N/A.
+- The drawer shows a `paste_suspected` flag when the student answered faster than the minimum time. A timed-out answer shows a `timed out` marker and is scored like any answer. A question with no answer text shows as N/A (Decision 2.20).
 - The drawer offers no follow-up probe. Multi-session follow-up is out of scope. Extra tries come from the attempt limit.
 
 ### UX-07: Approval Workflow & Audit Log
@@ -399,7 +399,7 @@ flowchart LR
 | 5. Confidence | Code | Calculates a value for each (question, skill) score from measurable signals, not the LLM's own estimate (see §11.3) |
 | 6. Release gate | Code, then professor | Code releases the result when every threshold is met. Otherwise the professor reviews, ordered by flags and impact (Decision 2.10) |
 | 7. Totals | SQL | The LLM never calculates numbers. It may only write text around numbers that it receives. |
-| 8. Balancer | Timefold Solver (Java) | Constraint-based, with explainable scores |
+| 8. Balancer | Seeded Simulated Annealing (pure Java, Decision 1.20) | Balance and diversity cost, with team diagnostics |
 | 9. Team approval | Human | Final approval |
 
 The interviewer reply streams to the browser through SSE after each POSTed answer (Decision 1.11). BFI-10 scoring is code only. It sits outside this chain (Decision 4.3).
@@ -468,7 +468,7 @@ The interviewer reply streams to the browser through SSE after each POSTed answe
 
 `origin` is one of `core | follow_up | invented`. `promptedTerms` vs. `unpromptedTerms` lets a reader verify the "mentioned without being prompted" rule.
 
-An answer that arrives after `expiresAt` gets `timedOut = true`. The question is then N/A (Decision 1.11).
+An answer that arrives after `expiresAt` gets `timedOut = true` and is evaluated like any answer. A question is N/A only when no answer text arrives (Decisions 1.11, 2.20).
 
 ---
 
@@ -497,7 +497,7 @@ $$
 $$
 
 - Fit sums over skills and excludes N/A skills.
-- Coverage sums the weights of answered, scored core questions over the weights of all core questions (Decision 2.12). A timed-out question counts as unanswered.
+- Coverage sums the weights of answered, scored core questions over the weights of all core questions (Decision 2.12). A question without answer text counts as unanswered (Decision 2.20).
 - The professor sets a minimum coverage per assessment, for example 70%. Below it, the assessment goes to review.
 - The system ranks by *fit* by default. It flags a candidate with low coverage. It does not quietly rank the candidate lower or higher.
 
@@ -527,7 +527,7 @@ A documented function combines the signals into a 0–1 value for each (question
 - A question passes when every skill that it scores meets the question's confidence threshold.
 - The system releases a result automatically when every question passes, coverage meets the minimum and the system flags no answer (Decision 2.10).
 - Otherwise the professor reviews the result. The student sees it only after approval.
-- A question that times out is N/A. The latest completed attempt counts (Decisions 2.13, 2.14).
+- A question with no answer text is N/A. A timed-out answer with text is scored. The latest completed attempt counts (Decisions 2.13, 2.20).
 
 ---
 
@@ -556,7 +556,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 |---|---|---|
 | Backend | Java 21, **Spring Boot 4.x**, Spring Security (2 roles, PROFESSOR and CANDIDATE, Decision 1.15), Spring Web (POST answers with SSE reply streaming, Decision 1.11) | Decided |
 | AI integration | **Spring AI 2.0** (ChatClient, provider-native structured output, self-correcting schema validation, MCP SDK 2.0) with **ki:connect NRW** for interviewer and evaluator (Decisions 1.6, 1.13) | Decided |
-| Team formation | **Timefold Solver** (Java constraint solver) | Decided |
+| Team formation | **Seeded Simulated Annealing + 2-opt** (pure Java, Decision 1.20) | Decided |
 | Formula engine | Presets in MVP. Restricted SpEL editor Post-MVP (Decision 2.19) | Decided |
 | Database | **PostgreSQL 17** (relational tables for scores and evidence, append-only ledger for the interview, JSONB for transcripts, pgvector optional later), **Flyway** migrations | Decided (DB was open) |
 | Frontend | **Vue 3.5 + TypeScript + Vite 8**, Vue Router, Pinia, TanStack Query (Vue) | Decided |
@@ -605,7 +605,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 - **WHEN** an LLM-proposed team assignment is received **THE SYSTEM SHALL** validate that every candidate is assigned exactly once and that team sizes match the constraints before displaying it.
 - **WHEN** the system releases a result **THE SYSTEM SHALL** make the candidate's own scores, evidence, weights, formula and conversation log visible on their results page.
 - **WHEN** every question meets its threshold, coverage meets the minimum and no answer has a flag **THE SYSTEM SHALL** release the result automatically.
-- **WHEN** the maximum time for a question passes **THE SYSTEM SHALL** record the question as N/A and count it as unanswered.
+- **WHEN** the maximum time for a question passes without answer text **THE SYSTEM SHALL** record the question as N/A and count it as unanswered.
 - **WHEN** an answer arrives before the minimum time for its question **THE SYSTEM SHALL** flag the answer `paste_suspected` for review.
 - **WHERE** the professor turns BFI-10 on **THE SYSTEM SHALL** ask the 10 fixed items after the LLM questions and score the traits in code.
 - **IF** a student used all attempts **THEN THE SYSTEM SHALL** refuse a new attempt on the invite link.
@@ -624,7 +624,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 | No ground truth for accuracy | Small set of human-rated transcripts. Report agreement between humans and the pipeline. |
 | N/A distorts rankings | Fit and coverage shown separately. Minimum coverage sends the assessment to review. |
 | Review fatigue / rubber-stamping | Per-question confidence thresholds with automatic release. The professor reviews only results below them. Track override rate. |
-| Unexplainable teams | Timefold constraint scores as reasoning. The system always verifies LLM output. |
+| Unexplainable teams | Team diagnostics (balance, diversity, `N/A` counts) as reasoning. No LLM forms teams in MVP. |
 | Legal / ethical (high-risk AI) | Professor-set thresholds, human review below them, audit log, candidate transparency, no single global leaderboard in the recruiter scope |
 | LLM latency and cost | Background pipeline jobs with status in the UI. Stream the chat. |
 | Non-deterministic tests | Record and replay LLM responses |
@@ -669,7 +669,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 |---|---|---|
 | Ranking View: Studio, formula, review UI | 1 | UX-01–07 frontend |
 | Ranking View: evidence pipeline & scoring | 1 | Extractor, verifier, scorer, confidence |
-| Ranking View: team builder | 1 | Timefold integration, UX-08 |
+| Ranking View: team builder | 1 | Team optimizer, UX-08 |
 | Assessment View: chat UI + results page | 1 | UX-09, UX-10 |
 | Assessment View: interviewer backend + harness/CI | 1 | Interviewer orchestration, SSE, agent harness, pipeline |
 
@@ -688,7 +688,7 @@ The discovery-phase questions are all resolved (O1–O7). The registry in [`docs
 | When candidates see results | At release, not after team publishing (Decision 2.10) |
 | Data retention for transcripts | Kept until the professor deletes the assessment (Decision 4.4) |
 
-The budget per interview has no recorded decision.
+There is no cost limit per interview (Decision 4.5).
 
 ---
 

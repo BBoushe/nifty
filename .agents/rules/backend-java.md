@@ -1,7 +1,7 @@
 ---
 trigger: glob
 globs: "backend/**"
-description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and Timefold conventions for backend changes.
+description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and team optimizer conventions for backend changes.
 ---
 
 # Backend Java / Spring Boot Rules
@@ -25,9 +25,9 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and Time
    - Never pass chat history into Team Builder Mode B/C LLM calls. Always use a fresh, empty context.
    - Never pass rubrics, level descriptions, scores or evaluator output to the interviewer `ChatClient` (Decision 1.12). Start the evaluator from an `AFTER_COMMIT` event listener.
 5. **Strict Controller DTO & Error Boundary:** Controllers MUST ONLY validate input (`@Valid` record DTOs), delegate to a single service method, and return explicit response records. Follow §9 for entity exposure, repository access and error handling.
-6. **Formula Engine & Timefold:**
+6. **Formula Engine & Team Optimizer:**
    - MVP uses formula presets only (Decision 2.19). Never evaluate free-form formula expressions. The sandboxed SpEL editor is Post-MVP.
-   - Keep Timefold Solver constraints pure, deterministic, and explainable.
+   - Keep the Simulated Annealing team optimizer pure Java, seeded and deterministic, with no Streams in its swap loop (Decision 1.20).
 7. **Java 21 & Spring Conventions (Decision 3.13):**
    - Annotate each `@Service` class with `@Transactional(readOnly = true)`. Annotate each write method with `@Transactional`. Never put `@Transactional` on controllers or repositories.
    - Use `Optional` only as a return type, never for fields or parameters.
@@ -56,7 +56,7 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and Time
    | Set `spring.jpa.open-in-view: false`. Load associations with `JOIN FETCH` or entity graphs. | Config + review |
    | Secrets come from the environment only (no committed defaults in `application*.yml`). | Review + pre-commit secret scan |
    | Errors: services throw `DomainException(HttpStatus, detail)` (or a subclass) for expected failures. `GlobalExceptionHandler` answers with RFC 9457 `application/problem+json` (fields in `docs/api.md` §3). For anything unexpected, it answers with a generic 500 detail. It never returns a stack trace or exception class name. | `GlobalExceptionHandlerTest` + review |
-   | Events: publish from services with `ApplicationEventPublisher`. Run side effects in `@TransactionalEventListener(phase = AFTER_COMMIT)`. | Review |
+   | Events: publish from services with `ApplicationEventPublisher`. Run side effects in `@TransactionalEventListener(phase = AFTER_COMMIT)`. Exception: `AssessmentDeletedEvent` listeners are synchronous `@EventListener` + `@Transactional(propagation = MANDATORY)`, so the purge runs in the deleting transaction (Decision 4.4). | Review |
 
    **Test pyramid**
 
