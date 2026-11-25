@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/auth-accounts`
 - **Worktree:** `../nifty-auth-accounts`
-- **Current:** Task 2 done
-- **Next action:** Task 3
+- **Current:** Task 3 done
+- **Next action:** Task 4
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -22,9 +22,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; update `docs/api.md` §2 and §5; commit `feat(auth): session login, logout and CSRF`
 
 ### Task 3: US-AU-02 Sign-in page, store, guards, CSRF header
-- [ ] RED: Vitest: `client.test.ts` sends `X-XSRF-TOKEN` on POST from the cookie; `guard.test.ts` redirects a missing or wrong role to `/sign-in`; `SignInView.test.ts` calls `login` and shows the `401` detail.
-- [ ] GREEN: design §3.
-- [ ] Verify: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0; commit `feat(frontend): sign-in page, auth store and route guards`
+- [x] RED: Vitest: `client.test.ts` sends `X-XSRF-TOKEN` on POST from the cookie; `guard.test.ts` redirects a missing or wrong role to `/sign-in`; `SignInView.test.ts` calls `login` and shows the `401` detail.
+- [x] GREEN: design §3.
+- [x] Verify: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0; commit `feat(frontend): sign-in page, auth store and route guards`
 
 ### Task 4: Docs
 - [ ] `docs/architecture.md` (sessions, bootstrap), `docs/setup.md` (bootstrap keys), `CHANGELOG.md`
@@ -52,4 +52,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=AuthControllerTest` → FAIL (7/7 failed: HTTP Basic returned 401 before controller/CSRF existed); GREEN: `./mvnw -B test` → exit 0 (44 run, 1 skipped by design); `docker compose config` → exit 0
 - Contracts/Migrations added: `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`; session cookies + SPA CSRF (`XSRF-TOKEN`/`X-XSRF-TOKEN`) in `SecurityConfig`; `docs/api.md` §2/§4/§5 updated
 - Decisions: applies 1.15, 1.23
+- Open Questions: none
+
+### Task 3 (US-AU-02)
+- Commits: `feat(frontend): sign-in page, auth store and route guards`
+- Verification: RED: `cd frontend && npm run test` → FAIL (`client.test.ts` CSRF header null; `@/stores/auth` and `./guard` missing); GREEN: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0 (7 files, 42 passed)
+- Contracts/Migrations added: `X-XSRF-TOKEN` in `client.ts` (`apiFetch`, `postSse`), `stores/auth.ts`, `views/auth/SignInView.vue`, `views/auth/guard.ts` registered in `router/index.ts`
+- Decisions: applies 1.14, 1.15, 1.23
 - Open Questions: none

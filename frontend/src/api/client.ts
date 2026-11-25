@@ -43,8 +43,31 @@ async function toApiProblem(response: Response): Promise<ApiProblem> {
   return new ApiProblem(response.status, statusTitle(response), '')
 }
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE'])
+
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined' || !document.cookie) return null
+  const prefix = `${name}=`
+  for (const part of document.cookie.split(';')) {
+    const trimmed = part.trim()
+    if (trimmed.startsWith(prefix)) return decodeURIComponent(trimmed.slice(prefix.length))
+  }
+  return null
+}
+
+// Decision 1.23: Spring Security's SPA CSRF reads X-XSRF-TOKEN on every state-changing request.
+function withCsrfHeader(method: string | undefined, initHeaders?: HeadersInit): Headers {
+  const headers = new Headers(initHeaders)
+  if (!SAFE_METHODS.has((method ?? 'GET').toUpperCase()) && !headers.has('X-XSRF-TOKEN')) {
+    const token = readCookie('XSRF-TOKEN')
+    if (token) headers.set('X-XSRF-TOKEN', token)
+  }
+  return headers
+}
+
 export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init)
+  const requestInit = init ? { ...init, headers: withCsrfHeader(init.method, init.headers) } : undefined
+  const response = await fetch(input, requestInit)
   if (!response.ok) throw await toApiProblem(response)
   // 204 or an empty 200/201 body has nothing to parse.
   const text = await response.text()
@@ -68,7 +91,7 @@ function parseSseBlock(block: string): SseEvent | null {
 
 /** POST a JSON body and yield each SSE event in order until the stream closes (REQ-FF-03). */
 export async function* postSse(url: string, body?: unknown, init: RequestInit = {}): AsyncGenerator<SseEvent> {
-  const headers = new Headers(init.headers)
+  const headers = withCsrfHeader('POST', init.headers)
   headers.set('Accept', 'text/event-stream')
   if (body !== undefined && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   const response = await fetch(url, {
