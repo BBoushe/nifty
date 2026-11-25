@@ -185,6 +185,7 @@ The backend uses package-by-feature (Decision 1.10), enforced by `ArchitectureTe
 - **Test database:** every Spring test that needs a database extends `de.fhdortmund.nifty.PostgresContainerBase`. The class starts one `postgres:17-alpine` container for the whole test run. Flyway applies `V1` on that container. The tests use no H2, because H2 cannot run JSONB or the immutability triggers.
 - **Contract stubs:** each shared interface, record and enum of `docs/tickets/00-parallel-waves-and-contracts.md` §3 exists in its owner package. Enums carry `@JsonValue` with the JSON and database literal.
 - **Placeholders:** each of the 6 shared interfaces has one `<Interface>Placeholder` `@Service` in the same package. Every placeholder method throws `UnsupportedOperationException`. The owner deletes the placeholder when the real bean lands.
+- **Real beans:** `AuditService` is real (`audit-log-service`). `AuditServiceImpl` writes one `audit_log` row in the transaction of the caller. `AuditLogEntity` is `@Immutable`, and `AuditLogRepository` has no update or delete method.
 - **Shared errors and events:** `FieldValidationException` (`400` with `errors[]`) is in `shared/exception`. `AttemptCompletedEvent` and `AssessmentDeletedEvent` are in `shared/config`.
 
 ## Frontend Structure (`frontend-foundation`)

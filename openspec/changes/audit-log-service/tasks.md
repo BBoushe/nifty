@@ -22,8 +22,8 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `test(audit): prove audit rows cannot change`
 
 ### Task 3: Docs
-- [ ] `docs/architecture.md` (`AuditService` is real), `docs/tickets/00-parallel-waves-and-contracts.md` §1 conventions (audit placeholder gone), `CHANGELOG.md`
-- [ ] Verify: harness tests → exit 0; commit `docs: record audit-log-service`
+- [x] `docs/architecture.md` (`AuditService` is real), `docs/tickets/00-parallel-waves-and-contracts.md` §1 conventions (audit placeholder gone), `CHANGELOG.md`
+- [x] Verify: harness tests → exit 0; commit `docs: record audit-log-service`
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
@@ -44,6 +44,13 @@
 ### Task 2 (US-AL-02)
 - Commits: `test(audit): prove audit rows cannot change`
 - Verification: RED: `./mvnw -B test -Dtest=AuditLogImmutabilityTest` with `@Immutable` removed → FAIL (`expected "Clear explanation" but was "Tampered"`); GREEN: `./mvnw -B test` with `@Immutable` → exit 0 (35 run, 1 skipped)
+- Contracts/Migrations added: none
+- Decisions: none
+- Open Questions: none
+
+### Task 3 (Docs)
+- Commits: `docs: record audit-log-service`
+- Verification: RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (43 pass)
 - Contracts/Migrations added: none
 - Decisions: none
 - Open Questions: none
