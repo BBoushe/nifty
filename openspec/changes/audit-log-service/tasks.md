@@ -12,9 +12,9 @@
 ## Tasks
 
 ### Task 1: US-AL-01 AuditService implementation (REQ-AL-01)
-- [ ] RED: `AuditServiceImplTest` (`@SpringBootTest`, extends `PostgresContainerBase`): `record(...)` stores one row with every field; a null `action` throws `IllegalArgumentException`.
-- [ ] GREEN: `AuditLogEntity`, `AuditLogRepository`, `AuditServiceImpl` (design §2); delete `AuditServicePlaceholder`.
-- [ ] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`, `ContractStubsTest`) → exit 0; commit `feat(audit): implement AuditService over the V1 audit_log table`
+- [x] RED: `AuditServiceImplTest` (`@SpringBootTest`, extends `PostgresContainerBase`): `record(...)` stores one row with every field; a null `action` throws `IllegalArgumentException`.
+- [x] GREEN: `AuditLogEntity`, `AuditLogRepository`, `AuditServiceImpl` (design §2); delete `AuditServicePlaceholder`.
+- [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`, `ContractStubsTest`) → exit 0; commit `feat(audit): implement AuditService over the V1 audit_log table`
 
 ### Task 2: US-AL-02 Immutable rows (REQ-AL-02)
 - [ ] RED: test that changes a loaded entity's `reason`, flushes, and reads the row back with `JdbcTemplate`; it fails if the entity is not `@Immutable`.
@@ -33,3 +33,10 @@
 - [ ] Stop. Teammate A runs the cold review, checks CI and merges.
 
 ## Handoff Log
+
+### Task 1 (US-AL-01)
+- Commits: `feat(audit): implement AuditService over the V1 audit_log table`
+- Verification: RED: `./mvnw -B test -Dtest=AuditServiceImplTest` → FAIL (placeholder throws `UnsupportedOperationException`); GREEN: `./mvnw -B test` → exit 0 (33 run, 1 skipped: the audit placeholder check in `ContractStubsTest`)
+- Contracts/Migrations added: none (`AuditService` impl over `V1`; `AuditServicePlaceholder` deleted)
+- Decisions: none
+- Open Questions: none
