@@ -31,4 +31,11 @@ describe('ScoreBadge (REQ-FF-01)', () => {
     const [zero, one] = [0, 1].map((level) => mount(ScoreBadge, { props: { level } }).classes().join(' '))
     expect(zero).toBe(one)
   })
+
+  it.each([5, -1, 2.5])('shows the out-of-range level %s as invalid, not as N/A', (level) => {
+    const wrapper = mount(ScoreBadge, { props: { level } })
+    expect(wrapper.text()).toBe(`Invalid level ${level}`)
+    expect(wrapper.text()).not.toContain('N/A')
+    expect(wrapper.classes()).not.toContain('score-hatch')
+  })
 })

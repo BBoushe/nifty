@@ -5,11 +5,19 @@ import { definePreset } from '@primeuix/themes'
 // src/style.css, so the tokens live in one place.
 export default definePreset(Aura, {
   semantic: {
+    // Full scale from the one brand green: lighter shades mix in white, darker shades mix in black.
     primary: {
-      50: 'var(--color-green-soft)',
+      50: 'color-mix(in srgb, var(--color-brand-green) 8%, white)',
+      100: 'color-mix(in srgb, var(--color-brand-green) 16%, white)',
+      200: 'color-mix(in srgb, var(--color-brand-green) 32%, white)',
+      300: 'color-mix(in srgb, var(--color-brand-green) 50%, white)',
+      400: 'color-mix(in srgb, var(--color-brand-green) 75%, white)',
       500: 'var(--color-brand-green)',
-      600: 'var(--color-brand-green)',
-      700: 'var(--color-brand-green)',
+      600: 'color-mix(in srgb, var(--color-brand-green) 85%, black)',
+      700: 'color-mix(in srgb, var(--color-brand-green) 70%, black)',
+      800: 'color-mix(in srgb, var(--color-brand-green) 55%, black)',
+      900: 'color-mix(in srgb, var(--color-brand-green) 40%, black)',
+      950: 'color-mix(in srgb, var(--color-brand-green) 25%, black)',
     },
     borderRadius: {
       none: '0',
@@ -24,8 +32,8 @@ export default definePreset(Aura, {
         primary: {
           color: 'var(--color-brand-green)',
           contrastColor: 'var(--color-on-green)',
-          hoverColor: 'var(--color-brand-green)',
-          activeColor: 'var(--color-brand-green)',
+          hoverColor: '{primary.600}',
+          activeColor: '{primary.700}',
         },
         surface: {
           0: 'var(--color-surface)',

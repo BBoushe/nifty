@@ -86,3 +86,10 @@
 - **Verification:** RED: n/a (script fix). `npm run typecheck`, `test` (23), `lint`, `build` → exit 0.
 - **Contracts:** `apiFetch`, `ApiProblem`, `postSse` in `src/api/client.ts`.
 - **Decisions:** applies 1.14.
+
+### 2026-11-25 — User-requested follow-ups (orchestrator)
+- **Did:** `ScoreBadge` shows a level outside the integers 0..4 as `Invalid level <n>` (danger ring, dev warning) instead of `N/A`; the PrimeVue preset maps all primary shades 50–950 from the brand green, with darker hover (600) and press (700); `npm run typecheck` also checks `vite.config.ts` (`@types/node` 22.20.7, `vite/client` types); `CLAUDE.md` lists `npm run test`. Merged `origin/dev` after `backend-foundation` (kept both sides in architecture, backlog, history).
+- **Verification:** RED: `npx vitest run src/components/ScoreBadge.test.ts src/theme/preset.test.ts` → 5 failed; `vue-tsc --noEmit -p tsconfig.node.json` → TS2688. GREEN: `npm run typecheck && npm run test && npm run lint && npm run build` → exit 0 (31 tests); harness tests 43/43.
+- **Contracts:** none.
+- **Decisions:** applies 1.14.
+
