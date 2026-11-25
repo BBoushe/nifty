@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/context-creation` (branch off `dev`)
 - **Worktree:** `../nifty-context-creation`
-- **Current:** US-CC-05 done and committed
-- **Next action:** Start US-CC-06
+- **Current:** US-CC-06 done and committed; Delivery steps next (merge dev, verify, archive)
+- **Next action:** Run Delivery: git fetch origin && git merge origin/dev, verify, archive
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -41,11 +41,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(context): wire ContextCreationServiceImpl and injection audit logging`
 
-- [ ] **US-CC-06: `ContextController` (`PROFESSOR` preview endpoint), `docs/api.md`, and AI handover log**
-  - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `PROFESSOR` valid preview → `200` (`promptSha256`, `rubricLeakCheckPassed = true`); invalid body → `400` RFC 9457 `ProblemDetail`; `CANDIDATE` → `403`.
-  - [ ] Implement `ContextController`, update `docs/api.md`, and add `docs/ai_logs/YYYY-MM-DD-context-creation.md` (+ index row in `docs/ai_logs/README.md`).
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
-  - [ ] Commit: `feat(context): add professor prompt preview endpoint and update api docs`
+- [x] **US-CC-06: `ContextController` (`PROFESSOR` preview endpoint), `docs/api.md`, and AI handover log**
+  - [x] Write RED `@WebMvcTest` + `@MockitoBean` tests: `PROFESSOR` valid preview → `200` (`promptSha256`, `rubricLeakCheckPassed = true`); invalid body → `400` RFC 9457 `ProblemDetail`; `CANDIDATE` → `403`.
+  - [x] Implement `ContextController`, update `docs/api.md`, and add `docs/ai_logs/YYYY-MM-DD-context-creation.md` (+ index row in `docs/ai_logs/README.md`).
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
+  - [x] Commit: `feat(context): add professor prompt preview endpoint and update api docs`
 
 ## Delivery
 
@@ -86,8 +86,15 @@
 - Open Questions: none
 
 ### US-CC-05
-- Commits: `feat(context): wire ContextCreationServiceImpl and injection audit logging`
+- Commits: `0ef4763 feat(context): wire ContextCreationServiceImpl and injection audit logging`
 - Verification: RED: `./mvnw -B test -Dtest='ContextCreationServiceImplTest,PromptHasherTest'` → FAIL (compile error: `ContextCreationServiceImpl` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0 (78 tests, 1 skipped by design: `ContractStubsTest.placeholderMethodsThrowUnsupportedOperation` skips once the context placeholder is gone)
 - Contracts/Migrations added: none (deleted `ContextCreationServicePlaceholder`; `AuditService` stays a Mockito mock in tests; audit row `PROMPT_INJECTION_DETECTED`, entity `ATTEMPT`, `newValue = promptSha256=<sha of raw text>;matchedRuleIds=<ids>`)
 - Decisions: 2.24 (only `inspectCandidateInput` audits, so one answer writes one row), 1.18 (sole prompt boundary)
+- Open Questions: none
+
+### US-CC-06
+- Commits: `feat(context): add professor prompt preview endpoint and update api docs`
+- Verification: RED: `./mvnw -B test -Dtest='ContextControllerTest,ContextPreviewIntegrationTest'` → FAIL (compile error: `ContextController` not found; after the class landed, 4 tests failed with an unnamed 400 because Jackson 3 rejects a missing primitive, fixed with boxed `Integer followUpLimit`); GREEN: `cd backend && ./mvnw -B test` → exit 0 (88 tests, 1 skipped by design, `ArchitectureTest` 13 green)
+- Contracts/Migrations added: `docs/api.md` preview row; `docs/ai_logs/2026-11-26-context-creation.md` (+ index row); no migration
+- Decisions: 1.18 (preview endpoint), 1.12 (`rubricLeakCheckPassed`)
 - Open Questions: none
