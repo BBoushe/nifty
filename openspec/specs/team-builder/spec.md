@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Form balanced, complementary, and defensible student teams using deterministic constraint solving (Timefold Solver), with live drag-and-drop balance recalculation, explainable constraint reasoning, and mandatory professor approval.
+Form balanced, complementary, and defensible student teams. The system uses deterministic constraint solving (Timefold Solver). It gives live drag-and-drop balance recalculation and explainable constraint reasoning. Professor approval is mandatory.
 
 ## Requirements
 

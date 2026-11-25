@@ -11,7 +11,6 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 
 | # | Feature (spec) | Status | Slice (Feature Slice Map) | Blocked by | Depends on | Migrations |
 |---|---|---|---|---|---|---|
-| 0 | `docs-ste-rewrite` ([proposal](../openspec/changes/docs-ste-rewrite/proposal.md)) | queued | — (docs only) | — | all parallel harness changes merged | none |
 | 1 | [`interviewer-studio`](../openspec/specs/interviewer-studio/spec.md) | blocked | `studio`, `views/studio/` | O1, O3 | — | interviewer config (versioned), skill/tag taxonomy |
 | 2 | [`assessment-chat`](../openspec/specs/assessment-chat/spec.md) | blocked | `assessment`, `views/assessment/` | O1, O2, O7 | 1 (approved config) | session, `assessment-transcript/v1` (JSONB) |
 | 3 | [`evidence-pipeline`](../openspec/specs/evidence-pipeline/spec.md) | queued | `evidence` (backend only) | — | 2 (transcript); can start on synthetic transcripts | evidence, quote verification result |

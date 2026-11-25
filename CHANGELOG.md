@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Docs in ASD-STE100 (Decision 3.5):** the agent entry points, `.agents/rules/`, README, setup, workflow, architecture, API, design-system and discovery-canvas docs, and the Purpose paragraphs of the 7 domain specs now use Simplified Technical English. Obligation keywords, numbers, paths, commands, REQ IDs and every EARS statement are unchanged (checked per file).
+
 ### Fixed
 - **Bash guard gaps (post-merge review of PR #7):** the guard now finds `-c` after other shell options (`bash -euo pipefail -c …`) and in `dash`/`ksh`, attached or `=` command strings (`env --split-string=…`, `rtk run -c"…"`), abbreviated `--no-verify`/`--force*`, `-fu`, `+` refspecs, `HEAD`/`@` destinations, `git -c core.hooksPath=…`, commands after `&`, in `( … )`, `{ …; }`, `if`/`while`, `$( … )` and behind `exec`/`timeout`/`nohup`, add/commit chaining through command strings, pipes into a bare shell, and globs that match a secret env file.
 

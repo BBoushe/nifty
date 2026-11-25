@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Allow professors to configure, preview, version, and approve how the LLM interviewer conducts assessments—without writing raw system prompts. Configuration drives the interviewer, evidence extractor, scorer, and team balancer.
+Allow professors to configure, preview, version, and approve how the LLM interviewer conducts assessments. Professors do not write raw system prompts. The configuration drives the interviewer, evidence extractor, scorer, and team balancer.
 
 ## Requirements
 

@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Transform completed `assessment-transcript/v1` transcripts into verified, auditable evidence items, rubric levels, and deterministically computed confidence values—eliminating hallucinated quotes and unsupported scores.
+Transform completed `assessment-transcript/v1` transcripts into verified, auditable evidence items, rubric levels, and confidence values. The system computes the confidence values deterministically. This removes hallucinated quotes and unsupported scores.
 
 ## Requirements
 

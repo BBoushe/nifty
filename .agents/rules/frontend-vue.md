@@ -12,12 +12,12 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
 2. **State & Data Fetching:**
    - Use **TanStack Query (`@tanstack/vue-query`)** for server state and backend API calls. Every TanStack Query view MUST explicitly render `loading`, `empty`, `success`, and `error` states.
    - Use **Pinia** only for client/UI state (e.g., active filters, drawer selection, drag-and-drop staging).
-   - Use **Vue Router** separating Assessment View (`/assessment/*`) and Ranking View (`/ranking/*`).
+   - Use **Vue Router** to separate Assessment View (`/assessment/*`) and Ranking View (`/ranking/*`).
 3. **Styling & Visualisation:**
-   - Use **Tailwind CSS v4** utilities. Do not install PrimeVue or shadcn-vue until team Decision O1 (`docs/decisions/index.md`) is finalized.
+   - Use **Tailwind CSS v4** utilities. Do not install PrimeVue or shadcn-vue until the team finalizes Decision O1 (`docs/decisions/index.md`).
    - Use **Apache ECharts (`vue-echarts`)** for the Skills Matrix heatmap, Cohort Gap charts, and Team Balance charts.
 4. **Evidence-First UX Rules:**
-   - **Zero client-side scoring math:** Never recompute or duplicate fit, coverage, confidence, or ranking math in TypeScript/Vue — render backend-computed values only.
+   - **Zero client-side scoring math:** Never recompute or duplicate fit, coverage, confidence, or ranking math in TypeScript/Vue. Render backend-computed values only.
    - Visually distinguish `N/A` (hatched pattern) from low scores (`0`/`1`). Never render `N/A` as `0`.
    - Display `fit` and `coverage` separately.
    - During an active Assessment Chat, NEVER render scores, weights, or formulas.
@@ -32,18 +32,18 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
 12. Always :key in v-for, stable and unique, never the index when the list reorders.
 13. No v-if with v-for on the same element.
 14. Use defineProps/defineEmits/defineModel macros without importing them (they're compiler macros).
-15. Event naming: emit in camelCase or kebab-case consistently; listen with @kebab-case. Component names PascalCase, multi-word (UserCard.vue).
-16. Styling: <style scoped>; use :deep() to reach child internals, v-bind() in CSS for reactive values.
+15. Event naming: emit in camelCase or kebab-case consistently. Listen with @kebab-case. Component names PascalCase, multi-word (UserCard.vue).
+16. Styling: <style scoped>. Use :deep() to reach child internals, v-bind() in CSS for reactive values.
 17. Prefer Pinia for shared state, with storeToRefs when destructuring a store's state (actions can be destructured directly).
 18. Cleanup: clear timers and listeners in onUnmounted or onWatcherCleanup.
 19. Use shallowRef for big objects or third-party instances (maps, charts, editors).
 20. Typing: ref<string | null>(null), PropType is unnecessary with type-based defineProps, and run vue-tsc for type checks (plain tsc can't read .vue).
 21. Testing: Vitest + @vue/test-utils (mount, shallowMount) and await nextTick() after state changes.
-22. React habits to ban: no useState/useEffect patterns, no className, no onClick (use @click), no JSX unless explicitly configured, no key on non-list elements for forced remounting without good reason.
+22. React habits to ban: no useState/useEffect patterns, no className, no onClick (use @click), no JSX unless explicitly configured. Also ban key on non-list elements for forced remounting without good reason.
 
 ## Quick gotchas
-1. Vue's reactivity is proxy-based: replacing reactive object references breaks tracking; assigning to ref.value is fine.
+1. Vue's reactivity is proxy-based: replacing reactive object references breaks tracking. Assigning to ref.value is fine.
 2. DOM updates are async: use await nextTick() to read the DOM after a state change.
 3. Arrays and Maps/Sets are reactive, so mutate with push, splice etc. directly.
-4. Template expressions should be simple; move logic to computed.
+4. Template expressions should be simple. Move logic to computed.
 5. v-html is an XSS risk, same as dangerouslySetInnerHTML.

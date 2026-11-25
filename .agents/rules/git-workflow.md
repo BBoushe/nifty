@@ -18,5 +18,5 @@ description: Apply when creating branches, writing commit messages, pushing code
    - PRs/MRs into `dev`: 0 approvals required (CI must pass).
    - PRs/MRs into `alpha`: >= 2 approvals required (CI must pass).
    - PRs/MRs into `master`/`main`: >= 4 approvals required (CI must pass).
-   - **Mandatory Template (Decision 3.4):** Every PR/MR body MUST follow `.github/PULL_REQUEST_TEMPLATE.md` (mirrored in `.gitlab/merge_request_templates/Default.md`) using the `pr-memo` skill — keep it concise (<60s read) while preserving `What changed?`, `Why?`, `Spec / Issue Reference`, and `Verification` checklist sections.
-   - Check active forge via `node scripts/check-setup.mjs --forge` (`gh`, `glab`, or `node scripts/forge.mjs` when `GIT_FORGE=both`).
+   - **Mandatory Template (Decision 3.4):** Every PR/MR body MUST follow `.github/PULL_REQUEST_TEMPLATE.md` (mirrored in `.gitlab/merge_request_templates/Default.md`). Use the `pr-memo` skill. Keep the body concise (<60s read). Keep the `What changed?`, `Why?`, `Spec / Issue Reference`, and `Verification` checklist sections.
+   - Check the active forge with `node scripts/check-setup.mjs --forge` (`gh`, `glab`, or `node scripts/forge.mjs` when `GIT_FORGE=both`).
