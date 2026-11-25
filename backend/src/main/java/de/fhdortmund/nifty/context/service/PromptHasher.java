@@ -26,6 +26,11 @@ final class PromptHasher {
         return HexFormat.of().formatHex(digest.digest());
     }
 
+    /** Plain SHA-256 of one text, for the audit fingerprint of a raw candidate answer. */
+    static String sha256(String text) {
+        return HexFormat.of().formatHex(newDigest().digest(text.getBytes(StandardCharsets.UTF_8)));
+    }
+
     private static void update(MessageDigest digest, String part) {
         digest.update(part.getBytes(StandardCharsets.UTF_8));
         digest.update(SEPARATOR);

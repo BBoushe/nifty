@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/context-creation` (branch off `dev`)
 - **Worktree:** `../nifty-context-creation`
-- **Current:** US-CC-04 done and committed
-- **Next action:** Start US-CC-05
+- **Current:** US-CC-05 done and committed
+- **Next action:** Start US-CC-06
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -35,11 +35,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(context): implement JudgeContextBuilder for per-pair 2-run evaluation`
 
-- [ ] **US-CC-05: `ContextCreationServiceImpl` and `AuditService` security logging**
-  - [ ] Write RED Mockito tests verifying role dispatch, `AuditService.record(...)` invocation on `injectionSuspected == true` (with `promptSha256` & rule IDs, asserting zero raw candidate text passed), and zero audit calls on clean turns.
-  - [ ] Implement `ContextCreationServiceImpl`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(context): wire ContextCreationServiceImpl and injection audit logging`
+- [x] **US-CC-05: `ContextCreationServiceImpl` and `AuditService` security logging**
+  - [x] Write RED Mockito tests verifying role dispatch, `AuditService.record(...)` invocation on `injectionSuspected == true` (with `promptSha256` & rule IDs, asserting zero raw candidate text passed), and zero audit calls on clean turns.
+  - [x] Implement `ContextCreationServiceImpl`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(context): wire ContextCreationServiceImpl and injection audit logging`
 
 - [ ] **US-CC-06: `ContextController` (`PROFESSOR` preview endpoint), `docs/api.md`, and AI handover log**
   - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `PROFESSOR` valid preview → `200` (`promptSha256`, `rubricLeakCheckPassed = true`); invalid body → `400` RFC 9457 `ProblemDetail`; `CANDIDATE` → `403`.
@@ -79,8 +79,15 @@
 - Open Questions: none
 
 ### US-CC-04
-- Commits: `feat(context): implement JudgeContextBuilder for per-pair 2-run evaluation`
+- Commits: `2c2e95e feat(context): implement JudgeContextBuilder for per-pair 2-run evaluation`
 - Verification: RED: `./mvnw -B test -Dtest=JudgeContextBuilderTest` → FAIL (compile error: `JudgeContextBuilder` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0 (72 tests)
 - Contracts/Migrations added: none (template version `evaluator-judge-v1`; blank or null `answerText` and a rubric not of size 5 throw `IllegalArgumentException`)
 - Decisions: 2.20 (timed-out partial answers kept, blank rejected), 2.25 (evidence-only JSON), 1.19 (levels 0..4 ascending)
+- Open Questions: none
+
+### US-CC-05
+- Commits: `feat(context): wire ContextCreationServiceImpl and injection audit logging`
+- Verification: RED: `./mvnw -B test -Dtest='ContextCreationServiceImplTest,PromptHasherTest'` → FAIL (compile error: `ContextCreationServiceImpl` not found); GREEN: `cd backend && ./mvnw -B test` → exit 0 (78 tests, 1 skipped by design: `ContractStubsTest.placeholderMethodsThrowUnsupportedOperation` skips once the context placeholder is gone)
+- Contracts/Migrations added: none (deleted `ContextCreationServicePlaceholder`; `AuditService` stays a Mockito mock in tests; audit row `PROMPT_INJECTION_DETECTED`, entity `ATTEMPT`, `newValue = promptSha256=<sha of raw text>;matchedRuleIds=<ids>`)
+- Decisions: 2.24 (only `inspectCandidateInput` audits, so one answer writes one row), 1.18 (sole prompt boundary)
 - Open Questions: none

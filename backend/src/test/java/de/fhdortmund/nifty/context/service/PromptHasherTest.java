@@ -32,6 +32,12 @@ class PromptHasherTest {
     }
 
     @Test
+    void singleTextHashIsPlainSha256() {
+        assertThat(PromptHasher.sha256("abc"))
+                .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }
+
+    @Test
     void movingTextAcrossPartBoundariesChangesTheHash() {
         String joined = PromptHasher.sha256("v", "ab", List.of(new PromptMessage("user", "c")));
         String shifted = PromptHasher.sha256("v", "a", List.of(new PromptMessage("user", "bc")));
