@@ -40,10 +40,10 @@
         <!-- Spring Web (REST + SSE streaming) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
-        <!-- Spring Security (2-role skeleton: PROFESSOR/REVIEWER & CANDIDATE) -->
+        <!-- Spring Security (2-role skeleton: PROFESSOR & CANDIDATE) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>

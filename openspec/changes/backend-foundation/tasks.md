@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/backend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-backend-foundation`
-- **Current:** not started
-- **Next action:** Task 1
+- **Current:** Task 1 done
+- **Next action:** Task 2
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -12,9 +12,9 @@
 ## Tasks
 
 ### Task 1: US-BF-01 Web starter and Spring AI property
-- [ ] RED: n/a (dependency rename). Record `./mvnw -B test` before the change.
-- [ ] GREEN: `spring-boot-starter-web` → `spring-boot-starter-webmvc`; move `spring.ai.openai.chat.options.model` to `spring.ai.openai.chat.model` (check `docs/ai_docs/spring-ai-2-kiconnect.md`); the app context still starts with no LLM key.
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `build(backend): use the webmvc starter and the Spring AI 2 model property`
+- [x] RED: n/a (dependency rename). Record `./mvnw -B test` before the change.
+- [x] GREEN: `spring-boot-starter-web` → `spring-boot-starter-webmvc`; move `spring.ai.openai.chat.options.model` to `spring.ai.openai.chat.model` (check `docs/ai_docs/spring-ai-2-kiconnect.md`); the app context still starts with no LLM key.
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `build(backend): use the webmvc starter and the Spring AI 2 model property`
 
 ### Task 2: US-BF-02 PostgreSQL Testcontainers for all Spring tests (REQ-BF-01)
 - [ ] RED: add `FlywayBaselineTest` (`@DataJpaTest`, extends `PostgresContainerBase`) that checks `audit_log` exists; it fails to compile before the base class exists.
