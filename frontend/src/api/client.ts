@@ -55,6 +55,9 @@ function readCookie(name: string): string | null {
   return null
 }
 
+/** True when the browser holds an XSRF-TOKEN cookie (Decision 1.23). */
+export const hasCsrfCookie = (): boolean => Boolean(readCookie('XSRF-TOKEN'))
+
 // Decision 1.23: Spring Security's SPA CSRF reads X-XSRF-TOKEN on every state-changing request.
 function withCsrfHeader(method: string | undefined, initHeaders?: HeadersInit): Headers {
   const headers = new Headers(initHeaders)

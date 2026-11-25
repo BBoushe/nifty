@@ -59,4 +59,33 @@ describe('SignInView (US-AU-02)', () => {
 
     expect(wrapper.text()).toContain('The email or password is not correct.')
   })
+
+  it.each(['//evil.example', 'https://evil.example', '/assessment/chat'])(
+    'ignores unsafe or candidate-only redirect %s and falls back to /ranking',
+    async (redirect) => {
+      const { wrapper, auth, router } = await mountSignIn(`/sign-in?redirect=${encodeURIComponent(redirect)}`)
+      vi.spyOn(auth, 'login').mockResolvedValue()
+      const pushSpy = vi.spyOn(router, 'push')
+
+      await wrapper.get('input[type="email"]').setValue('prof@example.test')
+      await wrapper.get('input[type="password"]').setValue('synthetic-secret')
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+
+      expect(pushSpy).toHaveBeenCalledWith('/ranking')
+    },
+  )
+
+  it('redirects to a safe internal professor route after login', async () => {
+    const { wrapper, auth, router } = await mountSignIn('/sign-in?redirect=/ranking/studio')
+    vi.spyOn(auth, 'login').mockResolvedValue()
+    const pushSpy = vi.spyOn(router, 'push')
+
+    await wrapper.get('input[type="email"]').setValue('prof@example.test')
+    await wrapper.get('input[type="password"]').setValue('synthetic-secret')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(pushSpy).toHaveBeenCalledWith('/ranking/studio')
+  })
 })

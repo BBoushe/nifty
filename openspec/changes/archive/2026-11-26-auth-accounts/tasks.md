@@ -67,3 +67,10 @@
 - Contracts/Migrations added: none
 - Decisions: applies 1.23, 1.24
 - Open Questions: none
+
+### Post-review hardening (cold dry-run review + mutation audit)
+- Commits: `fix(auth): refresh CSRF after logout and add invariant tests`
+- Verification: RED: cold dry-run review + mutation audit exposed logout→re-login CSRF bug, sticky `loaded=true` on 500, redundant `CsrfCookieFilter`, and 5 surviving mutants (M5, M8a, M8b, M9, M10a); GREEN: `cd backend && ./mvnw -B test` (48 run, 0 failed, 1 skipped), `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` (8 files, 53 passed), `openspec validate --all --strict` (16/16), harness tests (43/43)
+- Contracts/Migrations added: `403` `accessDeniedHandler` returning RFC 9457 ProblemDetail in `SecurityConfig`; `hasCsrfCookie()` in `client.ts`
+- Decisions: applies 1.23
+- Open Questions: none

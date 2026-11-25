@@ -70,4 +70,14 @@ describe('authGuard (US-AU-02)', () => {
     expect(result).toBe(true)
     expect(fetchSpy).not.toHaveBeenCalled()
   })
+
+  it.each(['/ranking-evil', '/assessment-other'])('does not guard lookalike prefix %s', async (path) => {
+    const auth = useAuthStore()
+    const fetchSpy = vi.spyOn(auth, 'fetchMe')
+
+    const result = await authGuard(routeTo(path), routeTo('/'), vi.fn())
+
+    expect(result).toBe(true)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
 })

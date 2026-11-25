@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { ApiProblem, apiFetch } from '@/api/client'
+import { ApiProblem, apiFetch, hasCsrfCookie } from '@/api/client'
 
 export type UserRole = 'PROFESSOR' | 'CANDIDATE'
 
@@ -18,21 +18,21 @@ export const useAuthStore = defineStore('auth', () => {
     if (loaded.value && !force) return me.value
     try {
       me.value = await apiFetch<AuthMe>('/api/v1/auth/me')
+      loaded.value = true
     } catch (error) {
       if (error instanceof ApiProblem && error.status === 401) {
         me.value = null
+        loaded.value = true
       } else {
         throw error
       }
-    } finally {
-      loaded.value = true
     }
     return me.value
   }
 
   async function login(email: string, password: string): Promise<void> {
-    // Ensure an XSRF-TOKEN cookie exists before the first POST on a cold load.
-    if (!loaded.value) await fetchMe()
+    // Ensure a fresh XSRF-TOKEN cookie exists on cold load and after logout (CsrfLogoutHandler clears it).
+    if (!loaded.value || !hasCsrfCookie()) await fetchMe(true)
     await apiFetch<void>('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -44,7 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout(): Promise<void> {
     await apiFetch<void>('/api/v1/auth/logout', { method: 'POST' })
     me.value = null
-    loaded.value = true
+    // Spring Security's CsrfLogoutHandler clears XSRF-TOKEN; mark unloaded so the next login refreshes it.
+    loaded.value = false
   }
 
   return { me, loaded, fetchMe, login, logout }

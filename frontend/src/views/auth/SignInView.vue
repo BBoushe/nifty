@@ -18,7 +18,13 @@ const errorMessage = ref<string | null>(null)
 
 function safeRedirectTarget(): string {
   const redirect = route.query.redirect
-  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
+  if (
+    typeof redirect === 'string' &&
+    redirect.startsWith('/') &&
+    !redirect.startsWith('//') &&
+    redirect !== '/assessment' &&
+    !redirect.startsWith('/assessment/')
+  ) {
     return redirect
   }
   return '/ranking'

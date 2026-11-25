@@ -158,4 +158,21 @@ describe('CSRF header (REQ-AA-06, Decision 1.23)', () => {
     const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
     expect(headers.get('X-XSRF-TOKEN')).toBe('sse-tok-99')
   })
+
+  it.each(['PUT', 'PATCH', 'DELETE'])(
+    'sends decoded X-XSRF-TOKEN from multiple cookies on %s',
+    async (method) => {
+      document.cookie = 'other=1; path=/'
+      document.cookie = 'XSRF-TOKEN=abc%3D123; path=/'
+      document.cookie = 'tail=2; path=/'
+      const fetchMock = stubFetch(new Response(null, { status: 204 }))
+
+      await apiFetch('/api/v1/x', { method })
+
+      const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+      expect(headers.get('X-XSRF-TOKEN')).toBe('abc=123')
+      document.cookie = 'other=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+      document.cookie = 'tail=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    },
+  )
 })
