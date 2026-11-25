@@ -23,6 +23,7 @@ backend:
   services:
     - name: docker:27-dind
       alias: docker
+      command: ["--tls=false"]
   variables:
     MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
     DOCKER_HOST: tcp://docker:2375

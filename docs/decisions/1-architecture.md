@@ -204,7 +204,7 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 ## 1.22 — All Spring tests run on PostgreSQL Testcontainers from Wave 0
 - **Date:** 2026-11-25
 - **Triggered By:** team
-- **Context:** Decision 1.10 kept the Spring tests on H2 until the first @Entity. The teammate slices add JSONB columns and plpgsql immutability triggers, which H2 cannot run, and the third ticket review found that the shared @SpringBootTest tests would break.
+- **Context:** Decision 1.10 kept the Spring tests on H2 until the first @Entity. The teammate slices add JSONB columns and plpgsql immutability triggers, which H2 cannot run. The third ticket review found that the shared @SpringBootTest tests would break.
 - **Decision:** Every Spring test (@SpringBootTest, @DataJpaTest) extends de.fhdortmund.nifty.PostgresContainerBase, which starts one postgres:17-alpine container with @ServiceConnection. H2 is gone from the tests. The GitLab backend job runs Testcontainers through a docker:dind service. Supersedes the H2 part of 1.10.
 - **Alternatives Considered:** Keep H2 and skip trigger tests; a separate integration-test profile
 - **Rationale / Justification:** Tests run on the same database as production, so triggers, JSONB and Flyway are tested for real before five slices depend on them.
