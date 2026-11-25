@@ -11,7 +11,6 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 
 | # | Feature (spec) | Status | Slice (Feature Slice Map) | Blocked by | Depends on | Migrations |
 |---|---|---|---|---|---|---|
-| 9 | `bash-guard-gaps` (no change yet; findings in the archived `bash-guard-hardening` Status block) | queued | — (`.claude/hooks/`) | — | — | none |
 | 0 | `docs-ste-rewrite` ([proposal](../openspec/changes/docs-ste-rewrite/proposal.md)) | in progress | — (docs only) | — | all parallel harness changes merged | none |
 | 1 | [`interviewer-studio`](../openspec/specs/interviewer-studio/spec.md) | blocked | `studio`, `views/studio/` | O1, O3 | — | interviewer config (versioned), skill/tag taxonomy |
 | 2 | [`assessment-chat`](../openspec/specs/assessment-chat/spec.md) | blocked | `assessment`, `views/assessment/` | O1, O2, O7 | 1 (approved config) | session, `assessment-transcript/v1` (JSONB) |
@@ -31,4 +30,5 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
   - CI drift test (`scripts/harness-scripts.test.mjs`): it ignores other toolchains (pnpm, `docker compose build`) and skips multi-line `run: |` blocks.
   - `ArchitectureTest`: the composite sub-rules (layout packages/persistence/services, repository→service/web) have no violating test classes of their own.
   - `GlobalExceptionHandler`: exceptions marked `@ResponseStatus` become 500. Use `DomainException`, or let the handler honour the annotation.
+  - Bash guard (third review of PR #13, gaps older than that PR): quoted redirection targets (`cat <".env"`, `$(<'.env')`) and `git commit -F .env` are allowed; `git commit -m x <path>` stages a path without a separate `git add`.
   - Docs: `docs/workflow.md` Handoff step lacks the RED/GREEN Verification format; the `docs/setup.md` `.githooks/` row omits the archive gate; the Delivery template runs tests before the archive step.

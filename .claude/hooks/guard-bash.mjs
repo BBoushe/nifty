@@ -11,23 +11,28 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import {
+  commandStringFlag,
   findSecretsInDiff,
   getGitSubcommand,
+  globMatchesEnv,
   isBlockedEnvPath,
   readStdinJson,
   splitShellSegments,
+  stripTextHeredocs,
   stripLeadingEnvAssignments,
   tokenizeSegment,
 } from './lib.mjs';
 
 const PROTECTED_NO_DIRECT = new Set(['master', 'main', 'alpha']);
-// `--no-verify` skips .githooks/pre-push; `-n` is `--dry-run` for push and stays allowed.
+// `--no-verify` skips .githooks/pre-push. `-n` is `--dry-run`, so it is not a hook skip (the branch rules still apply).
 const PROTECTED_HOOKED = new Set([...PROTECTED_NO_DIRECT, 'dev']);
 const DEV_ALLOWED_COMMIT_RE = /^(docs|hotfix)(\([a-z0-9._/-]+\))?!?: /;
 const MAX_COMMAND_DEPTH = 3;
-const SHELLS = new Set(['sh', 'bash', 'zsh']);
-// `stripLeadingEnvAssignments` stops on these (`env -S`, `rtk run -c|--command`) and leaves them first.
-const COMMAND_STRING_FLAGS = new Set(['-c', '--command', '-S', '--split-string']);
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh']);
+// Shell options whose value is the next token (`bash -o pipefail -c …`).
+const SHELL_VALUE_OPTS = new Set(['-o', '+o', '-O', '+O', '--rcfile', '--init-file']);
+// Marker: the shell gets no command string and no script, so it reads commands from stdin.
+const STDIN = Symbol('stdin');
 
 function defaultRunGit(args, cwd = process.cwd()) {
   try {
@@ -41,11 +46,21 @@ function defaultRunGit(args, cwd = process.cwd()) {
   }
 }
 
+/** `$( ... )` and backtick substitutions the shell runs; single-quoted text is data and is skipped. */
 function extractCommandSubstitutions(segment) {
   const subs = [];
-  // Extract $( ... ) substitutions respecting nested parentheses
-  for (let i = 0; i < segment.length - 1; i += 1) {
-    if (segment[i] === '$' && segment[i + 1] === '(') {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < segment.length; i += 1) {
+    const ch = segment[i];
+    if (ch === '\\' && !inSingle) {
+      i += 1;
+      continue;
+    }
+    if (ch === "'" && !inDouble) inSingle = !inSingle;
+    else if (ch === '"' && !inSingle) inDouble = !inDouble;
+    else if (inSingle) continue;
+    else if (ch === '$' && segment[i + 1] === '(') {
       let depth = 1;
       let j = i + 2;
       while (j < segment.length && depth > 0) {
@@ -57,15 +72,21 @@ function extractCommandSubstitutions(segment) {
         subs.push(segment.slice(i + 2, j - 1));
         i = j - 1;
       }
+    } else if (ch === '`') {
+      const end = segment.indexOf('`', i + 1);
+      if (end === -1) break;
+      if (end > i + 1) subs.push(segment.slice(i + 1, end));
+      i = end;
     }
   }
-  // Extract backtick `...` substitutions
-  const backtickRe = /`([^`]+)`/g;
-  let m;
-  while ((m = backtickRe.exec(segment)) !== null) {
-    subs.push(m[1]);
-  }
   return subs;
+}
+
+/** A path argument that names a secret env file, or an unquoted glob that matches one. */
+function envArgument(token) {
+  if (isBlockedEnvPath(token.value)) return token.value;
+  if (token.globUnquoted && globMatchesEnv(token.value)) return token.value;
+  return null;
 }
 
 function segmentTouchesBlockedEnv(segment, depth = 0) {
@@ -75,7 +96,7 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
   const redirRe = /<\s*([^\s;&|)"'`]+)/g;
   let redirMatch;
   while ((redirMatch = redirRe.exec(segment)) !== null) {
-    if (isBlockedEnvPath(redirMatch[1])) {
+    if (isBlockedEnvPath(redirMatch[1]) || globMatchesEnv(redirMatch[1])) {
       return redirMatch[1];
     }
   }
@@ -99,7 +120,8 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
 
     for (const tok of gitInfo.args) {
       if (tok.value.startsWith('-')) continue;
-      if (isBlockedEnvPath(tok.value)) return tok.value;
+      const hit = envArgument(tok);
+      if (hit) return hit;
     }
     return null;
   }
@@ -120,9 +142,8 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
       }
       continue;
     }
-    if (isBlockedEnvPath(val)) {
-      return val;
-    }
+    const hit = envArgument(tokens[i]);
+    if (hit) return hit;
   }
   return null;
 }
@@ -134,24 +155,79 @@ function segmentTouchesBlockedEnv(segment, depth = 0) {
 function extractCommandString(tokens) {
   if (!tokens.length) return null;
   const first = tokens[0].value;
-  if (COMMAND_STRING_FLAGS.has(first)) return tokens[1]?.value ?? null;
+  // `stripLeadingEnvAssignments` leaves a command-string flag first only after `env` or `rtk run`.
+  const flag = commandStringFlag(first);
+  if (flag) return flag.inline ?? tokens[1]?.value ?? null;
   const name = first.split('/').pop();
   if (name === 'eval') return tokens.slice(1).map((t) => t.value).join(' ');
   if (!SHELLS.has(name)) return null;
-  for (let i = 1; i < tokens.length && tokens[i].value.startsWith('-'); i += 1) {
-    if (/^-[a-z]*c[a-z]*$/.test(tokens[i].value)) return tokens[i + 1]?.value ?? null;
-  }
-  return null;
+  return shellCommandString(tokens);
 }
 
-function parseGitPushTargets(args, currentBranch) {
+/** The `-c` string of a shell call, null for a script by path, or STDIN (design.md §2). */
+function shellCommandString(tokens) {
+  let sawC = false;
+  let sawS = false;
+  for (let i = 1; i < tokens.length; i += 1) {
+    const v = tokens[i].value;
+    if (v === '--') return sawC ? (tokens[i + 1]?.value ?? null) : sawS ? STDIN : null;
+    if (/^\d*[<>]/.test(v)) {
+      if (/^\d*[<>]+&?$/.test(v)) i += 1; // `<< EOF`, `> out`: skip the separate target
+      continue;
+    }
+    if (SHELL_VALUE_OPTS.has(v)) {
+      i += 1;
+      continue;
+    }
+    if (v.startsWith('--')) continue;
+    if (/^[-+][A-Za-z]+$/.test(v)) {
+      if (v[0] === '-' && v.includes('c')) sawC = true;
+      else if (v[0] === '-' && v.includes('s')) sawS = true;
+      if (/[oO]$/.test(v)) i += 1; // `-euo pipefail`
+      continue;
+    }
+    if (sawC) return v;
+    return sawS ? STDIN : null;
+  }
+  return sawC ? null : STDIN;
+}
+
+// git accepts any unambiguous prefix of a long option; `min` is the shortest unambiguous length.
+function isLongOptionPrefix(value, full, min) {
+  const name = value.split('=')[0];
+  return name.length >= min && full.startsWith(name);
+}
+
+const FORCE_OPTIONS = ['--force', '--force-with-lease', '--force-if-includes'];
+
+function isForceFlag(val) {
+  if (/^-[A-Za-z]*f[A-Za-z]*$/.test(val)) return true; // -f, -fu
+  // `--fo` is ambiguous with `--follow-tags`, so 5 characters is the floor.
+  return FORCE_OPTIONS.some((full) => isLongOptionPrefix(val, full, 5));
+}
+
+/** True when `git -c core.hooksPath=…` or `--config-env=core.hooksPath=…` replaces the hooks. */
+function overridesHooksPath(globals) {
+  const isHooksPath = (kv) => (kv ?? '').split('=')[0].toLowerCase() === 'core.hookspath';
+  for (let i = 0; i < globals.length; i += 1) {
+    const v = globals[i].value;
+    if (v === '-c' && isHooksPath(globals[i + 1]?.value)) return true;
+    if (v.startsWith('--config-env=') && isHooksPath(v.slice('--config-env='.length))) return true;
+  }
+  return false;
+}
+
+function parseGitPushTargets(args, currentBranch, globals = []) {
   let hasForce = false;
   let hasAllOrMirror = false;
+  // `--no-ve` is ambiguous with `--no-verbose`, so 9 characters is the floor.
+  const skipsHooks =
+    overridesHooksPath(globals) || args.some((t) => isLongOptionPrefix(t.value, '--no-verify', 9));
   const positional = [];
 
   for (let i = 0; i < args.length; i += 1) {
     const val = args[i].value;
-    if (val === '-f' || val === '--force' || val === '--force-with-lease') {
+    if (isForceFlag(val)) {
       hasForce = true;
       continue;
     }
@@ -175,14 +251,17 @@ function parseGitPushTargets(args, currentBranch) {
     if (currentBranch) targetBranches.push(currentBranch);
   } else {
     for (const spec of refspecs) {
+      if (spec.startsWith('+')) hasForce = true; // `+src:dst` forces that ref
       const cleaned = spec.replace(/^\+/, '');
       const dst = cleaned.includes(':') ? cleaned.split(':').pop() : cleaned;
       const branch = dst.replace(/^refs\/heads\//, '');
-      if (branch) targetBranches.push(branch);
+      if (branch === 'HEAD' || branch === '@') {
+        if (currentBranch) targetBranches.push(currentBranch);
+      } else if (branch) targetBranches.push(branch);
     }
   }
 
-  return { hasForce, hasAllOrMirror, targetBranches };
+  return { hasForce, hasAllOrMirror, skipsHooks, targetBranches };
 }
 
 function checkStagedChanges({ runGit, stagedDiff, stagedFiles }) {
@@ -275,35 +354,56 @@ export function evaluateBashCommand(command, options = {}) {
   const currentBranch =
     options.currentBranch ?? runGit(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
   const depth = options._depth ?? 0;
+  // Shared by nested calls, so `git add . && sh -c "git commit"` still counts as chained.
+  const chain = options._chain ?? { add: false, commit: false };
+  const nested = { ...options, currentBranch, _depth: depth + 1, _chain: chain };
+  const tooDeep = {
+    blocked: true,
+    reason: `BLOCKED: command nesting exceeds depth ${MAX_COMMAND_DEPTH}. Run the inner command directly.`,
+  };
 
-  const segments = splitShellSegments(command);
-  let hasGitAdd = false;
+  const envBlocked = (path) => ({
+    blocked: true,
+    reason:
+      `BLOCKED: Shell command accesses secret file '${path}'. ` +
+      `Never read, print, or stage '.env' files via shell commands.`,
+  });
+
+  // Known message heredocs (`git commit -m "$(cat <<'EOF' …)"`) are text; they still must not name a secret env file.
+  const heredoc = stripTextHeredocs(command);
+  for (const line of heredoc.bodies.join('\n').split('\n')) {
+    const hit = line.trim() && segmentTouchesBlockedEnv(line);
+    if (hit) return envBlocked(hit);
+  }
+
+  const segments = splitShellSegments(heredoc.text);
   let hasGitCommit = false;
 
   for (const segment of segments) {
     // 1. Block .env shell reads/prints/staging
     const blockedEnv = segmentTouchesBlockedEnv(segment);
-    if (blockedEnv) {
-      return {
-        blocked: true,
-        reason:
-          `BLOCKED: Shell command accesses secret file '${blockedEnv}'. ` +
-          `Never read, print, or stage '.env' files via shell commands.`,
-      };
+    if (blockedEnv) return envBlocked(blockedEnv);
+
+    // 2. Evaluate `$( ... )` and backtick substitutions as commands of their own
+    for (const sub of extractCommandSubstitutions(segment)) {
+      if (depth + 1 > MAX_COMMAND_DEPTH) return tooDeep;
+      const subResult = evaluateBashCommand(sub, nested);
+      if (subResult.blocked) return subResult;
     }
 
     const tokens = tokenizeSegment(segment);
 
-    // 2. Evaluate command strings (`sh -c`, `rtk run -c`, `env -S`, `eval`) with the same rules
+    // 3. Evaluate command strings (`sh -c`, `rtk run -c`, `env -S`, `eval`) with the same rules
     const inner = extractCommandString(stripLeadingEnvAssignments(tokens));
+    if (inner === STDIN) {
+      return {
+        blocked: true,
+        reason: `BLOCKED: this shell reads its commands from stdin, which the guard cannot see. Run the commands directly or pass them with -c.`,
+      };
+    }
     if (inner !== null) {
-      if (depth + 1 > MAX_COMMAND_DEPTH) {
-        return {
-          blocked: true,
-          reason: `BLOCKED: command nesting exceeds depth ${MAX_COMMAND_DEPTH}. Run the inner command directly.`,
-        };
-      }
-      const innerResult = evaluateBashCommand(inner, { ...options, currentBranch, _depth: depth + 1 });
+      if (depth + 1 > MAX_COMMAND_DEPTH) return tooDeep;
+      const innerResult = evaluateBashCommand(inner, nested);
       if (innerResult.blocked) return innerResult;
       continue;
     }
@@ -312,7 +412,7 @@ export function evaluateBashCommand(command, options = {}) {
     if (!gitInfo) continue;
 
     if (gitInfo.subcommand === 'add') {
-      hasGitAdd = true;
+      chain.add = true;
     }
 
     if (gitInfo.subcommand === 'commit') {
@@ -329,13 +429,15 @@ export function evaluateBashCommand(command, options = {}) {
         };
       }
       hasGitCommit = true;
+      chain.commit = true;
     }
 
-    // 3. Protected branch push checks
+    // 4. Protected branch push checks
     if (gitInfo.subcommand === 'push') {
-      const { hasForce, hasAllOrMirror, targetBranches } = parseGitPushTargets(
+      const { hasForce, hasAllOrMirror, skipsHooks, targetBranches } = parseGitPushTargets(
         gitInfo.args,
-        currentBranch
+        currentBranch,
+        gitInfo.globals
       );
 
       if (hasAllOrMirror) {
@@ -352,7 +454,6 @@ export function evaluateBashCommand(command, options = {}) {
         };
       }
 
-      const skipsHooks = gitInfo.args.some((t) => t.value === '--no-verify');
       const hookedTarget = targetBranches.find((b) => PROTECTED_HOOKED.has(b));
       if (skipsHooks && hookedTarget) {
         return {
@@ -376,8 +477,8 @@ export function evaluateBashCommand(command, options = {}) {
     }
   }
 
-  // 4. Block chaining `git add ... && git commit` so staged diffs are always scanned cleanly
-  if (hasGitAdd && hasGitCommit) {
+  // 5. Block chaining `git add ... && git commit` (also across command strings) so staged diffs are scanned cleanly
+  if (depth === 0 && chain.add && chain.commit) {
     return {
       blocked: true,
       reason:
@@ -386,7 +487,7 @@ export function evaluateBashCommand(command, options = {}) {
     };
   }
 
-  // 5. On `git commit`, enforce protected branch + staged secret scan
+  // 6. On `git commit`, enforce protected branch + staged secret scan
   if (hasGitCommit) {
     return evaluatePreCommit({
       runGit,
