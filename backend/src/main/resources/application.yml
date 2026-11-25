@@ -47,6 +47,13 @@ server:
   port: ${BACKEND_PORT:8080}
   error:
     include-stacktrace: never
+  # Decision 1.23: session cookie for both roles. Set NIFTY_SESSION_COOKIE_SECURE=false only for local HTTP dev.
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${NIFTY_SESSION_COOKIE_SECURE:true}
 
 management:
   endpoints:

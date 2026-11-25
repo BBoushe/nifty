@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/auth-accounts`
 - **Worktree:** `../nifty-auth-accounts`
-- **Current:** not started
-- **Next action:** Task 1
+- **Current:** Task 2 done
+- **Next action:** Task 3
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -17,9 +17,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0; `docker compose config` → exit 0; commit `feat(auth): professor accounts with env bootstrap`
 
 ### Task 2: Login, logout, me and SecurityConfig (REQ-AA-02, REQ-AA-06)
-- [ ] RED: `AuthControllerTest` (`@SpringBootTest`, `PostgresContainerBase`, MockMvc): login `204` + session cookie; wrong password and unknown email give the same `401` body; logout without CSRF `403`, with CSRF `204`; `me` after logout `401`. `RoleAccessTest` still passes (add `csrf()` where it posts).
-- [ ] GREEN: `AuthController`, `SecurityConfig` changes (design §2), cookie properties, `401` ProblemDetail entry point.
-- [ ] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; update `docs/api.md` §2 and §5; commit `feat(auth): session login, logout and CSRF`
+- [x] RED: `AuthControllerTest` (`@SpringBootTest`, `PostgresContainerBase`, MockMvc): login `204` + session cookie; wrong password and unknown email give the same `401` body; logout without CSRF `403`, with CSRF `204`; `me` after logout `401`. `RoleAccessTest` still passes (add `csrf()` where it posts).
+- [x] GREEN: `AuthController`, `SecurityConfig` changes (design §2), cookie properties, `401` ProblemDetail entry point.
+- [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; update `docs/api.md` §2 and §5; commit `feat(auth): session login, logout and CSRF`
 
 ### Task 3: US-AU-02 Sign-in page, store, guards, CSRF header
 - [ ] RED: Vitest: `client.test.ts` sends `X-XSRF-TOKEN` on POST from the cookie; `guard.test.ts` redirects a missing or wrong role to `/sign-in`; `SignInView.test.ts` calls `login` and shows the `401` detail.
@@ -44,4 +44,12 @@
 - Verification: RED: `./mvnw -B test -Dtest=ProfessorBootstrapTest,AuthContextServiceImplTest` → FAIL (compile: `ProfessorBootstrap`, `NiftyPrincipal`, `AuthContextServiceImpl` missing); GREEN: `./mvnw -B test` → exit 0 (36 run, 1 skipped by design); `docker compose config` → exit 0
 - Contracts/Migrations added: `V2__auth_accounts.sql`; `AuthContextService` impl (`AuthContextServicePlaceholder` deleted); `PasswordEncoder` bean in `SecurityConfig`
 - Decisions: applies 1.23, 1.24
+- Open Questions: none
+
+
+### Task 2 (REQ-AA-02, REQ-AA-06)
+- Commits: `feat(auth): session login, logout and CSRF`
+- Verification: RED: `./mvnw -B test -Dtest=AuthControllerTest` → FAIL (7/7 failed: HTTP Basic returned 401 before controller/CSRF existed); GREEN: `./mvnw -B test` → exit 0 (44 run, 1 skipped by design); `docker compose config` → exit 0
+- Contracts/Migrations added: `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`; session cookies + SPA CSRF (`XSRF-TOKEN`/`X-XSRF-TOKEN`) in `SecurityConfig`; `docs/api.md` §2/§4/§5 updated
+- Decisions: applies 1.15, 1.23
 - Open Questions: none
