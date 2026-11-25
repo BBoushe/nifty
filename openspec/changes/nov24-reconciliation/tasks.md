@@ -3,9 +3,9 @@
 ## Status
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
-- **Current:** Tasks 1–6 done
-- **Next action:** Task 7 (backlog)
-- **Uncommitted changes:** yes (change folder)
+- **Current:** Tasks 1–7 done; Delivery next
+- **Next action:** Delivery: merge origin/dev, archive, history entry, push, PR/MR, cold review
+- **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
 
@@ -50,10 +50,10 @@
 - [x] Commit `docs(ai-logs): start the prompt-as-code audit trail`
 
 ### Task 7: Backlog (Decision 3.14)
-- [ ] Rebuild `docs/feature_backlog.md`: foundation, auth, audit, domain slices with waves, reserved migrations and US-NN stories; Post-MVP section; harness follow-ups
-- [ ] `CHANGELOG.md` entry
-- [ ] Verify: `ste-lint.py`; harness tests
-- [ ] Commit `docs(backlog): rebuild the backlog as atomic stories in delivery waves`
+- [x] Rebuild `docs/feature_backlog.md`: foundation, auth, audit, domain slices with waves, reserved migrations and US-NN stories; Post-MVP section; harness follow-ups
+- [x] `CHANGELOG.md` entry
+- [x] Verify: `ste-lint.py`; harness tests
+- [x] Commit `docs(backlog): rebuild the backlog as atomic stories in delivery waves`
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev`
@@ -85,3 +85,7 @@
 ### 2026-11-25 — Tasks 5–6 (main session)
 - **Did:** `docs/design_system.md` (0–4 + hatched `N/A` level table, PrimeVue preset from Tailwind `@theme` tokens, interview framing, `mm:ss` timers, advice tone, Countdown/ConversationLog/LikertScale, Ask AI Post-MVP); `docs/ai_logs/` README and the 2026-11-25 handover; `AGENTS.md` dispatch row; `docs/setup.md` inventory row.
 - **Verification:** RED: n/a (no behaviour). ste-lint: 0 hard findings in the new text.
+
+### 2026-11-25 — Task 7 (main session)
+- **Did:** rebuilt `docs/feature_backlog.md`: 13 rows in waves 0–6 (backend and frontend foundation, auth accounts, audit service, studio, invite links, formula, assessment chat, evidence, matrix, results, teams, harness follow-ups), reserved Flyway files V2–V9, `US-` stories per feature with REQ links, Post-MVP section, notes. Auth needs two migrations (account → configuration → invite), so design §6 now reserves V2 and V4 for `auth`. CHANGELOG entry.
+- **Verification:** RED: n/a (no behaviour). ste-lint: no hard findings in new text (remaining ones are in the carried-over notes).

@@ -98,17 +98,18 @@ An attempt is released when every score is `auto_released`, `approved` or `overr
 
 | Slice | Owns | Reserved Flyway file |
 |---|---|---|
-| `auth` | professor accounts, invite tokens (hash) | `V2__auth.sql` |
+| `auth` | professor accounts | `V2__auth_accounts.sql` |
 | `audit` | `AuditLog` entity over `V1` `audit_log`, `AuditService` | — (uses `V1`) |
 | `studio` | assessment configuration, versions, skills, tags | `V3__studio.sql` |
-| `assessment` | attempts, ledger, BFI-10 responses | `V4__assessment.sql` |
-| `evidence` | evidence items, (question, skill) scores, confidence | `V5__evidence.sql` |
-| `formula` | formula versions (preset name, weights) | `V6__formula.sql` |
-| `matrix` | review status, overrides | `V7__matrix.sql` |
-| `teams` | team proposals, placements | `V8__teams.sql` |
+| `auth` | invite tokens (hash) | `V4__auth_invites.sql` |
+| `formula` | formula versions (preset name, weights) | `V5__formula.sql` |
+| `assessment` | attempts, ledger, BFI-10 responses | `V6__assessment.sql` |
+| `evidence` | evidence items, (question, skill) scores, confidence | `V7__evidence.sql` |
+| `matrix` | review status, overrides | `V8__matrix.sql` |
+| `teams` | team proposals, placements | `V9__teams.sql` |
 | `results` | none (reads other slices through services) | — |
 
-A change that needs a second migration uses the next free number above `V8` and claims it in the backlog first.
+`auth` has two files because the chain is account → configuration → invite. A change that needs a second migration uses the next free number above `V9` and claims it in the backlog first.
 
 ## 7. Doc Edit Rules
 
