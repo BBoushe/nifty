@@ -8,7 +8,8 @@
 //   node scripts/forge.mjs pr --title "<t>" --body-file <f> [--base dev] [--head <b>] [--dry-run]
 //   node scripts/forge.mjs sync [branch...] [--dry-run]        # fast-forward gitlab to origin (default: dev alpha master)
 //   node scripts/forge.mjs status                              # GitHub vs GitLab drift (exit 1 if GitLab is not behind-only)
-import { spawnSync } from 'node:child_process';
+//   node scripts/forge.mjs prs                                 # open PRs and MRs side by side by branch, with CI state (Decision 3.11)
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -69,6 +70,28 @@ export function planSync(forge, branches = MIRRORED) {
       args: ['push', '--no-verify', REMOTE.gitlab, `refs/remotes/origin/${b}:refs/heads/${b}`],
     })),
   ];
+}
+
+const FAILED_STATES = new Set(['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE']);
+const PASSED_STATES = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED']);
+
+/** One-line state of a PR's checks: failed wins over pending, pending over pass (REQ-OR-02). */
+export function checksSummary(states) {
+  if (!states.length) return 'no checks';
+  const failed = states.filter((s) => FAILED_STATES.has(s)).length;
+  if (failed) return `${failed} failed`;
+  const pending = states.filter((s) => !PASSED_STATES.has(s)).length;
+  if (pending) return `${pending} pending`;
+  return `${states.length}/${states.length} pass`;
+}
+
+/** Join open GitHub PRs and GitLab MRs by branch, so nobody has to match `#n` to `!m`. */
+export function prRows(github, gitlab) {
+  const rows = new Map();
+  const row = (branch) => rows.get(branch) ?? rows.set(branch, { branch, pr: '—', checks: '—', mr: '—', pipeline: '—' }).get(branch);
+  for (const p of github) Object.assign(row(p.branch), { pr: `#${p.number}`, checks: p.checks });
+  for (const m of gitlab) Object.assign(row(m.branch), { mr: `!${m.iid}`, pipeline: m.pipeline });
+  return [...rows.values()].sort((a, b) => a.branch.localeCompare(b.branch));
 }
 
 function git(args) {
@@ -145,6 +168,41 @@ function status(forge) {
   return diverged ? 1 : 0;
 }
 
+function runJson(cmd, args) {
+  return JSON.parse(execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+}
+
+function prs(forge) {
+  const urls = remoteUrls(forge);
+  const github = [];
+  const gitlab = [];
+  if (urls.github) {
+    const repo = urls.github.replace(/^https:\/\//, '');
+    for (const p of runJson('gh', ['pr', 'list', '--repo', repo, '--state', 'open', '--json', 'number,headRefName,statusCheckRollup'])) {
+      const states = (p.statusCheckRollup ?? []).map((c) => c.conclusion || c.state || 'PENDING');
+      github.push({ branch: p.headRefName, number: p.number, checks: checksSummary(states) });
+    }
+  }
+  if (urls.gitlab) {
+    // `-R <url>` lets glab resolve the project; instances under a sub-path (`/01/…`) break hand-built API paths.
+    for (const m of runJson('glab', ['mr', 'list', '-R', urls.gitlab, '-F', 'json'])) {
+      const full = runJson('glab', ['mr', 'view', String(m.iid), '-R', urls.gitlab, '-F', 'json']);
+      gitlab.push({ branch: m.source_branch, iid: m.iid, pipeline: full.head_pipeline?.status ?? 'none' });
+    }
+  }
+  const rows = prRows(github, gitlab);
+  if (!rows.length) {
+    process.stdout.write('No open PRs or MRs.\n');
+    return 0;
+  }
+  const cols = ['branch', 'pr', 'checks', 'mr', 'pipeline'];
+  const width = Object.fromEntries(cols.map((c) => [c, Math.max(c.length, ...rows.map((r) => String(r[c]).length))]));
+  const line = (r) => cols.map((c) => String(r[c]).padEnd(width[c])).join('  ').trimEnd();
+  process.stdout.write(`${line({ branch: 'branch', pr: 'GitHub', checks: 'checks', mr: 'GitLab', pipeline: 'pipeline' })}\n`);
+  for (const r of rows) process.stdout.write(`${line(r)}\n`);
+  return 0;
+}
+
 function main(argv) {
   const [command, ...rest] = argv;
   const flags = parseFlags(rest);
@@ -184,8 +242,9 @@ function main(argv) {
   }
 
   if (command === 'status') return status(forge);
+  if (command === 'prs') return prs(forge);
 
-  process.stderr.write('Usage: forge.mjs push | pr --title <t> --body-file <f> | sync [branch...] | status  [--dry-run]\n');
+  process.stderr.write('Usage: forge.mjs push | pr --title <t> --body-file <f> [--head <b>] | sync [branch...] | status | prs  [--dry-run]\n');
   return 2;
 }
 

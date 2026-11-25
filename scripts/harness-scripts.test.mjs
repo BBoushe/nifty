@@ -10,7 +10,8 @@ import {
   runSetupChecks,
   validateGitLabHost,
 } from './check-setup.mjs';
-import { planPr, planPush, planSync, repoUrl, targetsFor } from './forge.mjs';
+import { checksSummary, planPr, planPush, planSync, prRows, repoUrl, targetsFor } from './forge.mjs';
+import { execFileSync } from 'node:child_process';
 import {
   computeNextDecisionId,
   recordDecision,
@@ -332,5 +333,53 @@ describe('CI parity', () => {
       () => assertCiParity(github, gitlab),
       (err) => err.message.includes('missing on GitHub: docker build --pull -t "nifty-backend:<SHA>" backend')
     );
+  });
+});
+
+// REQ-OR-01, REQ-OR-02 (Decision 3.11): orchestrated delivery across worktrees and both forges.
+describe('agent orchestration helpers', () => {
+  const gitIn = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] });
+
+  it('reads the main checkout .env from a linked worktree without its own .env', () => {
+    const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'nifty-wt-')));
+    try {
+      const main = path.join(tmp, 'nifty');
+      fs.mkdirSync(main);
+      gitIn(main, 'init', '-q', '-b', 'dev');
+      fs.writeFileSync(path.join(main, 'README.md'), 'x\n', 'utf8');
+      gitIn(main, 'add', 'README.md');
+      gitIn(main, '-c', 'user.name=t', '-c', 'user.email=t@example.test', 'commit', '-q', '-m', 'docs: init');
+      fs.writeFileSync(path.join(main, '.env'), 'GIT_FORGE=both\n', 'utf8');
+      const wt = path.join(tmp, 'nifty-change');
+      gitIn(main, 'worktree', 'add', '-q', wt, '-b', 'feat/x');
+
+      assert.equal(resolveForgeConfig(wt, {}).forge, 'both');
+
+      fs.writeFileSync(path.join(wt, '.env'), 'GIT_FORGE=github\n', 'utf8');
+      assert.equal(resolveForgeConfig(wt, {}).forge, 'github');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('summarises checks with failed before pending before pass', () => {
+    assert.equal(checksSummary(['SUCCESS', 'SUCCESS', 'SUCCESS']), '3/3 pass');
+    assert.equal(checksSummary(['SUCCESS', 'PENDING', 'IN_PROGRESS']), '2 pending');
+    assert.equal(checksSummary(['SUCCESS', 'PENDING', 'FAILURE']), '1 failed');
+    assert.equal(checksSummary([]), 'no checks');
+  });
+
+  it('joins GitHub PRs and GitLab MRs by branch', () => {
+    const rows = prRows(
+      [
+        { branch: 'fix/x', number: 13, checks: '7/7 pass' },
+        { branch: 'docs/y', number: 14, checks: '2 pending' },
+      ],
+      [{ branch: 'fix/x', iid: 12, pipeline: 'success' }]
+    );
+    assert.deepEqual(rows, [
+      { branch: 'docs/y', pr: '#14', checks: '2 pending', mr: '—', pipeline: '—' },
+      { branch: 'fix/x', pr: '#13', checks: '7/7 pass', mr: '!12', pipeline: 'success' },
+    ]);
   });
 });
