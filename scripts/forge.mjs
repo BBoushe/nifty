@@ -195,10 +195,11 @@ function prs(forge) {
     process.stdout.write('No open PRs or MRs.\n');
     return 0;
   }
-  const cols = ['branch', 'pr', 'checks', 'mr', 'pipeline'];
-  const width = Object.fromEntries(cols.map((c) => [c, Math.max(c.length, ...rows.map((r) => String(r[c]).length))]));
+  const header = { branch: 'branch', pr: 'GitHub', checks: 'checks', mr: 'GitLab', pipeline: 'pipeline' };
+  const cols = Object.keys(header);
+  const width = Object.fromEntries(cols.map((c) => [c, Math.max(...[header, ...rows].map((r) => String(r[c]).length))]));
   const line = (r) => cols.map((c) => String(r[c]).padEnd(width[c])).join('  ').trimEnd();
-  process.stdout.write(`${line({ branch: 'branch', pr: 'GitHub', checks: 'checks', mr: 'GitLab', pipeline: 'pipeline' })}\n`);
+  process.stdout.write(`${line(header)}\n`);
   for (const r of rows) process.stdout.write(`${line(r)}\n`);
   return 0;
 }
