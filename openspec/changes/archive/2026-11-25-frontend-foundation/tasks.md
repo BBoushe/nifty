@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/frontend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-frontend-foundation`
-- **Current:** Tasks 1-5 done; `## Delivery` not started
-- **Next action:** Delivery (merge `origin/dev`, archive, push, PR/MR)
+- **Current:** Tasks 1–5 done, archived
+- **Next action:** push, PR/MR, cold review; merge after `backend-foundation`, then `git merge origin/dev`
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -37,7 +37,7 @@
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev` (after `backend-foundation` merges; keep both sides in the CI files and shared docs)
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive frontend-foundation -y --skip-specs`, history entry (`PR/MR: pending`)
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive frontend-foundation -y --skip-specs`, history entry (`PR/MR: pending`)
 - [ ] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
 - [ ] Cold review (fresh `reviewer` agent)
 - [ ] CI green on both forges (`node scripts/forge.mjs prs`)
@@ -80,3 +80,9 @@
 - Contracts/Migrations added: none
 - Decisions: none
 - Open Questions: none
+
+### 2026-11-25 — Orchestrator check
+- **Did:** read the diff; fixed `npm run typecheck` (root tsconfig has `files: []`, so it checked nothing; now `-p tsconfig.app.json`); kept PrimeVue 4.5.5 (MIT; 5.x has a non-MIT licence, checked with `npm view`); archived.
+- **Verification:** RED: n/a (script fix). `npm run typecheck`, `test` (23), `lint`, `build` → exit 0.
+- **Contracts:** `apiFetch`, `ApiProblem`, `postSse` in `src/api/client.ts`.
+- **Decisions:** applies 1.14.
