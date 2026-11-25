@@ -27,6 +27,11 @@ spring:
         model: ${AI_EVALUATOR_MODEL:OpenAI GPT OSS 120B}
 
 nifty:
+  # Decision 1.24: optional bootstrap professor account. Values come from the environment only.
+  bootstrap:
+    professor:
+      email: ${NIFTY_BOOTSTRAP_PROFESSOR_EMAIL:}
+      password: ${NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD:}
   ai:
     provider-mode: ${AI_EVALUATOR_PROVIDER:kiconnect-nrw}
     evaluator:

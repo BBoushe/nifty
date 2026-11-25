@@ -12,9 +12,9 @@
 ## Tasks
 
 ### Task 1: Accounts, bootstrap and principal (REQ-AA-07)
-- [ ] RED: `ProfessorBootstrapTest` (extends `PostgresContainerBase`): creates one account from the two properties; a second run changes nothing; no property set → no account. `AuthContextServiceImplTest`: professor principal → ID; no professor → `403`.
-- [ ] GREEN: `V2__auth_accounts.sql`, entity and repository in `auth/repository`, `ProfessorUserDetailsService`, `ProfessorBootstrap`, `NiftyPrincipal`, `AuthContextServiceImpl`; delete `AuthContextServicePlaceholder`; `.env.example` and `docker-compose.yml` keys.
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; `docker compose config` → exit 0; commit `feat(auth): professor accounts with env bootstrap`
+- [x] RED: `ProfessorBootstrapTest` (extends `PostgresContainerBase`): creates one account from the two properties; a second run changes nothing; no property set → no account. `AuthContextServiceImplTest`: professor principal → ID; no professor → `403`.
+- [x] GREEN: `V2__auth_accounts.sql`, entity and repository in `auth/repository`, `ProfessorUserDetailsService`, `ProfessorBootstrap`, `NiftyPrincipal`, `AuthContextServiceImpl`; delete `AuthContextServicePlaceholder`; `.env.example` and `docker-compose.yml` keys.
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0; `docker compose config` → exit 0; commit `feat(auth): professor accounts with env bootstrap`
 
 ### Task 2: Login, logout, me and SecurityConfig (REQ-AA-02, REQ-AA-06)
 - [ ] RED: `AuthControllerTest` (`@SpringBootTest`, `PostgresContainerBase`, MockMvc): login `204` + session cookie; wrong password and unknown email give the same `401` body; logout without CSRF `403`, with CSRF `204`; `me` after logout `401`. `RoleAccessTest` still passes (add `csrf()` where it posts).
@@ -38,3 +38,10 @@
 - [ ] Stop. Teammate A runs the cold review, checks CI and merges.
 
 ## Handoff Log
+
+### Task 1 (REQ-AA-07)
+- Commits: `feat(auth): professor accounts with env bootstrap`
+- Verification: RED: `./mvnw -B test -Dtest=ProfessorBootstrapTest,AuthContextServiceImplTest` → FAIL (compile: `ProfessorBootstrap`, `NiftyPrincipal`, `AuthContextServiceImpl` missing); GREEN: `./mvnw -B test` → exit 0 (36 run, 1 skipped by design); `docker compose config` → exit 0
+- Contracts/Migrations added: `V2__auth_accounts.sql`; `AuthContextService` impl (`AuthContextServicePlaceholder` deleted); `PasswordEncoder` bean in `SecurityConfig`
+- Decisions: applies 1.23, 1.24
+- Open Questions: none
