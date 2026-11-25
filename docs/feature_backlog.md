@@ -16,7 +16,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 |---|---|---|---|---|---|---|
 | 1 | `backend-foundation` | 0 | done | Shared (`shared`, `backend/pom.xml`, CI) | — | — |
 | 2 | `frontend-foundation` | 0 | done | Shared (`frontend/` shell, CI) | — | — |
-| 3 | `auth-accounts` ([change](../openspec/changes/auth-accounts/), [ticket](tickets/01-studio.md)) | 1 | in progress | Teammate R (`auth`, `views/auth/`) | 1, 2 | `V2__auth_accounts.sql` |
+| 3 | `auth-accounts` ([change](../openspec/changes/archive/2026-11-26-auth-accounts/), [ticket](tickets/01-studio.md)) | 1 | done | Teammate R (`auth`, `views/auth/`) | 1, 2 | `V2__auth_accounts.sql` |
 | 4 | `audit-log-service` ([change](../openspec/changes/audit-log-service/), [ticket](tickets/01-studio.md)) | 1 | in progress | Teammate R (`audit`) | 1 | — (uses `V1`) |
 | 5 | `context-creation` ([change](../openspec/changes/context-creation/), [ticket](tickets/02-context-creation.md)) | 1 | in progress | Teammate A (`context`) | 1, 4 (mockable) | — (stateless) |
 | 6 | `studio-assessment-creation` ([change](../openspec/changes/studio-assessment-creation/), [ticket](tickets/01-studio.md)) | 2 | in progress | Teammate R (`studio`, `views/studio/`) | 1, 2, 3, 4 | `V3__studio.sql` |

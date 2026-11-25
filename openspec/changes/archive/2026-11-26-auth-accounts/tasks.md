@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/auth-accounts`
 - **Worktree:** `../nifty-auth-accounts`
-- **Current:** Task 4 done
-- **Next action:** Delivery (merge dev, validate, archive, ask human before push/PR)
+- **Current:** all tasks done; archived; waiting for the human to approve push and PR/MR
+- **Next action:** after approval, `node scripts/forge.mjs push`, then `node scripts/forge.mjs pr ... --base dev`; fill the PR/MR numbers into `docs/feature_history.md`
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -31,9 +31,9 @@
 - [x] Verify: harness tests → exit 0; commit `docs: record auth-accounts`
 
 ## Delivery
-- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
-- [ ] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive auth-accounts -y`, set its `docs/feature_backlog.md` row to `done`, add a `docs/feature_history.md` entry (`PR/MR: pending`), commit `chore(specs): archive auth-accounts`
+- [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive auth-accounts -y`, set its `docs/feature_backlog.md` row to `done`, add a `docs/feature_history.md` entry (`PR/MR: pending`), commit `chore(specs): archive auth-accounts`
 - [ ] Ask the human, then `node scripts/forge.mjs push` and open the PR/MR with `pr-memo` (`node scripts/forge.mjs pr ... --base dev`)
 - [ ] Stop. Teammate A runs the cold review, checks CI and merges.
 

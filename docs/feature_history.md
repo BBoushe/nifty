@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — auth-accounts
+- **What:** Added `V2__auth_accounts.sql` (`professor_account`), env bootstrap (`NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` / `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD`), `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, server session cookies (`HttpOnly`, `SameSite=Lax`), SPA CSRF (`XSRF-TOKEN` / `X-XSRF-TOKEN`) and `AuthContextServiceImpl` (`AuthContextServicePlaceholder` deleted). Added the frontend `/sign-in` view, Pinia auth store, `/ranking/*` and `/assessment/*` route guards, and CSRF header support in `apiFetch` and `postSse`.
+- **Why:** Studio and the Ranking View need a signed-in professor session and `AuthContextService.currentProfessorId()` without HTTP Basic or secrets in the repo (Decisions 1.23, 1.24).
+- **PR/MR:** pending
+- **Specs:** REQ-AA-06..07 (added to `auth-access`); REQ-AA-01..02 (implemented)   **Decisions:** applies 1.14, 1.15, 1.23, 1.24
+
 ## 2026-11-25 — frontend-foundation
 - **What:** Added Vitest (jsdom, ECharts mock) and `npm run test` in both CI files. Added the PrimeVue 4 preset from Tailwind `@theme` tokens and `ScoreBadge`, which never shows `N/A` as `0`. Moved views into feature folders with one `routes.ts` each. Added the shared API client for RFC 9457 errors and SSE streams from a `POST`. `npm run typecheck` now checks the app sources and `vite.config.ts`. `ScoreBadge` shows bad levels as invalid, and the preset maps the full primary scale.
 - **Why:** The five teammate tickets need a test runner, the design system, separate route files and one client. Then they do not edit the same files.
