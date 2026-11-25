@@ -1,21 +1,23 @@
 ---
 title: "Evidence-First Skill Assessment Platform: Discovery & Vision"
 subtitle: "Innovation Driven Software Engineering, Block Week, FH Dortmund"
-date: "2026-11-22"
+date: "2026-11-25"
 ---
 
 # Evidence-First Skill Assessment Platform
 
-> **Working title:** TBD (ideas: *Evident*, *Proofline*)
+> Current product canvas. Updated 2026-11-25 to the Nov 24 feature list and decisions 1.11–4.4. The discovery-phase version is archived at [`docs/archive/discovery-canvas-2026-11-22.md`](archive/discovery-canvas-2026-11-22.md). Decisions in [`docs/decisions/index.md`](decisions/index.md) win over this file.
+
+> **Working title:** `nifty`
 > **Course:** Innovation Driven Software Engineering, FH Dortmund (block week)
 > **Team size:** 5
-> **Status:** Discovery draft v1. Source document for Kiro specs.
+> **Status:** Current product canvas. Source document for the `openspec/` specs.
 
 ---
 
 ## 1. Problem Statement
 
-> **AI interviews can assess skills at scale, but professors and recruiters cannot trust or verify the scores. We need a system where every number links to evidence and a human approves it before anyone uses it.**
+> **AI interviews can assess skills at scale, but professors and recruiters cannot trust or verify the scores. We need a system where every number links to evidence. The professor sets the trust thresholds, and a human reviews every result below them.**
 
 ### 1.1 Background
 
@@ -44,7 +46,7 @@ The single-candidate output also had structural flaws, although its averages wer
 | | |
 |---|---|
 | **Issue** | Decision-makers cannot trust or verify AI-generated skill profiles. They also cannot trust or verify the rankings and teams that come from these profiles. |
-| **Requirement** | Every score traces to evidence. The system shows missing evidence explicitly. Code calculates totals and team formation, and the results are reproducible. A human approves every score and configuration before anyone uses it. |
+| **Requirement** | Every score traces to evidence. The system shows missing evidence explicitly. Code calculates totals and team formation, and the results are reproducible. The professor sets trust thresholds. A human approves every configuration and every team, and reviews every result below the thresholds. |
 | **Solution** | An evidence-first pipeline. The LLM does conversation and extraction. Deterministic code does scoring, totals and team formation. A visual review layer lets the professor approve. |
 
 ### 1.3 Project Constraints
@@ -53,7 +55,7 @@ The single-candidate output also had structural flaws, although its averages wer
 |---|---|
 | Deliver a working product within the **one-week block week** | Lecturer |
 | Use agentic harnesses, AI factories and human-in-the-loop agentic engineering | Lecturer |
-| Mandatory stack: **Spring Boot** backend, **Vue.js** frontend, DB to be decided | Team / course |
+| Mandatory stack: **Spring Boot** backend, **Vue.js** frontend, **PostgreSQL 17** with Flyway (Decision 1.3) | Team / course |
 | Must still make sense in **2026 and 2027**: current tooling, current regulation | Team |
 | Builds on the course's self-assessment interview. What we do *with* it is the product | Course prompt |
 
@@ -61,11 +63,11 @@ The single-candidate output also had structural flaws, although its averages wer
 
 | Area | Item | Where it lives in this doc |
 |---|---|---|
-| Design Thinking (Confluence) | **Empathy Canvas:** candidate persona and HMW problem statement | §3–§5 (publish to Confluence) |
-| Design Thinking (Confluence) | **Domain Vision:** pick assessment topic and unique UX features | §1.5, §8 |
+| Design Thinking | **Empathy Canvas:** candidate persona and HMW problem statement | §3–§5 (kept in this file, not in Confluence) |
+| Design Thinking | **Domain Vision:** pick assessment topic and unique UX features | §1.5, §8 |
 | Discovery Canvas | 1. Empathy Map (Says / Thinks / Does / Feels) · 2. "How Might We…" · 3. Winning Assumptions | §4, §5, §6 |
 | Local & cloud tooling | **Laptop ready:** Java 21 SDK, Maven, Docker Desktop and an IDE | §13 |
-| Local & cloud tooling | **Team setup:** Git repo with protected `main`, Jira | §13, §14 |
+| Local & cloud tooling | **Team setup:** Git repo with protected branches (`feat/* → dev → alpha → master`) and PR-only `dev`. Git holds the backlog and the docs, not Jira or Confluence | §13, §14 |
 | IRS framework ("Fast Code Against the Wrong Wall") | Issue → Requirement → Solution | §1.2 |
 
 ### 1.5 Domain Vision: Assessment Topic
@@ -75,6 +77,7 @@ The single-candidate output also had structural flaws, although its averages wer
   1. **Find knowledge gaps across the cohort** so the lecturer can adjust introductory lectures (UX-12).
   2. **Standardised skill profiles** for balanced, complementary team formation (UX-05, UX-08).
 - **Extensible:** the same engine can be configured for job postings (the recruiter scope, P4).
+- **Configurable:** the professor sets the skills, weights and questions in one assessment form. The code holds no fixed taxonomy or team size (Decisions 2.17, 2.18).
 
 ---
 
@@ -124,6 +127,7 @@ The single-candidate output also had structural flaws, although its averages wer
 ### P3: Tobias Krämer, Reviewer / Teaching Assistant
 
 - Supports the professor. Reviews flagged scores and edge cases.
+- **MVP note:** the professor does the review work in MVP (Decision 1.15). This persona stays for a future REVIEWER role.
 - **Goal:** resolve only the items that need a human, quickly, with the evidence in front of him.
 - **Fear:** a review queue of 960 items with no way to sort it.
 
@@ -175,6 +179,8 @@ The single-candidate output also had structural flaws, although its averages wer
 
 ### 4.3 P3: Reviewer / TA
 
+> In MVP the professor does this review work (Decision 1.15). This map stays valid for a future REVIEWER role.
+
 | **Says** | **Thinks** |
 |---|---|
 | "Which of these actually need me?" | "If I approve everything, what's the point?" |
@@ -200,7 +206,7 @@ The single-candidate output also had structural flaws, although its averages wer
 6. **HMW** focus human attention only on the decisions that are uncertain or high-impact?
 7. **HMW** form complementary teams with reasoning a professor can defend in front of the class?
 8. **HMW** make the assessment reward real understanding over keywords and AI-assisted answers?
-9. **HMW** keep a human approving every score and configuration without creating review fatigue?
+9. **HMW** keep a human in control of every result, with trust thresholds that the professor sets, without creating review fatigue?
 
 ---
 
@@ -214,8 +220,8 @@ What should let our solution beat the market. Each item has a quick test for the
 | A2 | An explicit **N/A + confidence** model produces fewer disputed profiles than a forced 0–4. | Re-score 5 real transcripts both ways. Ask the students which profile they agree with. |
 | A3 | Professors want to **configure the interviewer themselves** (vision, core questions, toggles) rather than use a fixed prompt. | Lecturer builds one configuration in Interviewer Studio without help. |
 | A4 | Deterministic team formation with reasoning beats LLM-generated teams on perceived fairness. | Compare solver teams vs. LLM teams on the same data. Count mistakes and invented facts. |
-| A5 | Showing the formula to candidates after approval reduces complaints. | Candidate results page walkthrough with 2–3 classmates. |
-| A6 | Confidence-bound flagging cuts review effort by more than 70% compared with reviewing everything. | Count flagged vs. total scores on the demo cohort. |
+| A5 | Showing the formula to candidates after release reduces complaints. | Candidate results page walkthrough with 2–3 classmates. |
+| A6 | Threshold-gated release (Decision 2.10) cuts review effort by more than 70% compared with reviewing everything. | Count assessments sent to review vs. total on the real cohort. |
 
 ---
 
@@ -223,20 +229,22 @@ What should let our solution beat the market. Each item has a quick test for the
 
 ```
 ┌────────────────────────────┐        ┌───────────────────────────────────────┐
-│  ASSESSMENT VIEW           │        │  RANKING VIEW (professor / reviewer)  │
+│  ASSESSMENT VIEW           │        │  RANKING VIEW (professor)             │
 │  (candidate)               │        │                                       │
-│                            │        │  • Interviewer Studio (configure)     │
-│  • Join via invite link    │◄───────┤  • Skills & tags taxonomy             │
-│  • Chat with LLM           │ config │  • Weights & formula editor           │
-│    interviewer             │        │  • Confidence bounds                  │
-│  • Progress on core        │        │  • Skills matrix                      │
-│    questions               │───────►│  • Evidence drawer                    │
-│  • Results page (after     │transcr.│  • Review & approval queue            │
-│    approval only)          │        │  • Team builder                       │
+│                            │        │  • Interviewer Studio (form)          │
+│  • Join via invite link    │◄───────┤  • Skills & weights                   │
+│  • Chat with LLM           │ config │  • Formula presets                    │
+│    interviewer (SSE)       │        │  • Confidence thresholds              │
+│  • Countdown per question  │        │  • Skills matrix                      │
+│  • Progress on core        │───────►│  • Evidence drawer                    │
+│    questions               │transcr.│  • Review & approval queue            │
+│  • Optional BFI-10 step    │        │  • Team builder                       │
+│  • Results page (after     │        │                                       │
+│    release only)           │        │                                       │
 └────────────────────────────┘        └───────────────────────────────────────┘
 ```
 
-The **Ranking View is the core of the product.** It owns the configuration that drives the interviewer, the extractor, the scorer and the balancer. It is also where every human approval happens.
+The **Ranking View is the core of the product.** It owns the configuration that drives the interviewer, the extractor, the scorer and the balancer. It is also where the professor's review and approvals happen.
 
 > **Key design rule:** the configuration controls the *interviewer as well*, not just the scoring steps. The system cannot extract evidence that it never collected.
 
@@ -248,77 +256,118 @@ The **Ranking View is the core of the product.** It owns the configuration that 
 The professor configures how the LLM interviewer behaves:
 
 - **Vision input:** project vision, team vision, job posting, or free-text requirements.
-- **Core questions:** required questions every candidate must answer, each with a weight and linked skills/tags.
+- **Core questions:** required questions every candidate must answer, each with a weight, linked skills/tags, a confidence threshold and a minimum and maximum time.
 - **Behaviour toggles:**
   - *Follow-up questions* on/off (probing within a core question).
   - *Invented questions* on/off (the LLM may create new questions from the vision, skills and tags).
-  - Turn budget and skill coverage targets.
-- **Candidate list:** import (CSV) or invite links.
+  - Turn budget and minimum coverage.
+- **Candidate list:** invite links, created from a CSV import or one at a time (Decision 1.17).
 - **Preview:** run a test interview as a mock candidate before publishing.
-- Nothing goes live until the professor **approves** the configuration (a versioned snapshot).
+- Nothing goes live until the professor **approves** the configuration (a versioned snapshot). No interview runs before that approval.
+- **Assessment form:** the professor sets these values per assessment (Decision 2.17). The code holds no fixed taxonomy or team size.
+  - Skills and their weights.
+  - Core questions with weights and target skills.
+  - Confidence threshold and minimum and maximum time for each core question.
+  - Minimum coverage and maximum attempts.
+  - BFI-10 on or off.
+  - Team size and soft-constraint weights.
+- **Guardrails:** the interviewer stays on the assessment topics. It reveals no answers or scores, does not judge the student as a person, and keeps its interviewer role (Decisions 1.12, 4.2).
 
 ### UX-02: Skills & Tags Taxonomy
-- The professor defines the **skills** (closed list) and the **tags** for calibration.
+- The professor defines the **skills** (closed list) and the **tags** for calibration in the assessment form.
 - The extractor may **suggest new tags** it finds in answers. Suggestions appear as pending chips. The professor accepts, merges (e.g., "containers" → "Docker") or rejects each one. Inferred tags never enter scoring without approval.
 
 ### UX-03: Weights & Formula Editor
 - The professor sets weights **per core question** and **per skill** with sliders.
-- Formula presets (weighted mean, minimum-coverage-gated, must-have skills) plus an **expression editor** for overrides. The editor allows only a fixed set of variables and functions.
+- MVP ships **formula presets** only (weighted mean, minimum-coverage-gated, must-have skills). The expression editor is Post-MVP (Decision 2.19).
 - **Live preview:** shows how a change reorders sample candidates *before* the professor applies it (what-if).
 - The system stores every formula version. Each score records which version produced it.
-- The system **shows the formula to the candidate** on their results page after approval, never during the interview.
+- The system **shows the formula to the candidate** on their results page after release, never during the interview.
 
 ### UX-04: Confidence Bounds & Attention Flags
-- The professor sets **lower and upper confidence bounds**.
-- Scores below the lower bound, or other configured triggers, get a **red border or shadow** and go into a **"Needs attention"** lane.
-- The professor can **bulk-approve** scores above the upper bound. The professor approves everything in between per candidate.
+- The professor sets **one minimum confidence per core question** (Decision 2.11). Code calculates confidence for each (question, skill) score.
+- A question passes only when every skill that it scores meets the threshold. A weak skill cannot hide behind a strong one.
+- When every question passes, coverage meets the minimum and the system flags no answer, the system releases the result to the student automatically (Decision 2.10).
+- Otherwise the assessment goes to the professor's **"Needs attention"** review queue. Flagged questions get a **red border or shadow**.
+- The professor reviews the flagged questions and the overall assessment, edits if needed and approves. Only then does the student see the results.
 - **Review queue order** (most important first):
-  1. Flagged by confidence bounds.
+  1. Flagged: a score below its question's threshold, coverage under the minimum, or a `paste_suspected` answer.
   2. Scores that **decide a team placement**, where changing the score would move the candidate to another team.
-  3. Large **disagreement with the candidate's self-assessment** (from onboarding).
-  4. Everything else.
-- **Rubber-stamp detection:** the dashboard shows each reviewer's override rate and average time per review, so the "human in the loop" stays real.
+  3. Everything else.
+- **Post-MVP:** large disagreement with the candidate's self-assessment. MVP has no onboarding self-assessment.
+- **Rubber-stamp detection:** the dashboard shows the override rate and the average time per review, so the "human in the loop" stays real.
 
 ### UX-05: Skills Matrix
 - A heatmap of candidates × skills.
-- Visual encoding: colour = level, **hatched = N/A (not enough evidence)**, red border = flagged, opacity = confidence.
+- Visual encoding: colour = level on the **0–4 scale**, **hatched = N/A (not enough evidence)**, red border = flagged, opacity = confidence.
+- The matrix shows the latest completed attempt only (Decision 2.13).
 - Sort and filter by overall fit, coverage, single skill or flag state.
 - **Hover** → short summary. **Click** → evidence drawer. The matrix hides details until the user asks for them.
 
 ### UX-06: Evidence Drawer
 - Shows one score step by step: **formula → weighted parts → evidence items → verified quotes**, each linked to its exact position in the transcript.
 - Shows whether evidence came from a *core*, *follow-up* or *invented* question.
-- Actions: **Approve**, **Override** (reason required), **Request re-probe**.
+- Actions: **Approve**, **Override** (reason required).
+- The drawer shows a `paste_suspected` flag when the student answered faster than the minimum time. A timed-out question shows as N/A.
+- The drawer offers no follow-up probe. Multi-session follow-up is out of scope. Extra tries come from the attempt limit.
 
 ### UX-07: Approval Workflow & Audit Log
-- The professor always gives the final approval for configuration, scores and teams.
-- The professor can bulk-approve within bounds. The professor must approve flagged items one by one.
+- The professor always approves the configuration before any interview runs. The professor also approves teams before the system publishes them.
+- The system releases a result automatically when every threshold is met (Decision 2.10). The professor reviews and approves every other result.
+- The professor can override any released score. An override needs a reason.
 - The system logs every approval and override (who, what, when, why). This supports EU AI Act expectations for human oversight and logging.
 
 ### UX-08: Team Builder
 - Visual team cards with balance indicators (skill coverage per domain, average strength, and so on).
 - **Three modes:**
-  - **A, Formula/solver:** the professor picks constraint presets (team size, one strong member per key domain, balanced averages).
+  - **A, Formula/solver:** the system reads team size and soft-constraint weights from the assessment form (Decisions 2.17, 2.18).
+    - Hard constraints: every candidate is in exactly one team. Team sizes differ by at most one.
+    - Soft constraints: balanced average fit, at least one strong member per key skill, and the BFI-10 balance when it is on.
   - **B, Text criteria → constraints:** the professor writes criteria in plain language. An LLM in a **fresh, empty context** turns them into solver constraints. The professor approves them. The solver computes the teams.
   - **C, LLM proposal (optional):** an LLM in a fresh context proposes teams from *computed* scores only. A **deterministic validator** verifies the proposal (the proposal assigns everyone exactly once, has the right team sizes, and has no invented candidates or scores). The system shows the proposal next to the solver result.
 - Drag and drop to adjust. The balance indicators recalculate live.
 - Click a team or member → **reasoning** (which constraints and scores drove the placement).
+- The professor sees the BFI-10 trait scores in the team builder (Decision 4.3). The professor approves the teams before the system publishes them.
 
 ### UX-09: Candidate Assessment Chat
 - Chat with progress on core questions (e.g., "3 of 6 topics covered"). The chat shows no scores during the interview.
-- Responses stream in. The candidate can pause and resume.
+- The student sends each answer with a POST. The interviewer reply streams back as SSE (Decision 1.11). A page refresh resumes the session from the server state.
+- Each question shows the professor's minimum and maximum time with a visible countdown. At zero, the browser submits the current text. The server decides by its own timestamps (Decision 2.14).
+- Pause and resume does not exist.
 
 ### UX-10: Candidate Results Page (after approval)
+- The candidate sees the page once the system releases the result: automatically, or after the professor approves it (Decision 2.10).
 - The candidate sees their own scores, linked evidence, confidence, the formula that the system used and the weights.
-- **Dispute** button (MVP: mocked screen) sends the item to the reviewer queue.
+- The page shows friendly advice: the strongest skills and the next areas to improve. Code selects them. An optional AI sentence only phrases them and carries an AI label (Decision 2.16).
+- The candidate sees their own full conversation log (Decision 2.15).
+- The candidate sees their own BFI-10 traits in neutral words, when the professor turned the step on (Decision 4.3).
+- **Dispute** button (MVP: mocked screen) sends the item to the professor's review queue.
 
 ### UX-11: Assessment Transcript Export
 - The system can export every transcript in the documented Assessment Transcript format (§10), for audit, re-scoring or use by other tools.
 
 ### UX-12: Cohort Gap Overview
-- SQL calculates the distribution of levels per skill across the cohort, the share of N/A, and the weakest domains. It uses **approved** scores only.
+- SQL calculates the distribution of levels per skill across the cohort, the share of N/A, and the weakest domains. It uses **released or approved** scores of the latest attempt only.
 - Helps the lecturer decide what to cover in introductory lectures (purpose 1 of the original baseline prompt).
 - Every bar opens to the candidates and evidence behind it. An LLM writes no cohort statistic. That is what failed in the original demo.
+
+### UX-13: Optional BFI-10 Personality Step
+- The professor turns the step on per assessment (Decision 4.3). It runs after the LLM questions.
+- The step has 10 fixed items. The stem is "I see myself as someone who...". The scale has 5 points (1 = Disagree strongly ... 5 = Agree strongly).
+- Code scores 5 traits with the authors' key. Each trait is the mean of its 2 items. R means 6 minus the response.
+  - Extraversion: items 1R and 6. Agreeableness: items 2 and 7R. Conscientiousness: items 3R and 8.
+  - Neuroticism: items 4R and 9. Openness: items 5R and 10.
+- Traits never change skill scores, fit, coverage or ranking.
+- Team building uses a soft constraint. It keeps each team's average trait profile close to the cohort average. The professor sets its weight.
+- The professor sees trait scores in the team builder. A student sees only their own, after release.
+
+### UX-14: Invite Link, Attempts & Release
+- The professor creates invite links from a CSV import or one at a time (Decision 1.17).
+- Each link holds a personal, unguessable token. The token binds to one assessment and one student. Opening the link starts a CANDIDATE session.
+- The student can reopen the link until the attempts run out or the professor revokes it. Students have no passwords.
+- The professor sets the maximum attempts per assessment. The latest completed attempt counts (Decision 2.13).
+- Older attempts stay in the ledger for audit. They leave the matrix, the cohort statistics and team building.
+- The system keeps transcripts, scores and BFI-10 answers until the professor deletes the assessment (Decision 4.4). That action also drops all candidate data of that assessment and writes an audit log entry.
 
 ---
 
@@ -327,12 +376,12 @@ The professor configures how the LLM interviewer behaves:
 ```mermaid
 flowchart LR
     CFG[Approved configuration v<n>] --> INT
-    INT[1. LLM interviewer] -->|tagged Q/A pairs| TR[(Assessment transcript)]
-    TR --> EXT[2. Evidence extractor - LLM, structured output]
+    INT[1. LLM interviewer - no rubric] -->|ledger entries| TR[(Append-only ledger)]
+    TR --> EXT[2. Evidence extractor - LLM evaluator, structured output]
     EXT --> VER[3. Quote verifier - deterministic]
     VER --> SCO[4. Scorer - formula engine + constrained LLM judge]
-    SCO --> CONF[5. Confidence calculator - deterministic]
-    CONF --> REV[6. Review & approval - human]
+    SCO --> CONF[5. Confidence calculator - deterministic, per question and skill]
+    CONF --> REV["6. Release gate - thresholds in code, else professor review"]
     REV --> AGG[7. Totals & matrix - SQL]
     AGG --> BAL[8. Team balancer - solver]
     BAL --> REV2[9. Team approval - human]
@@ -343,15 +392,17 @@ flowchart LR
 
 | Step | Who does it | Notes |
 |---|---|---|
-| 1. Interviewer | LLM | The configuration drives it. It labels each Q/A pair with question type and target skills. |
-| 2. Extractor | LLM (structured output, schema-verified) | Produces evidence items: quote, Q/A reference, skill, tags, suggested level. **No final scores.** |
+| 1. Interviewer | LLM (Agent 1) | The configuration drives it. It labels each Q/A pair with question type and target skills. It never receives rubrics, level descriptions or scores (Decision 1.12). |
+| 2. Extractor | LLM (Agent 2, evaluator, structured output, schema-verified) | Runs after the session commits. Reads only the ledger and the rubric. Produces evidence items: quote, Q/A reference, skill, tags, suggested level. **No final scores.** |
 | 3. Quote verifier | Code | Rejects any quote that the transcript does not contain word-for-word |
 | 4. Scorer | Formula engine (code) + LLM judge for level boundaries | Missing evidence → **N/A**, never 0 or 1 |
-| 5. Confidence | Code | Uses measurable signals, not the LLM's own estimate (see §11.3) |
-| 6. Review | Human | Ordered by flags and impact |
+| 5. Confidence | Code | Calculates a value for each (question, skill) score from measurable signals, not the LLM's own estimate (see §11.3) |
+| 6. Release gate | Code, then professor | Code releases the result when every threshold is met. Otherwise the professor reviews, ordered by flags and impact (Decision 2.10) |
 | 7. Totals | SQL | The LLM never calculates numbers. It may only write text around numbers that it receives. |
 | 8. Balancer | Timefold Solver (Java) | Constraint-based, with explainable scores |
 | 9. Team approval | Human | Final approval |
+
+The interviewer reply streams to the browser through SSE after each POSTed answer (Decision 1.11). BFI-10 scoring is code only. It sits outside this chain (Decision 4.3).
 
 ---
 
@@ -366,7 +417,7 @@ flowchart LR
 - JSON maps directly to Jackson (Spring), TypeScript types, Postgres JSONB **and** LLM structured output.
 - YAML is error-prone for LLMs to write (indentation, implicit type conversion).
 
-**Convention:** file name `*.transcript.json`. The system stores it as JSONB in the DB and can export it as a file. The format identifier is `"format": "assessment-transcript/v1"`.
+**Convention:** file name `*.transcript.json`. The system builds it from the append-only ledger (Decision 1.11), stores it as JSONB and can export it as a file. The format identifier is `"format": "assessment-transcript/v1"`.
 
 ```json
 {
@@ -417,6 +468,8 @@ flowchart LR
 
 `origin` is one of `core | follow_up | invented`. `promptedTerms` vs. `unpromptedTerms` lets a reader verify the "mentioned without being prompted" rule.
 
+An answer that arrives after `expiresAt` gets `timedOut = true`. The question is then N/A (Decision 1.11).
+
 ---
 
 ## 11. Scoring Model
@@ -433,16 +486,20 @@ $$
 - *level(e)*: approved level 0–4.
 - *c(e)*: evidence confidence.
 - **No evidence → `N/A`.**
+- The UI shows the 0–4 scale with a hatched N/A state.
 
 ### 11.2 Candidate fit & coverage (shown separately)
 
 $$
 \text{fit} = \frac{\sum_{s \in \text{scored}} w_s \cdot \text{score}(s)}{\sum_{s \in \text{scored}} w_s}
 \qquad
-\text{coverage} = \frac{\sum_{s \in \text{scored}} w_s}{\sum_{s \in \text{all}} w_s}
+\text{coverage} = \frac{\sum_{q \in \text{answered, scored}} w_q}{\sum_{q \in \text{core}} w_q}
 $$
 
-The system ranks by *fit* by default and filters by a minimum *coverage* that the professor sets. The system flags a candidate with low coverage. It does not quietly rank the candidate lower or higher.
+- Fit sums over skills and excludes N/A skills.
+- Coverage sums the weights of answered, scored core questions over the weights of all core questions (Decision 2.12). A timed-out question counts as unanswered.
+- The professor sets a minimum coverage per assessment, for example 70%. Below it, the assessment goes to review.
+- The system ranks by *fit* by default. It flags a candidate with low coverage. It does not quietly rank the candidate lower or higher.
 
 ### 11.3 Confidence (calculated, not self-reported)
 
@@ -456,13 +513,21 @@ LLM self-reported confidence is poorly calibrated. Confidence therefore comes fr
 | Question origin | Core > follow-up > invented |
 | Prompted vs. unprompted | Unprompted concepts count more toward Level 4 |
 
-A documented function combines the signals into a 0–1 value. The professor's **bounds** (UX-04) apply to this value.
+A documented function combines the signals into a 0–1 value for each (question, skill) score. The professor's **per-question threshold** (UX-04) applies to this value. A question passes only when every skill that it scores meets the threshold (Decision 2.11).
 
 ### 11.4 Formula overrides
 
-- The system offers presets and an expression editor with **only approved variables and functions** (e.g., `score(s)`, `w(s)`, `coverage`, `min`, `max`, `if`).
-- The server evaluates formulas in a sandboxed expression engine (e.g., SpEL with `SimpleEvaluationContext`), **never** as free-form code.
+- MVP ships **formula presets** only (Decision 2.19).
+- The expression editor is Post-MVP. It will offer **only approved variables and functions** (e.g., `score(s)`, `w(s)`, `coverage`, `min`, `max`, `if`).
+- The server will evaluate formulas in a sandboxed expression engine (e.g., SpEL with `SimpleEvaluationContext`), **never** as free-form code.
 - The system versions formulas. The professor previews changes on sample candidates before applying them.
+
+### 11.5 Release Gate
+
+- A question passes when every skill that it scores meets the question's confidence threshold.
+- The system releases a result automatically when every question passes, coverage meets the minimum and the system flags no answer (Decision 2.10).
+- Otherwise the professor reviews the result. The student sees it only after approval.
+- A question that times out is N/A. The latest completed attempt counts (Decisions 2.13, 2.14).
 
 ---
 
@@ -479,7 +544,9 @@ A documented function combines the signals into a 0–1 value. The professor's *
 | D7 | Team formation by LLM | Only in a fresh context. Either it converts text into solver constraints (mode B) or its proposal must pass a deterministic validator (mode C). The LLM is a parser and proposer, never the final authority. |
 | D8 | Transcript format | JSON + JSON Schema (`assessment-transcript/v1`), not a custom `.ast` syntax. |
 | D9 | "Ranking" wording | The internal view name stays "Ranking View." The UI emphasises fit against the spec and teams over a single global leaderboard. This lowers legal risk, which matters for the recruiter scope. |
-| D10 | Candidate transparency | Formula, weights and own evidence are visible **after** approval. A dispute path exists (mocked in MVP). |
+| D10 | Candidate transparency | Formula, weights and own evidence are visible **after** release (Decision 2.10): automatically, or after the professor approves. A dispute path exists (mocked in MVP). |
+
+Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.md`](decisions/index.md) holds every decision.
 
 ---
 
@@ -487,54 +554,61 @@ A documented function combines the signals into a 0–1 value. The professor's *
 
 | Layer | Choice | Status |
 |---|---|---|
-| Backend | Java 21, **Spring Boot 4.x**, Spring Security (2 roles), Spring Web (SSE for chat streaming) | Decided |
-| AI integration | **Spring AI 2.0** (ChatClient, provider-native structured output, self-correcting schema validation, MCP SDK 2.0) | Recommended |
-| Team formation | **Timefold Solver** (Java constraint solver) | Recommended |
-| Formula engine | SpEL in a restricted context (or a small custom expression parser) | Recommended |
-| Database | **PostgreSQL** (relational tables for scores and evidence, JSONB for transcripts, pgvector optional later), Flyway migrations | Recommended (DB was TBD) |
-| Frontend | **Vue 3.5 + TypeScript + Vite 8**, Vue Router, Pinia, TanStack Query (Vue) | Decided (Vue) / recommended (rest) |
-| UI components | PrimeVue *or* shadcn-vue + Tailwind CSS v4 | To decide in team |
-| Visualisation | Apache ECharts (vue-echarts) for the skills-matrix heatmap and team balance charts | Recommended |
+| Backend | Java 21, **Spring Boot 4.x**, Spring Security (2 roles, PROFESSOR and CANDIDATE, Decision 1.15), Spring Web (POST answers with SSE reply streaming, Decision 1.11) | Decided |
+| AI integration | **Spring AI 2.0** (ChatClient, provider-native structured output, self-correcting schema validation, MCP SDK 2.0) with **ki:connect NRW** for interviewer and evaluator (Decisions 1.6, 1.13) | Decided |
+| Team formation | **Timefold Solver** (Java constraint solver) | Decided |
+| Formula engine | Presets in MVP. Restricted SpEL editor Post-MVP (Decision 2.19) | Decided |
+| Database | **PostgreSQL 17** (relational tables for scores and evidence, append-only ledger for the interview, JSONB for transcripts, pgvector optional later), **Flyway** migrations | Decided (DB was open) |
+| Frontend | **Vue 3.5 + TypeScript + Vite 8**, Vue Router, Pinia, TanStack Query (Vue) | Decided |
+| UI components | **PrimeVue**, themed from the design tokens, on Tailwind CSS v4 (Decision 1.14) | Decided |
+| Visualisation | Apache ECharts (vue-echarts) for the skills-matrix heatmap and team balance charts | Decided |
 | API contract | OpenAPI via springdoc, generated TypeScript client | Recommended (fits spec-driven agents) |
 | Testing | JUnit 5, Mockito, Testcontainers (Postgres), recorded LLM responses replayed in tests | Recommended |
-| CI | Git repo with protected `main`, pipeline running build + tests + container image | From course checklist |
-| Project management & docs | **Jira** (backlog, stories linked to Kiro specs), **Confluence** (Design Thinking artefacts: empathy canvas, domain vision) | From course checklist |
+| CI | Git repo on GitHub with a GitLab mirror. Protected branches `dev`, `alpha`, `master`. `dev` takes PRs only. Pipeline runs build + tests + container image | Decisions 1.8, 1.9, 3.10 |
+| Project management & docs | **Git is canonical:** `openspec/` (specs and changes), `docs/decisions/` (decisions), `docs/feature_backlog.md` (backlog). The team does not use Jira or Confluence | Decisions 1.4, 3.6, 3.14 |
 | Local tooling | Java 21 SDK, Maven, Docker Desktop, IDE | From course checklist |
 
 **Frontend version note:** Vue 3.6 (Vapor Mode) is still a release candidate as of November 2026. Stay on 3.5 stable. The team can try Vapor later on specific components only.
 
-**LLM provider:** TBD. Prefer EU-hosted endpoints (transcripts are personal data).
+**LLM provider:** ki:connect NRW (EU-hosted) for both the interviewer and the evaluator (Decisions 1.6, 1.13). Transcripts are personal data.
 
 ---
 
 ## 14. Development Approach: Spec- and Agent-Driven
 
-- **Kiro IDE:** spec-driven development. Each feature becomes a `.kiro/specs/<feature>/` folder with `requirements.md` (user stories + acceptance criteria in EARS notation), `design.md` and `tasks.md`. Humans review and approve each phase.
-- **Kiro Crew:** orchestrates multiple agents over longer, multi-session work. It reuses the existing `.kiro` configuration (steering files, skills, custom agents).
-- **Harness (team-owned):** steering files with coding rules, custom skills, hooks (lint, tests on save), and review gates. Human-in-the-loop applies to our *own* development too. Agents propose. Humans approve merges.
+- **OpenSpec:** spec-driven development. `openspec/specs/` holds the domain specs. `openspec/changes/<change>/` holds the active plan: `proposal.md`, specs, `design.md` and `tasks.md`. Acceptance criteria use EARS notation. Humans review and approve each phase. `openspec/` is the only spec tree (Decisions 1.4, 3.1).
+- **Tool-agnostic harness:** `AGENTS.md` is the entry point for every agent tool. Agents deliver parallel changes, with one worktree per change (Decisions 3.9, 3.11).
+- **Harness (team-owned):** rule files in `.agents/rules/`, custom skills, hooks (lint, tests on save), and review gates. Human-in-the-loop applies to our *own* development too. Agents propose. Humans approve merges.
+- **Git flow:** `feat/* → dev → alpha → master`. Every change reaches `dev` through a PR (Decision 3.10). The team uses GitHub and GitLab (Decisions 1.7, 1.8).
 
 ### 14.1 Suggested spec breakdown
 
-1. `interviewer-studio`: configuration, core questions, toggles, versioning
-2. `assessment-chat`: candidate chat, streaming, transcript capture
+1. `interviewer-studio`: assessment form, configuration, core questions, toggles, versioning
+2. `assessment-chat`: candidate chat, SSE streaming, ledger, timers, BFI-10 step
 3. `evidence-pipeline`: extractor, quote verifier, scorer, confidence
-4. `formula-engine`: weights, presets, expression editor, what-if
-5. `skills-matrix-review`: matrix, evidence drawer, approval queue, audit log, cohort gap overview
-6. `team-builder`: solver modes A/B/(C), reasoning, drag and drop
-7. `candidate-results`: results page, mocked dispute
+4. `formula-engine`: weights, presets, what-if (the expression editor is Post-MVP)
+5. `skills-matrix-review`: matrix, evidence drawer, release gate, review queue, audit log, cohort gap overview
+6. `team-builder`: solver modes A/B/(C), reasoning, drag and drop, BFI-10 balance
+7. `candidate-results`: results page, advice, conversation log, mocked dispute
+8. `auth-access`: invite-link sign-in and professor login (planned, Decision 1.17)
 
 ### 14.2 Seed requirements (EARS)
 
 - **WHEN** the professor publishes a configuration **THE SYSTEM SHALL** store an immutable, versioned snapshot and link all subsequent interviews to it.
-- **WHILE** an interview is in progress **THE SYSTEM SHALL** ask every core question in the active configuration before ending the session, unless the turn budget is exhausted.
+- **WHILE** an interview is in progress **THE SYSTEM SHALL** ask every core question in the active configuration before ending the session. A core question that times out counts as asked.
 - **WHERE** "invented questions" is disabled **THE SYSTEM SHALL** only ask core questions and follow-ups on them.
 - **WHEN** the extractor returns an evidence item **THE SYSTEM SHALL** verify that its quote appears word-for-word in the referenced transcript entry and discard it if it does not.
 - **IF** a skill has no verified evidence **THEN THE SYSTEM SHALL** record its score as `N/A` and exclude it from fit calculations.
-- **WHEN** a score's confidence is below the configured lower bound **THE SYSTEM SHALL** mark it as flagged and place it in the "Needs attention" queue.
+- **WHEN** a (question, skill) score has confidence below its question's threshold **THE SYSTEM SHALL** send the assessment to the professor's review queue.
 - **THE SYSTEM SHALL** calculate all totals, rankings and team-balance metrics in code, and **SHALL NOT** take any numerical value from LLM output without validation.
 - **WHEN** the professor overrides a score **THE SYSTEM SHALL** require a reason and write an audit log entry with user, timestamp, old value and new value.
 - **WHEN** an LLM-proposed team assignment is received **THE SYSTEM SHALL** validate that every candidate is assigned exactly once and that team sizes match the constraints before displaying it.
-- **WHEN** the professor approves a candidate's scores **THE SYSTEM SHALL** make the candidate's own scores, evidence, weights and formula visible on their results page.
+- **WHEN** the system releases a result **THE SYSTEM SHALL** make the candidate's own scores, evidence, weights, formula and conversation log visible on their results page.
+- **WHEN** every question meets its threshold, coverage meets the minimum and no answer has a flag **THE SYSTEM SHALL** release the result automatically.
+- **WHEN** the maximum time for a question passes **THE SYSTEM SHALL** record the question as N/A and count it as unanswered.
+- **WHEN** an answer arrives before the minimum time for its question **THE SYSTEM SHALL** flag the answer `paste_suspected` for review.
+- **WHERE** the professor turns BFI-10 on **THE SYSTEM SHALL** ask the 10 fixed items after the LLM questions and score the traits in code.
+- **IF** a student used all attempts **THEN THE SYSTEM SHALL** refuse a new attempt on the invite link.
 
 ---
 
@@ -546,15 +620,16 @@ A documented function combines the signals into a 0–1 value. The professor's *
 | Adaptive questions break comparability | Required core questions. The system marks invented questions and weights them down (D4). |
 | Extractor invents quotes | Word-for-word quote verification (pipeline step 3) |
 | LLM judge bias at level boundaries | Two judge runs and agreement as a confidence signal. Fixed rubric order. Human review. |
-| Keyword gaming / AI-assisted answers | Track prompted vs. unprompted terms. Ask "why there?" follow-ups. Reward reasoning that fits the scenario. |
+| Keyword gaming / AI-assisted answers | Track prompted vs. unprompted terms. Ask "why there?" follow-ups. Reward reasoning that fits the scenario. Minimum and maximum time per question flags possible pasting. The system uses no AI detectors (Decision 4.2). |
 | No ground truth for accuracy | Small set of human-rated transcripts. Report agreement between humans and the pipeline. |
-| N/A distorts rankings | Fit and coverage shown separately. Minimum coverage filter. |
-| Review fatigue / rubber-stamping | Confidence bounds, bulk-approve within bounds, track override rate |
+| N/A distorts rankings | Fit and coverage shown separately. Minimum coverage sends the assessment to review. |
+| Review fatigue / rubber-stamping | Per-question confidence thresholds with automatic release. The professor reviews only results below them. Track override rate. |
 | Unexplainable teams | Timefold constraint scores as reasoning. The system always verifies LLM output. |
-| Legal / ethical (high-risk AI) | Human approval required, audit log, candidate transparency, no single global leaderboard in the recruiter scope |
+| Legal / ethical (high-risk AI) | Professor-set thresholds, human review below them, audit log, candidate transparency, no single global leaderboard in the recruiter scope |
 | LLM latency and cost | Background pipeline jobs with status in the UI. Stream the chat. |
 | Non-deterministic tests | Record and replay LLM responses |
-| Thin demo data | 15–25 synthetic candidates from deliberately varied personas, clearly labelled as synthetic |
+| Prompt injection during the interview | Dual-agent isolation: the interviewer never sees rubrics or scores. The evaluator reads the ledger after commit (Decision 1.12). |
+| Personal data in transcripts | No synthetic seed data. The team collects real data. The professor can delete an assessment and all its candidate data (Decision 4.4). |
 
 ---
 
@@ -562,14 +637,15 @@ A documented function combines the signals into a 0–1 value. The professor's *
 
 **In scope**
 
-- Interviewer Studio (vision, core questions, toggles, skills/tags, candidate list, approval)
-- Assessment chat with streaming and transcript capture
-- Evidence extraction + quote verification + N/A + calculated confidence
-- Weights + formula presets (expression editor if time allows) + what-if preview
-- Skills matrix + evidence drawer + flags + prioritised approval queue + audit log
+- Interviewer Studio with the assessment form (skills, weights, core questions, thresholds, min/max time, minimum coverage, attempt limit, BFI-10 switch, team size, invite links, approval)
+- Assessment chat: POST answers with SSE reply, append-only ledger, countdown timers, transcript capture
+- Optional BFI-10 step
+- Evidence extraction + quote verification + N/A + calculated confidence per (question, skill)
+- Weights + formula presets + what-if preview
+- Skills matrix + evidence drawer + threshold-gated release + prioritised review queue + audit log
 - Cohort gap overview (UX-12)
-- Team builder modes A and B with reasoning
-- Candidate results page
+- Team builder modes A and B with reasoning and BFI-10 balance
+- Candidate results page with advice and the full conversation log
 
 **Out of scope / mocked**
 
@@ -579,11 +655,13 @@ A documented function combines the signals into a 0–1 value. The professor's *
 - Multi-session interviews
 - Team builder mode C (stretch goal)
 - **Candidate-owned "skill passport"**: a verified, shareable profile the candidate controls (future direction)
+- **Post-MVP:** SpEL expression editor (Decision 2.19), case-study matching and LLM-suggested Studio questions (Decision 4.2), self-assessment disagreement in the review queue
+- AI detectors (dropped, Decision 4.2)
 
 **Development basics (day 1)**
 
-- Every laptop ready: Java 21 SDK, Maven, Docker Desktop, IDE (plus Kiro IDE and Kiro Crew)
-- Git repo with protected `main`, Jira project, Confluence space for the Design Thinking artefacts
+- Every laptop ready: Java 21 SDK, Maven, Docker Desktop, IDE (plus the agent tools in `AGENTS.md`)
+- Git repo with protected branches and PR-only `dev`. The backlog lives in `docs/feature_backlog.md`
 
 **Suggested split (5 people)**
 
@@ -593,18 +671,24 @@ A documented function combines the signals into a 0–1 value. The professor's *
 | Ranking View: evidence pipeline & scoring | 1 | Extractor, verifier, scorer, confidence |
 | Ranking View: team builder | 1 | Timefold integration, UX-08 |
 | Assessment View: chat UI + results page | 1 | UX-09, UX-10 |
-| Assessment View: interviewer backend + harness/CI | 1 | Interviewer orchestration, SSE, Kiro harness, pipeline |
+| Assessment View: interviewer backend + harness/CI | 1 | Interviewer orchestration, SSE, agent harness, pipeline |
 
 ---
 
 ## 17. Open Questions
 
-1. Which LLM provider and region? Budget per interview?
-2. Do we keep the course's 16 sub-skills or cut to a smaller core list for the MVP?
-3. Team size and constraints the lecturer actually uses (fixed 5? mixed backgrounds?)
-4. Expression editor in the MVP, or presets only?
-5. Do candidates see their results immediately after approval, or only after teams are published?
-6. Data retention period for transcripts in the demo environment?
+The discovery-phase questions are all resolved (O1–O7). The registry in [`docs/decisions/index.md`](decisions/index.md) holds the answers.
+
+| Old question | Answer |
+|---|---|
+| LLM provider and region | ki:connect NRW for interviewer and evaluator (Decisions 1.6, 1.13) |
+| 16 sub-skills or a smaller list | The professor sets the skills per assessment (Decision 2.17) |
+| Team size and constraints | The assessment form sets them (Decisions 2.17, 2.18) |
+| Expression editor in MVP | Presets only. The editor is Post-MVP (Decision 2.19) |
+| When candidates see results | At release, not after team publishing (Decision 2.10) |
+| Data retention for transcripts | Kept until the professor deletes the assessment (Decision 4.4) |
+
+The budget per interview has no recorded decision.
 
 ---
 
