@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/frontend-foundation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty-frontend-foundation`
-- **Current:** not started
-- **Next action:** Task 1
+- **Current:** Task 1 done
+- **Next action:** Task 2
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -12,9 +12,9 @@
 ## Tasks
 
 ### Task 1: US-FF-01 Vitest and CI test step
-- [ ] RED: a first `*.test.ts` (for example for `src/api/health.ts`); `npm run test` fails because no script exists.
-- [ ] GREEN: `vitest`, `@vue/test-utils`, `jsdom`, `src/test/echarts-mock.ts`, `"test": "vitest run"`; `npm run test` in the GitHub and GitLab frontend jobs (design §2).
-- [ ] Verify: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0; `node --test scripts/harness-scripts.test.mjs` → exit 0; commit `test(frontend): add Vitest and the CI test step`
+- [x] RED: a first `*.test.ts` (for example for `src/api/health.ts`); `npm run test` fails because no script exists.
+- [x] GREEN: `vitest`, `@vue/test-utils`, `jsdom`, `src/test/echarts-mock.ts`, `"test": "vitest run"`; `npm run test` in the GitHub and GitLab frontend jobs (design §2).
+- [x] Verify: `cd frontend && npm run test && npm run typecheck && npm run lint && npm run build` → exit 0; `node --test scripts/harness-scripts.test.mjs` → exit 0; commit `test(frontend): add Vitest and the CI test step`
 
 ### Task 2: US-FF-02 PrimeVue preset and ScoreBadge (REQ-FF-01)
 - [ ] RED: `ScoreBadge.test.ts` for levels `0..4` and `N/A` (no `0`, hatch class).
