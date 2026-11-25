@@ -6,7 +6,7 @@
 - **Current:** archived; second cold review fixed; committed
 - **Next action:** push and open the PR/MR, CI green, ask the user before merge
 - **Uncommitted changes:** no
-- **PR / MR:** none yet
+- **PR / MR:** GitHub #17, GitLab !16
 - **Open review findings:** none
 
 ## Tasks
@@ -27,8 +27,8 @@
 
 ## Delivery
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive five-service-convergence -y`, history entry
-- [ ] `git fetch origin && git merge origin/dev`
-- [ ] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
+- [x] `git fetch origin && git merge origin/dev` (already up to date)
+- [x] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
 - [x] Cold review (fresh `reviewer` agent): two rounds, all blocking items fixed
 - [ ] CI green on both forges (`node scripts/forge.mjs prs`)
 - [ ] Ask the user with the architecture summary, then merge on GitHub and `node scripts/forge.mjs sync dev`

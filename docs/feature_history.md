@@ -7,13 +7,13 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-25 — five-service-convergence
 - **What:** Merged five teammate service designs into one contract: 7 backend slices, UUID keys, shared events, professor routes under `/api/v1/ranking/**`, one-shot immutable assessments, question-only weights, grouping modes, injection flags, separate per-attempt contexts and machine-parsable evaluator output. Replaced Timefold with a seeded Simulated Annealing optimizer. Added the `context-creation` spec, five teammate changes and the tickets in `docs/tickets/`.
 - **Why:** The five designs disagreed on IDs, events, routes, weights and the solver. One contract lets the teammates build in parallel against mocks.
-- **PR/MR:** pending
+- **PR/MR:** GitHub #17, GitLab !16
 - **Specs:** REQ-CC-01..08, REQ-AC-18/19, REQ-EP-08/09, REQ-FE-06, REQ-IS-08..11, REQ-TB-09..12 (added); REQ-AC-01/02/04/05/06/09/12/14/15/16, REQ-EP-01/03/05/07, REQ-FE-01/02/03/05, REQ-IS-01/05/06/07, REQ-SM-01/02/08, REQ-TB-03..07, REQ-CR-01/03 (modified); REQ-IS-02/03/04, REQ-TB-01/02 (removed)   **Decisions:** 1.18–1.21, 2.21–2.25
 
 ## 2026-11-25 — nov24-followups
 - **What:** Answers submitted at timeout are now evaluated; only a question without answer text is `N/A`. No cost limit per interview. `REVIEWER` removed from the code: ranking routes allow only `PROFESSOR`, assessment routes only `CANDIDATE` (`RoleAccessTest`). Checked the wave-0 dependency names and closed the `nov24-reconciliation` Delivery boxes.
 - **Why:** The prompter settled the items left open after the reconciliation merge. No static check can tell a partial answer from a complete one.
-- **PR/MR:** pending
+- **PR/MR:** GitHub #17, GitLab !16
 - **Specs:** REQ-AC-08, REQ-EP-06 (renamed), REQ-FE-03 (modified); REQ-AA-01 (implemented)   **Decisions:** 2.20, 4.5; applies 1.15
 
 ## 2026-11-25 — nov24-reconciliation
