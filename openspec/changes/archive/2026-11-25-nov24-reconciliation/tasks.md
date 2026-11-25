@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `docs/nov24-reconciliation`
 - **Worktree:** `/Users/alek/Developer/Programming/nifty` (main checkout)
-- **Current:** Tasks 1–7 done; Delivery next
-- **Next action:** user approved the merge; merge on GitHub, `forge.mjs sync dev`, branch cleanup
+- **Current:** merged (PR #16 / MR !15, `dev` at `7029e53`)
+- **Next action:** none (closed in `nov24-followups`)
 - **Uncommitted changes:** no
 - **PR / MR:** https://github.com/BBoushe/nifty/pull/16 · https://git.inf.fh-dortmund.de/01/alpac001/nifty/-/merge_requests/15
 - **Open review findings:** cold review REQUEST CHANGES (7 Blocking, 10 Convention Candidates); all fixed in the review-fix commit
@@ -62,8 +62,8 @@
 - [x] `node scripts/forge.mjs push`; PR/MR with `pr-memo`
 - [x] Cold review (fresh `reviewer` agent)
 - [x] CI green on both forges (`node scripts/forge.mjs prs`)
-- [ ] Ask the user with the architecture summary, then merge on GitHub and `node scripts/forge.mjs sync dev`
-- [ ] Branch cleanup
+- [x] Ask the user with the architecture summary, then merge on GitHub and `node scripts/forge.mjs sync dev`
+- [x] Branch cleanup
 
 ## Handoff Log
 
@@ -93,3 +93,7 @@
 ### 2026-11-25 — Cold review fixes (main session)
 - **Did:** fixed every Blocking item: archived proposal link depth; invite link stays valid after the attempts run out (1.17 refined in place, canvas aligned); `N/A` scores are left out of the threshold check (REQ-SM-05, `AGENTS.md` rule 5, architecture); a follow-up timeout drops only that entry (REQ-AC-08, REQ-EP-06, 2.14 refined in place); `backend-java.md` presets only; inferred-tag review moved to `/ranking/studio/**`; `spec-implementer`, `ai_docs` README and `AGENTS.md` role row drift. Convention Candidates: `auth-accounts` name, `pending -> flagged` transition, `paste_suspected` signal on `SKILL_SCORE` with `matrix` setting `flagged`, scheduled sweep for abandoned sessions, REQ-CR-03 "released", canvas UX-04/UX-10 headings, decisions index §2 text, frontend rule 20, check-skill pointer.
 - **Verification:** RED: n/a (no behaviour). `openspec validate --all --strict` 8/8; harness tests 43/43.
+
+### 2026-11-25 — Merged (closed in `nov24-followups`)
+- **Did:** the user approved the merge; PR #16 merged on GitHub, `forge.mjs sync dev`, both forges 0/0, branch deleted on both remotes and locally.
+- **Verification:** RED: n/a. `openspec validate --all --strict` 8/8 and harness tests 43/43 on `dev`.

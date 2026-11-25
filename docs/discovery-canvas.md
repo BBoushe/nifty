@@ -308,7 +308,7 @@ The professor configures how the LLM interviewer behaves:
 - Shows one score step by step: **formula → weighted parts → evidence items → verified quotes**, each linked to its exact position in the transcript.
 - Shows whether evidence came from a *core*, *follow-up* or *invented* question.
 - Actions: **Approve**, **Override** (reason required).
-- The drawer shows a `paste_suspected` flag when the student answered faster than the minimum time. A timed-out question shows as N/A.
+- The drawer shows a `paste_suspected` flag when the student answered faster than the minimum time. A timed-out answer shows a `timed out` marker and is scored like any answer. A question with no answer text shows as N/A (Decision 2.20).
 - The drawer offers no follow-up probe. Multi-session follow-up is out of scope. Extra tries come from the attempt limit.
 
 ### UX-07: Approval Workflow & Audit Log
@@ -468,7 +468,7 @@ The interviewer reply streams to the browser through SSE after each POSTed answe
 
 `origin` is one of `core | follow_up | invented`. `promptedTerms` vs. `unpromptedTerms` lets a reader verify the "mentioned without being prompted" rule.
 
-An answer that arrives after `expiresAt` gets `timedOut = true`. The question is then N/A (Decision 1.11).
+An answer that arrives after `expiresAt` gets `timedOut = true` and is evaluated like any answer. A question is N/A only when no answer text arrives (Decisions 1.11, 2.20).
 
 ---
 
@@ -497,7 +497,7 @@ $$
 $$
 
 - Fit sums over skills and excludes N/A skills.
-- Coverage sums the weights of answered, scored core questions over the weights of all core questions (Decision 2.12). A timed-out question counts as unanswered.
+- Coverage sums the weights of answered, scored core questions over the weights of all core questions (Decision 2.12). A question without answer text counts as unanswered (Decision 2.20).
 - The professor sets a minimum coverage per assessment, for example 70%. Below it, the assessment goes to review.
 - The system ranks by *fit* by default. It flags a candidate with low coverage. It does not quietly rank the candidate lower or higher.
 
@@ -527,7 +527,7 @@ A documented function combines the signals into a 0–1 value for each (question
 - A question passes when every skill that it scores meets the question's confidence threshold.
 - The system releases a result automatically when every question passes, coverage meets the minimum and the system flags no answer (Decision 2.10).
 - Otherwise the professor reviews the result. The student sees it only after approval.
-- A question that times out is N/A. The latest completed attempt counts (Decisions 2.13, 2.14).
+- A question with no answer text is N/A. A timed-out answer with text is scored. The latest completed attempt counts (Decisions 2.13, 2.20).
 
 ---
 
@@ -605,7 +605,7 @@ Decisions 1.11 to 4.4 extend this list. The registry in [`docs/decisions/index.m
 - **WHEN** an LLM-proposed team assignment is received **THE SYSTEM SHALL** validate that every candidate is assigned exactly once and that team sizes match the constraints before displaying it.
 - **WHEN** the system releases a result **THE SYSTEM SHALL** make the candidate's own scores, evidence, weights, formula and conversation log visible on their results page.
 - **WHEN** every question meets its threshold, coverage meets the minimum and no answer has a flag **THE SYSTEM SHALL** release the result automatically.
-- **WHEN** the maximum time for a question passes **THE SYSTEM SHALL** record the question as N/A and count it as unanswered.
+- **WHEN** the maximum time for a question passes without answer text **THE SYSTEM SHALL** record the question as N/A and count it as unanswered.
 - **WHEN** an answer arrives before the minimum time for its question **THE SYSTEM SHALL** flag the answer `paste_suspected` for review.
 - **WHERE** the professor turns BFI-10 on **THE SYSTEM SHALL** ask the 10 fixed items after the LLM questions and score the traits in code.
 - **IF** a student used all attempts **THEN THE SYSTEM SHALL** refuse a new attempt on the invite link.
@@ -688,7 +688,7 @@ The discovery-phase questions are all resolved (O1–O7). The registry in [`docs
 | When candidates see results | At release, not after team publishing (Decision 2.10) |
 | Data retention for transcripts | Kept until the professor deletes the assessment (Decision 4.4) |
 
-The budget per interview has no recorded decision.
+There is no cost limit per interview (Decision 4.5).
 
 ---
 

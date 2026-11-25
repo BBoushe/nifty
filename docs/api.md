@@ -19,7 +19,7 @@
 | `/api/v1/assessment/**` | `CANDIDATE` | Assessment Chat and Candidate Results. A candidate session reaches only the assessment and candidate of its invite link. Results stay closed until release. |
 | All other routes | Authenticated | Default deny for unauthenticated callers |
 
-MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules. A new role (for example `REVIEWER`) is one `Role` value plus rules in these two places. `SecurityConfig` still allows `REVIEWER` and `PROFESSOR` on the old paths until the `auth-accounts` feature ships.
+MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and method-level `@PreAuthorize` holds finer rules. A new role (for example `REVIEWER`) is one `Role` value plus rules in these two places.
 
 ## 3. Standard Error Envelope
 

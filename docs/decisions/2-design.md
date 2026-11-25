@@ -186,3 +186,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Ship the sandboxed SpEL editor in MVP.
 - **Rationale / Justification:** Presets cover the demo and avoid sandbox security work in block week.
 - **Affected Files / Pointers:** openspec/specs/formula-engine/spec.md, docs/feature_backlog.md
+
+## 2.20 — Answers submitted at timeout are evaluated
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** Decisions 2.12 and 2.14 made a timed-out question N/A. The browser auto-submits the typed text at zero, and no static check can tell a partial answer from a complete one.
+- **Decision:** An answer that arrives after expiresAt but within the grace period is stored with timedOut = true and evaluated like any other answer. A question is N/A only when no answer text arrives: the answer is empty, arrives after the grace period, or never arrives. Coverage counts only such questions as unanswered. timedOut stays a visible marker in the conversation log; it does not flag the score. Supersedes the timeout parts of 2.12 and 2.14.
+- **Alternatives Considered:** Treat every timed-out answer as N/A (feature list); flag timed-out answers for review.
+- **Rationale / Justification:** Partial text can hold real evidence, and quote verification plus confidence already handle weak answers.
+- **Affected Files / Pointers:** openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md, openspec/specs/formula-engine/spec.md

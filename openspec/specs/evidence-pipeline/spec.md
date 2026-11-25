@@ -52,12 +52,16 @@ Transform completed `assessment-transcript/v1` transcripts into verified, audita
 - **WHEN** the transaction that completes an attempt rolls back
 - **THEN** the evaluator does not start.
 
-### Requirement: REQ-EP-06 Timed-Out Questions Produce N/A
-**IF** a core question timed out **THEN THE SYSTEM SHALL** record `N/A` for every (question, skill) score of that question and its follow-ups, and **SHALL NOT** send their entries to the evaluator (Decision 2.14). **IF** only a follow-up timed out **THEN THE SYSTEM SHALL** leave out only that follow-up entry and keep the core question scored.
+### Requirement: REQ-EP-06 Unanswered Questions Produce N/A
+**IF** a core question or follow-up has no answer text (empty, rejected after the grace period, or never sent) **THEN THE SYSTEM SHALL** record `N/A` for every (question, skill) score that only that entry could support, and **SHALL NOT** send the entry to the evaluator. **THE SYSTEM SHALL** evaluate an answer with `timedOut = true` and text like any other answer (Decision 2.20).
 
 #### Scenario: Partial answer at timeout
-- **WHEN** question 3 has a ledger answer with `timedOut = true`
-- **THEN** every (question 3, skill) score is `N/A`, and the evaluator input contains no entry of question 3.
+- **WHEN** question 3 has a ledger answer with `timedOut = true` and the text "I would wrap it in a transaction"
+- **THEN** the evaluator receives the entry, and the (question 3, skill) scores come from its verified evidence like any other answer.
+
+#### Scenario: No answer text
+- **WHEN** question 4 timed out with no answer text and has no other answered entry
+- **THEN** every (question 4, skill) score is `N/A`, and the evaluator input contains no entry of question 4.
 
 ### Requirement: REQ-EP-07 Paste-Suspected Scores Are Flagged
 **WHEN** a ledger entry has `pasteSuspected = true` **THE SYSTEM SHALL** mark every (question, skill) score that uses evidence from that entry as flagged.

@@ -31,7 +31,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 ## Stories
 
 ### 1. `backend-foundation`
-Check each dependency change against `docs/ai_docs/` first.
+Verified 2026-11-25: every artifact below exists in Maven Central at the pinned version, and `docs/ai_docs/` cites the sources (`nov24-followups` design §3).
 - **US-BF-01:** Replace `spring-boot-starter-web` with `spring-boot-starter-webmvc`. All existing tests pass.
 - **US-BF-02:** Add `spring-boot-starter-data-jpa-test` and a PostgreSQL Testcontainers base class. One `@DataJpaTest` runs Flyway `V1` on PostgreSQL.
 - **US-BF-03:** Add a `docker:dind` service to the GitLab `backend` job, so Testcontainers runs on both forges. The CI drift test passes.
@@ -44,7 +44,7 @@ Check each dependency change against `docs/ai_docs/` first.
 - **US-FF-04:** Add a shared API client. It parses ProblemDetail errors and reads an SSE stream from a `POST` response (`fetch` + `ReadableStream`, because `EventSource` cannot send a `POST`).
 
 ### 3. `auth-accounts`
-- **US-AU-01:** Reduce `Role` to `PROFESSOR` and `CANDIDATE`. Apply the path rules of REQ-AA-01. Test `403` in both directions.
+- **US-AU-01:** Done in `nov24-followups`: `Role` has `PROFESSOR` and `CANDIDATE`, the path rules follow REQ-AA-01, and `RoleAccessTest` checks both directions.
 - **US-AU-02:** Add professor accounts with a hashed password (`DelegatingPasswordEncoder`) and sign-in. Unknown email and wrong password give the same `401` (REQ-AA-02). The design picks JWT or a server session.
 - **US-AU-03:** Add the sign-in page in `views/auth/` and router guards for `/ranking/*` and `/assessment/*`.
 
@@ -70,7 +70,7 @@ Check each dependency change against `docs/ai_docs/` first.
 ### 7. `formula-engine`
 - **US-FE-01:** A preset catalogue, with the canvas §11 formula as the default. The professor picks one preset per assessment. Free-form expressions give `400` (REQ-FE-05).
 - **US-FE-02:** A pure `score(s)` calculator (canvas §11.1), with unit tests.
-- **US-FE-03:** `fit` over scored skills and `coverage` over weighted core questions. Timed-out questions count as unanswered (REQ-FE-03).
+- **US-FE-03:** `fit` over scored skills and `coverage` over weighted core questions. Questions without answer text count as unanswered (REQ-FE-03).
 - **US-FE-04:** A weight change creates a new immutable formula version (REQ-FE-02).
 - **US-FE-05:** What-if preview on stored candidates, without saving.
 - **US-FE-06:** The formula preset UI in `views/ranking/`.
@@ -79,7 +79,7 @@ Check each dependency change against `docs/ai_docs/` first.
 - **US-AC-01:** Add the ledger table with a trigger that blocks `UPDATE` and an unflagged `DELETE` (REQ-AC-04).
 - **US-AC-02:** Starting a session streams the greeting and question 1 with `expiresAt`. The attempt limit gives `409` (REQ-AC-05, REQ-AC-11).
 - **US-AC-03:** An answer streams the reply. The state machine checks question order and the follow-up limit, and answers `409` for a disallowed input (REQ-AC-01, REQ-AC-05).
-- **US-AC-04:** Deadlines: store `expiresAt`, set `timedOut`, give `409` after the grace period, and close expired questions on the next request and in a scheduled job that completes abandoned attempts (REQ-AC-07, REQ-AC-08).
+- **US-AC-04:** Deadlines: store `expiresAt`, set `timedOut`, give `409` after the grace period, and close expired questions on the next request. A scheduled job closes them for abandoned sessions and completes the attempt (REQ-AC-07, REQ-AC-08).
 - **US-AC-05:** An answer under the minimum time gets `pasteSuspected` (REQ-AC-09).
 - **US-AC-06:** `GET` returns the session state from the ledger for a page refresh (REQ-AC-06).
 - **US-AC-07:** The interviewer prompt builder contains no rubric or score data and has the guardrails. A test captures the prompt (REQ-AC-12, REQ-AC-13).
@@ -93,7 +93,7 @@ Check each dependency change against `docs/ai_docs/` first.
 - **US-EP-02:** The evaluator call returns schema-validated evidence items. Tests replay recorded `ChatClient` fixtures.
 - **US-EP-03:** The quote verifier discards quotes that are not word-for-word in the entry (REQ-EP-01).
 - **US-EP-04:** A 2-run judge and the (question, skill) confidence calculator (REQ-EP-03).
-- **US-EP-05:** `N/A` for no verified evidence and for timed-out questions (REQ-EP-02, REQ-EP-06).
+- **US-EP-05:** `N/A` for no verified evidence and for questions without answer text. Timed-out answers with text are evaluated (REQ-EP-02, REQ-EP-06).
 - **US-EP-06:** Scores from paste-suspected entries become `flagged` (REQ-EP-07).
 - **US-EP-07:** Tag suggestions go through the `studio` service (REQ-IS-02).
 - **US-EP-08:** No number from LLM output enters a score without validation (REQ-EP-04).
@@ -141,7 +141,6 @@ Check each dependency change against `docs/ai_docs/` first.
 - **Wave 0 touches CI:** rows 1 and 2 edit different jobs in `.github/workflows/ci.yml` and `.gitlab-ci.yml`. Merge one first, and merge `origin/dev` into the other before its PR.
 - **Shared `views/ranking/`:** rows 7 and 10 use the same folder. Row 10 starts after row 7, so they do not overlap.
 - **Shared `views/assessment/`:** rows 8 and 11 use the same folder. Row 11 starts after row 8.
-- **Code drift until row 3 merges:** `Role.java` and `SecurityConfig` still have `REVIEWER`.
 - **`harness-review-followups`:** non-blocking findings from the 2026-11-24 harness reviews (see the archived `tasks.md` Status blocks):
   - CI drift test (`scripts/harness-scripts.test.mjs`): it ignores other toolchains (pnpm, `docker compose build`) and skips multi-line `run: |` blocks.
   - `ArchitectureTest`: the composite sub-rules (layout packages/persistence/services, repository→service/web) have no violating test classes of their own.

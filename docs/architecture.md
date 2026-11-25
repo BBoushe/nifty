@@ -56,9 +56,9 @@ flowchart LR
 | Step | Executor | Non-Negotiable Rule |
 |---|---|---|
 | 1. Interviewer | Agent 1, ki:connect NRW via Spring AI `ChatClient`, streamed (Decisions 1.11, 1.13) | A published config snapshot drives it. Its context holds the vision, core questions, target skill names and the current conversation only. It stays on topic, reveals no answer or score, does not judge the person, and keeps its role. |
-| 2. Evaluator | Agent 2, ki:connect NRW (`https://chat.kiconnect.nrw/api/v1`). Models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B` | It starts from `@TransactionalEventListener(phase = AFTER_COMMIT)`. It returns schema-validated evidence items (quote, entry reference, skill, suggested level, rationale). It **never produces totals or scores**. Timed-out questions and BFI-10 data never reach it. |
+| 2. Evaluator | Agent 2, ki:connect NRW (`https://chat.kiconnect.nrw/api/v1`). Models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B` | It starts from `@TransactionalEventListener(phase = AFTER_COMMIT)`. It returns schema-validated evidence items (quote, entry reference, skill, suggested level, rationale). It **never produces totals or scores**. Questions without answer text and BFI-10 data never reach it. A timed-out answer with text reaches it like any answer (Decision 2.20). |
 | 3. Quote Verifier | Deterministic Java | Every quote must appear word-for-word in the referenced ledger entry. It **discards unverified quotes**. |
-| 4. Scorer | Formula preset (Decision 2.19) + 2-run LLM judge | Missing verified evidence gives **`N/A`** (never `0` or `1`). A timed-out question gives `N/A` for all its skills. |
+| 4. Scorer | Formula preset (Decision 2.19) + 2-run LLM judge | Missing verified evidence gives **`N/A`** (never `0` or `1`). A question without answer text gives `N/A` for all its skills. |
 | 5. Confidence | Deterministic Java | One confidence per (question, skill) from measurable signals (Decision 2.11). It **never** uses LLM self-report. |
 | 6. Release gate | Deterministic Java + professor | All scored (not `N/A`) scores at or above their question's threshold, coverage at or above the minimum, and no flag → `auto_released`. Otherwise the attempt waits in the professor's queue (Decision 2.10). An override needs a reason and writes `audit_log`. |
 | 7. Totals & Cohort Gaps | Deterministic SQL | Only released scores of each candidate's latest attempt count (Decision 2.13). Fit and coverage show separately. |
@@ -70,7 +70,7 @@ flowchart LR
 | Request | Response | Rule |
 |---|---|---|
 | `POST /api/v1/assessment/sessions` | SSE: greeting and question 1 with `expiresAt` | `409` when the attempts are used up |
-| `POST /api/v1/assessment/sessions/{id}/answers` | SSE: follow-up or next question with `expiresAt`, or `done` | After `expiresAt`: `timedOut = true`, question `N/A`. After `expiresAt` + grace: `409`. Under the minimum time: `pasteSuspected = true`. |
+| `POST /api/v1/assessment/sessions/{id}/answers` | SSE: follow-up or next question with `expiresAt`, or `done` | After `expiresAt`: `timedOut = true`, evaluated as usual (Decision 2.20). After `expiresAt` + grace: `409`. Under the minimum time: `pasteSuspected = true`. |
 | `GET /api/v1/assessment/sessions/{id}` | Session state from the ledger | Resumes after a page refresh |
 | `POST /api/v1/assessment/sessions/{id}/bfi10` | `204` | Only when BFI-10 is on, after the last core question |
 
@@ -99,7 +99,7 @@ All backend Java enums, PostgreSQL columns, OpenAPI schemas, and frontend TypeSc
 | `entry.author` | `interviewer`, `candidate` | Stored, immutable | `assessment` |
 | `question.origin` | `core`, `follow_up`, `invented` | Stored, immutable | `assessment` |
 | `inferredTag.status` | `pending`, `approved`, `rejected` | Only the professor moves `pending -> approved \| rejected`. The evidence pipeline proposes tags through the `studio` service (Decision 1.16). | `studio` |
-| `score` (`N/A` wire format) | `value: number (0..4) \| null`, `status: "SCORED" \| "N/A"` | Computed in Java/SQL for each (question, skill). `null` + `"N/A"` when there is no verified quote or the question timed out (NEVER `0` or `1`). Excluded from fit. | `evidence` |
+| `score` (`N/A` wire format) | `value: number (0..4) \| null`, `status: "SCORED" \| "N/A"` | Computed in Java/SQL for each (question, skill). `null` + `"N/A"` when there is no verified quote or the question has no answer text (NEVER `0` or `1`). Excluded from fit. | `evidence` |
 | `reviewStatus` | `pending`, `flagged`, `auto_released`, `approved`, `overridden` | `pending -> flagged` when a scored value is below its threshold or comes from a paste-suspected entry. `pending -> auto_released` when the release gate passes. `pending \| flagged -> approved \| overridden` by the professor. `auto_released -> overridden` by the professor. `flagged` blocks bulk-approve. `overridden` needs a reason and an `audit_log` row. | `matrix` |
 
 ## 5. Domain Model

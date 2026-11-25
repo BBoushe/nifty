@@ -52,6 +52,8 @@ Three question rounds with the prompter. All answers are recorded with `scripts/
 
 ## Open Items
 
-- A timed-out partial answer is logged but not scored (feature list rule). The prompter can reverse this.
-- The interview budget per session has no decision yet.
-- Code drift: `Role.java` and `SecurityConfig` still have `REVIEWER` until the `auth-accounts` feature ships.
+All three items were closed after the merge, in the `nov24-followups` change:
+
+- The prompter reversed the timeout rule: a timed-out answer with text is evaluated (Decision 2.20).
+- There is no cost limit per interview (Decision 4.5).
+- `Role.java` and `SecurityConfig` no longer have `REVIEWER`.

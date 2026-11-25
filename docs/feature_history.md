@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-25 — nov24-followups
+- **What:** Answers submitted at timeout are now evaluated; only a question without answer text is `N/A`. No cost limit per interview. `REVIEWER` removed from the code: ranking routes allow only `PROFESSOR`, assessment routes only `CANDIDATE` (`RoleAccessTest`). Checked the wave-0 dependency names and closed the `nov24-reconciliation` Delivery boxes.
+- **Why:** The prompter settled the items left open after the reconciliation merge. No static check can tell a partial answer from a complete one.
+- **PR/MR:** pending
+- **Specs:** REQ-AC-08, REQ-EP-06 (renamed), REQ-FE-03 (modified); REQ-AA-01 (implemented)   **Decisions:** 2.20, 4.5; applies 1.15
+
 ## 2026-11-25 — nov24-reconciliation
 - **What:** Reconciled specs and docs with the Nov 24 feature list and closed O1–O7. Delta specs for 7 domain specs plus the new `auth-access` spec: threshold-gated release, (question, skill) confidence, question-weighted coverage, attempt limit, min/max timers, append-only ledger with streamed replies, rubric-blind interviewer, invite-link sign-in, optional BFI-10. Canvas archived and updated; invariants, rules, architecture (dual-agent pipeline, domain model), API, design system, `docs/ai_logs/` and a wave-based backlog.
 - **Why:** The feature list contradicted the canvas, specs and invariants, and open decisions blocked 6 of 7 MVP features. Builders can now start wave 0 without guessing.

@@ -73,6 +73,8 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **3.13** | — | Team & Process | Java/Spring conventions and context read order from PDF 4 | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#313--javaspring-conventions-and-context-read-order-from-pdf-4) |
 | **3.14** | — | Team & Process | Backlog of atomic TDD stories with reserved migrations | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#314--backlog-of-atomic-tdd-stories-with-reserved-migrations) |
 | **1.17** | — | Architecture | Students join by invite link only | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#117--students-join-by-invite-link-only) |
+| **2.20** | — | Design | Answers submitted at timeout are evaluated | Decided | 2026-11-25 | prompter-change | [2-design.md](./2-design.md#220--answers-submitted-at-timeout-are-evaluated) |
+| **4.5** | — | Direction | No cost limit per interview | Decided | 2026-11-25 | prompter-change | [4-direction.md](./4-direction.md#45--no-cost-limit-per-interview) |
 <!-- DECISION_INDEX_END -->
 
 ---
