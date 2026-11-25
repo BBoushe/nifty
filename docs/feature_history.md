@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-25 — agent-orchestration
+- **What:** Added the `orchestrate-changes` skill: one session runs a builder agent per change in its own `../nifty-<change>` worktree and a cold reviewer per PR, handles PRs/MRs by branch name, and asks the user before every merge with an architecture summary. `forge.mjs prs` shows GitHub PRs and GitLab MRs side by side, and `forge.mjs` reads the main checkout's `.env` from a worktree.
+- **Why:** One terminal per change and matching PR numbers to different MR numbers was too much manual work. The user wants to steer direction at every merge.
+- **PR/MR:** GitHub #15, GitLab !14
+- **Specs:** REQ-OR-01 to REQ-OR-04   **Decisions:** 3.11
+
 ## 2026-11-25 — docs-ste-rewrite
 - **What:** Rewrote the agent entry points, `.agents/rules/`, README, setup, workflow, architecture, API, design-system and discovery-canvas docs, and the Purpose paragraphs of the 7 domain specs in ASD-STE100. A per-file obligation check kept every MUST/SHALL/NEVER, number, REQ ID and EARS statement unchanged.
 - **Why:** Agents read these files in every session. Long, passive, multi-idea sentences cost tokens and can be read in more than one way.

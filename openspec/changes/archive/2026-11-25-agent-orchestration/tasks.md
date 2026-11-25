@@ -5,7 +5,7 @@
 - **Branch:** `feat/agent-orchestration`
 - **Worktree:** main checkout `/Users/alek/Developer/Programming/nifty`
 - **Current:** Tasks 1-3 done; Delivery next
-- **Next action:** archive, history entry, push, PR/MR, cold review, ask the user with the architecture summary
+- **Next action:** push, PR/MR, cold review, ask the user with the architecture summary (archived at openspec/changes/archive/2026-11-25-agent-orchestration/)
 - **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
@@ -34,8 +34,8 @@ Owned files: `scripts/check-setup.mjs`, `scripts/forge.mjs`, a new `describe` at
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (no rebase). Re-run the tests.
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive agent-orchestration -y --skip-specs`; history entry; commit `chore(specs): archive agent-orchestration`.
+- [x] `git fetch origin && git merge origin/dev` (no rebase). Re-run the tests.
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive agent-orchestration -y --skip-specs`; history entry; commit `chore(specs): archive agent-orchestration`.
 - [ ] `node scripts/forge.mjs push`; PR/MR via `pr-memo` + `node scripts/forge.mjs pr`. Record links in Status.
 - [ ] Cold review (fresh `reviewer` agent): no Blocking items.
 - [ ] Both forges green (`node scripts/forge.mjs prs`).
