@@ -63,7 +63,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **2.17** | — | Design | Assessment configuration is a professor form, nothing hard-coded | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#217--assessment-configuration-is-a-professor-form-nothing-hard-coded) |
 | **2.18** | — | Design | Team size and solver constraints come from the assessment form | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#218--team-size-and-solver-constraints-come-from-the-assessment-form) |
 | **2.19** | — | Design | Formula presets only in MVP | Decided | 2026-11-25 | question-round | [2-design.md](./2-design.md#219--formula-presets-only-in-mvp) |
-| **1.11** | — | Architecture | Streamed interview session with an append-only ledger (no turn endpoint) | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#111--streamed-interview-session-with-an-append-only-ledger-no-turn-endpoint) |
+| **1.11** | — | Architecture | Answers stream the interviewer reply; append-only ledger | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#111--answers-stream-the-interviewer-reply-append-only-ledger) |
 | **1.12** | — | Architecture | Dual-agent rubric isolation | Decided | 2026-11-25 | prompter-change | [1-architecture.md](./1-architecture.md#112--dual-agent-rubric-isolation) |
 | **1.13** | — | Architecture | Interviewer uses ki:connect NRW | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#113--interviewer-uses-kiconnect-nrw) |
 | **1.14** | — | Architecture | PrimeVue on Tailwind v4; design system uses 0-4 and hatched N/A | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#114--primevue-on-tailwind-v4-design-system-uses-0-4-and-hatched-na) |
@@ -72,6 +72,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **3.12** | — | Team & Process | docs/ai_logs/ prompt-as-code audit trail | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#312--docsai_logs-prompt-as-code-audit-trail) |
 | **3.13** | — | Team & Process | Java/Spring conventions and context read order from PDF 4 | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#313--javaspring-conventions-and-context-read-order-from-pdf-4) |
 | **3.14** | — | Team & Process | Backlog of atomic TDD stories with reserved migrations | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#314--backlog-of-atomic-tdd-stories-with-reserved-migrations) |
+| **1.17** | — | Architecture | Students join by invite link only | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#117--students-join-by-invite-link-only) |
 <!-- DECISION_INDEX_END -->
 
 ---

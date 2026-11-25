@@ -100,13 +100,13 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Rationale / Justification:** Feature slices keep the blast radius local and let agents read one folder. ArchUnit turns written rules into a failing test, which raises first-time quality for AI-written code.
 - **Affected Files / Pointers:** openspec/changes/backend-architecture-baseline/, .agents/rules/backend-java.md, docs/architecture.md
 
-## 1.11 — Streamed interview session with an append-only ledger (no turn endpoint)
+## 1.11 — Answers stream the interviewer reply; append-only ledger
 - **Date:** 2026-11-25
 - **Triggered By:** prompter-change
-- **Context:** PDF 4/5 suggest a synchronous POST .../turn endpoint. The team wants the interview to feel like one LLM conversation.
-- **Decision:** There is no per-turn REST endpoint. The interview is one streamed session (SSE). Every student answer and every AI reply is appended to the ledger (an append-only PostgreSQL table with server timestamps) when it happens. The session state machine enforces question order, time limits and the follow-up limit in Java; an input that the state does not allow gets 409 Conflict. assessment-transcript/v1 is built from the ledger.
-- **Alternatives Considered:** Synchronous POST /turn per answer (PDF 4/5); a single JSONB transcript updated in place (Decision 1.2).
-- **Rationale / Justification:** A stream gives the conversation feel. Append-only rows give per-message timestamps, immutability and a clean input for the evaluator.
+- **Context:** PDF 4/5 suggest a synchronous POST .../turn endpoint without streaming. The team wants the interview to feel like an LLM conversation and to log every message for transparency.
+- **Decision:** POST /api/v1/assessment/sessions starts a session and POST /api/v1/assessment/sessions/{id}/answers sends one answer; both respond with an SSE stream of the interviewer reply. GET /api/v1/assessment/sessions/{id} returns the current state from the ledger, so a page refresh resumes the session. Every student answer and every AI reply is appended to the ledger (an append-only PostgreSQL table with server timestamps). When the server asks a question, it stores expiresAt and sends it to the browser; the browser counts down and auto-submits the current text at zero. The server rejects an answer after expiresAt plus a short grace period with 409 Conflict, and an answer after expiresAt is recorded with timedOut = true (the question is N/A, Decision 2.14). The session state machine enforces question order, time limits and the follow-up limit in Java. assessment-transcript/v1 is built from the ledger.
+- **Alternatives Considered:** One long-lived SSE stream per session plus POST answers returning 202; WebSocket; synchronous POST /turn without streaming (PDF 4/5); a single JSONB transcript updated in place (Decision 1.2).
+- **Rationale / Justification:** Simplest reliable build: no long-lived connection to re-attach after a refresh, streamed replies keep the conversation feel, and server-stored deadlines keep the timers cheat-proof.
 - **Affected Files / Pointers:** docs/architecture.md, docs/api.md, openspec/specs/assessment-chat/spec.md
 
 ## 1.12 — Dual-agent rubric isolation
@@ -155,3 +155,12 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** Audit writes from each slice; inferredTags in evidence; merge results into assessment.
 - **Rationale / Justification:** Each slice has one owner, which allows parallel work without merge conflicts and keeps the ArchUnit repository rule.
 - **Affected Files / Pointers:** docs/architecture.md, docs/api.md, openspec/specs/interviewer-studio/spec.md
+
+## 1.17 — Students join by invite link only
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The auth slice needs a student sign-in model. Students take one assessment and have no other use for an account.
+- **Decision:** The professor creates invite links (CSV import or one at a time). Each link holds a personal, unguessable token bound to one assessment and one student. Opening it starts an authenticated CANDIDATE session; the student can reopen the same link until the attempts run out or the professor revokes it. Students have no passwords. Professors sign in with account credentials. The token format (JWT or server session) is decided in the auth change design.
+- **Alternatives Considered:** Student accounts with email and password registration.
+- **Rationale / Justification:** No registration or password reset to build in block week, and every student is tied to exactly one assessment.
+- **Affected Files / Pointers:** openspec/specs/auth-access/spec.md, docs/api.md
