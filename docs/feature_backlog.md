@@ -8,14 +8,14 @@ Planned features in delivery waves (Decisions 1.18, 3.14). Use this table to pic
 - **Migration:** Flyway versions are reserved here so parallel worktrees never collide. `V5` stays spare so `V6__assessment.sql` stays stable.
 - **Stories:** each `US-` story is one RED → GREEN → REFACTOR loop and one commit.
 
-Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in progress` and link the change folder. When you archive it, remove its row and add an entry to [`feature_history.md`](feature_history.md).
+Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in progress` and link the change folder. When you archive it, set its row to `done` (other rows refer to it by number) and add an entry to [`feature_history.md`](feature_history.md).
 
 ## MVP Features (7-Slice Converged Plan)
 
 | # | Feature (spec / change) | Wave | Status | Owner / Slice | Depends on | Migration |
 |---|---|---|---|---|---|---|
 | 1 | `backend-foundation` | 0 | done | Shared (`shared`, `backend/pom.xml`, CI) | — | — |
-| 2 | `frontend-foundation` | 0 | queued | Shared (`frontend/` shell, CI) | — | — |
+| 2 | `frontend-foundation` | 0 | done | Shared (`frontend/` shell, CI) | — | — |
 | 3 | `auth-accounts` ([`auth-access`](../openspec/specs/auth-access/spec.md)) | 1 | queued | Shared (`auth`, `views/auth/`) | 1, 2 | `V2__auth_accounts.sql` |
 | 4 | `audit-log-service` | 1 | queued | Shared (`audit`) | 1 | — (uses `V1`) |
 | 5 | `context-creation` ([change](../openspec/changes/context-creation/), [ticket](tickets/02-context-creation.md)) | 1 | in progress | Teammate A (`context`) | 1, 4 (mockable) | — (stateless) |

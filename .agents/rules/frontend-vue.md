@@ -23,7 +23,7 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
    - During an active Assessment Chat, NEVER render scores, weights, or formulas.
    - Flagged cells (confidence below the question's threshold, paste-suspected, or low coverage) MUST highlight clearly and block bulk-approve.
    - Display the per-question countdown from the server's `expiresAt`. Submit the current text automatically at zero. Never offer pause or resume (Decision 2.14).
-5. **Verification:** Before finishing frontend edits, run `npm run typecheck && npm run lint && npm run build` inside `frontend/`.
+5. **Verification:** Before finishing frontend edits, run `npm run typecheck && npm run test && npm run lint && npm run build` inside `frontend/`.
 6. Use <script setup lang="ts"> and Composition API. No Options API, no defineComponent unless needed.
 7. .value rules: required in script, never in template. Don't write {{ count.value }}.
 8. Don't destructure reactive objects or props without toRefs/toRef (or the 3.5 props destructure).

@@ -17,6 +17,6 @@ Use this skill before committing or reviewing any change under `frontend/`.
 1. Confirm `frontend/package.json` remains on Vue `3.5.x` and Vite `8.x`.
 2. Run all checks:
    ```sh
-   cd frontend && npm run typecheck && npm run lint && npm run build
+   cd frontend && npm run typecheck && npm run test && npm run lint && npm run build
    ```
 3. Confirm `N/A` scores are visually distinct (hatched) and never coerced to `0`, `fit` and `coverage` are shown separately, and Assessment Chat never leaks scores mid-interview.
