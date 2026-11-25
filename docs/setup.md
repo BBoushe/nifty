@@ -12,7 +12,7 @@ Every rule, feature spec, agent role, and safety hook is a **plain text file in 
 
 ### Why We Built It This Way
 
-- **Specs before code (`openspec/`):** Vibe-coding quickly creates silent bugs and misaligned assumptions across a team. First write short, testable acceptance criteria (in EARS format: `WHEN … THE SYSTEM SHALL …`). They give humans and AI agents one shared contract.
+- **Specs before code (`openspec/`):** Fast vibe-coding creates silent bugs and misaligned assumptions across a team. First write short, testable acceptance criteria (in EARS format: `WHEN … THE SYSTEM SHALL …`). They give humans and AI agents one shared contract.
 - **One plan folder, not two:** `openspec/changes/<feature>/` already holds the proposal, spec, design, and task checklist. `tasks.md` also has a 5-line `## Handoff Log` at the bottom. We intentionally have **no** separate `plans/` folder, so checklists never drift out of sync.
 - **One rule file, thin pointers everywhere else:** Engineering rules are in `AGENTS.md` and `.agents/rules/`. Tool entrypoints (`CLAUDE.md`, `GEMINI.md`, `.kiro/steering/`) are short pointers. They are never copy-pasted duplicates.
 - **Traceable decisions (`docs/decisions/`):** `node scripts/record-decision.mjs` records every answered `question-round` and every prompter direction change with a stable `X.Y` ID. Builders leave `// Decision X.Y` pointers in code. So anyone can trace *why* something works the way it does.

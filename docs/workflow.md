@@ -67,7 +67,7 @@ GitHub (`origin`) is primary. GitLab (`gitlab`) is the secondary course repo. Ne
 | Check for drift between the two | `node scripts/forge.mjs status` |
 | Apply GitLab branch protections (equivalent of `.github/rulesets/`) | `scripts/apply-gitlab-protections.sh` |
 
-Rules that prevent drift: merge only on GitHub. Use a merge commit, not squash, so GitLab can mark the MR as merged after `sync`. Do not merge MRs on GitLab. Every command has a dry-run mode: `--dry-run`. `sync` never force-pushes. So it rejects a diverged GitLab branch and does not overwrite it.
+Rules that prevent drift: merge only on GitHub. Use a merge commit, not squash, so GitLab can mark the MR as merged after `sync`. Do not merge MRs on GitLab. Every command has a dry-run mode: `--dry-run`. `sync` never force-pushes. So a diverged GitLab branch makes `sync` fail; it is never overwritten.
 
 Only a GitLab **Maintainer** can run `forge.mjs sync`, because it pushes to protected branches (`dev`, `alpha`, `master`, `main`).
 
@@ -108,7 +108,7 @@ Only a GitLab **Maintainer** can run `forge.mjs sync`, because it pushes to prot
 
 ## 4. Tool-Agnostic Multi-Agent Collaboration
 
-No developer has to use a single harness (Kiro Crew, T3 Code, Claude Code, Antigravity `agy`, Codex, or IDE). All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/rules/`), agent roles (`.claude/agents/`), skills (`.agents/skills/`, `.claude/skills/`), Kiro steering (`.kiro/steering/`), and hooks (`.githooks/`, `.claude/hooks/`) are files in Git. See [`docs/setup.md`](./setup.md) for the standalone SDD/ADD harness guide.
+No developer is tied to a single harness (Kiro Crew, T3 Code, Claude Code, Antigravity `agy`, Codex, or IDE). All specs (`openspec/`), rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/rules/`), agent roles (`.claude/agents/`), skills (`.agents/skills/`, `.claude/skills/`), Kiro steering (`.kiro/steering/`), and hooks (`.githooks/`, `.claude/hooks/`) are files in Git. See [`docs/setup.md`](./setup.md) for the standalone SDD/ADD harness guide.
 
 ### Recommended Builder / Verifier Split
 

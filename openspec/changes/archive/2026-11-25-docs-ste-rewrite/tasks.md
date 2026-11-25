@@ -84,3 +84,7 @@ Each task has the same steps: (a) run the obligation check (design §2) on each 
 - **Did:** pushed both forges by hand from the main checkout (the worktree has no `.env`), opened PR #14 / MR !13. Cold review APPROVE. Fixed 5 Convention Candidates: README now states Decision 3.10 (an old contradiction, not caused by this change), the candidate persona keeps "felt" for both claims, the Mode C subject is explicit, backend-java "Then" → "This way", architecture row 6 names "a human" instead of "the reviewer". The Task 7 CHANGELOG entry went into commit 2f3353e, not a separate commit.
 - **Verification:** RED: n/a (no behaviour). Obligations equal on the changed files except README, which gains the intended `3.10`; `openspec validate --all --strict` exit 0; harness tests exit 0.
 - **Next:** CI, then merge (ask the user).
+
+### 2026-11-25 — Main-session read of the remaining diffs
+- **Did:** read the word diffs of `docs/workflow.md`, `docs/setup.md` and `README.md` (earlier: entry points, rules, flagged canvas/spec lines). Fixed 3 wordings: `sync` failure actor, "tied to a single harness", "Fast vibe-coding" (the rewrite had moved "fast" to describe the bugs).
+- **Verification:** RED: n/a (no behaviour). Obligations equal on both files; harness tests exit 0.
