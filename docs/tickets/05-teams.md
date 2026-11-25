@@ -22,8 +22,8 @@
 ```text
 You are implementing the `teams` vertical slice (`team-builder`) for Nifty.
 Setup (do this before anything else):
-1. Prerequisite check: run `git fetch origin && git show origin/dev:backend/src/main/java/de/fhdortmund/nifty/audit/service/AuditService.java > /dev/null`. If it fails, Wave 0 (`backend-foundation` with the US-BF-06 contract stubs, and `frontend-foundation`) is not on `dev` yet. Stop and tell the human.
-2. From the main checkout, run `git worktree add ../nifty-team-builder -b feat/team-builder origin/dev`. Work only in `../nifty-team-builder` and confirm it with `pwd` before each command. Ask the human to copy `.env` into the worktree. Never read `.env` yourself.
+1. Prerequisite check: run `git fetch origin && git show origin/dev:backend/src/main/java/de/fhdortmund/nifty/audit/service/AuditService.java > /dev/null && git show origin/dev:frontend/package.json | grep -q '"test":'`. If it fails, Wave 0 (`backend-foundation` with the US-BF-06 contract stubs, and `frontend-foundation`) is not on `dev` yet. Stop and tell the human.
+2. From the main checkout, run `git worktree add ../nifty-team-builder -b feat/team-builder origin/dev`. Start every Bash command with `cd /absolute/path/to/nifty-team-builder && pwd`, and pass only absolute worktree paths to Edit/Write. `forge.mjs` reads `.env` from the main checkout, so do not copy it. Never read `.env` yourself.
 3. The shared interfaces, records and enums of `docs/tickets/00-parallel-waves-and-contracts.md` §3 already exist as stubs on `dev`. Implement only the ones your slice owns. Mock the others. Never create a second copy of a shared type.
 
 Read these files first (do NOT scan the whole source tree):
@@ -33,7 +33,7 @@ Read these files first (do NOT scan the whole source tree):
 4. `openspec/changes/team-builder/{proposal.md,design.md,tasks.md,specs/team-builder/spec.md}`
 
 Non-negotiable rules:
-- Never merge. Ask the human before you push or open the PR/MR. Update `tasks.md` `## Status` before every stop, so another session can resume.
+- Use the `spec-implementer` skill for the tasks and the `pr-memo` skill for the PR/MR body. Commit after each task, but push only after the human says yes. Never merge. Ask the human before you push or open the PR/MR. Update `tasks.md` `## Status` before every stop, so another session can resume.
 - Follow TDD strictly (RED failing test -> GREEN minimal code -> REFACTOR) for US-TB-01 through US-TB-06 in `tasks.md`.
 - All `@Entity` and `JpaRepository` classes live privately in `de.fhdortmund.nifty.teams.repository` (`UUID` IDs in `V8__teams.sql`).
 - Implement `TeamObjectiveCalculator` and `SimulatedAnnealingTeamOptimizer` in pure Java using primitive arrays and plain loops (ZERO Java Streams in hot paths, ZERO LLM calls).

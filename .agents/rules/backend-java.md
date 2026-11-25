@@ -56,7 +56,7 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and team
    | Set `spring.jpa.open-in-view: false`. Load associations with `JOIN FETCH` or entity graphs. | Config + review |
    | Secrets come from the environment only (no committed defaults in `application*.yml`). | Review + pre-commit secret scan |
    | Errors: services throw `DomainException(HttpStatus, detail)` (or a subclass) for expected failures. `GlobalExceptionHandler` answers with RFC 9457 `application/problem+json` (fields in `docs/api.md` §3). For anything unexpected, it answers with a generic 500 detail. It never returns a stack trace or exception class name. | `GlobalExceptionHandlerTest` + review |
-   | Events: publish from services with `ApplicationEventPublisher`. Run side effects in `@TransactionalEventListener(phase = AFTER_COMMIT)`. | Review |
+   | Events: publish from services with `ApplicationEventPublisher`. Run side effects in `@TransactionalEventListener(phase = AFTER_COMMIT)`. Exception: `AssessmentDeletedEvent` listeners are synchronous `@EventListener` + `@Transactional(propagation = MANDATORY)`, so the purge runs in the deleting transaction (Decision 4.4). | Review |
 
    **Test pyramid**
 

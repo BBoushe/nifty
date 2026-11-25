@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `dev`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** Ready to start (Wave 2; Ticket 7A contracts can start on Day 1)
-- **Next action:** Start US-ST-01 (merge `StudioQueryService` records + JSON fixtures first so teammates can mock cleanly)
+- **Current:** Ready to start after Wave 0 (the `StudioQueryService` stubs come from US-BF-06)
+- **Next action:** Start US-ST-01
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -12,8 +12,8 @@
 ## Tasks
 
 - [ ] **US-ST-01: Hand-off view contracts (`StudioQueryService`) and rubric-leak reflection guard**
-  - [ ] Write RED reflection test proving `InterviewerView` and `InterviewerQuestion` declare zero fields containing `rubric`, `weight`, `threshold`, or `coverage`.
-  - [ ] Add `StudioQueryService` and immutable records in `studio/service/view/` matching `docs/tickets/00-parallel-waves-and-contracts.md`, plus 4 JSON test fixtures.
+  - [ ] Verify the US-BF-06 stubs of `StudioQueryService` and `studio/service/view/` match `docs/tickets/00-parallel-waves-and-contracts.md` §3. Never add a second copy.
+  - [ ] Add the reflection guard test: `InterviewerView` and `InterviewerQuestion` declare zero fields containing `rubric`, `weight`, `threshold`, or `coverage` (RED: n/a, the stub from US-BF-06 already complies; log that in the Handoff).
   - [ ] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
   - [ ] Commit: `feat(studio): add StudioQueryService hand-off view contracts and rubric guard`
 

@@ -13,7 +13,7 @@
 
 - [ ] **US-CC-01: Public record DTOs, `PromptContextBuilder<I>`, `PromptHasher`, and reflection rubric guard**
   - [ ] Write RED pure-JVM unit tests for SHA-256 determinism and reflection guard asserting `InterviewerContextInput` and nested records declare zero fields matching `rubric|level|weight|threshold|score|bfi`.
-  - [ ] Implement `context/service/dto/*`, `PromptContextBuilder`, `PromptHasher`, and `ContextCreationService` interface matching `docs/tickets/00-parallel-waves-and-contracts.md`.
+  - [ ] Verify the US-BF-06 stubs of `ContextCreationService` and `context/service/dto/*` match `docs/tickets/00-parallel-waves-and-contracts.md` §3 (never add a second copy). Implement `PromptContextBuilder` and `PromptHasher`. The reflection guard is RED: n/a (the stub already complies); the hash tests are RED first.
   - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [ ] Commit: `feat(context): add public context DTOs, PromptHasher, and rubric reflection guard`
 

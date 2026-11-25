@@ -22,8 +22,8 @@
 ```text
 You are implementing the `evaluation` vertical slice (`evaluation-service`) for Nifty.
 Setup (do this before anything else):
-1. Prerequisite check: run `git fetch origin && git show origin/dev:backend/src/main/java/de/fhdortmund/nifty/audit/service/AuditService.java > /dev/null`. If it fails, Wave 0 (`backend-foundation` with the US-BF-06 contract stubs, and `frontend-foundation`) is not on `dev` yet. Stop and tell the human.
-2. From the main checkout, run `git worktree add ../nifty-evaluation-service -b feat/evaluation-service origin/dev`. Work only in `../nifty-evaluation-service` and confirm it with `pwd` before each command. Ask the human to copy `.env` into the worktree. Never read `.env` yourself.
+1. Prerequisite check: run `git fetch origin && git show origin/dev:backend/src/main/java/de/fhdortmund/nifty/audit/service/AuditService.java > /dev/null && git show origin/dev:frontend/package.json | grep -q '"test":'`. If it fails, Wave 0 (`backend-foundation` with the US-BF-06 contract stubs, and `frontend-foundation`) is not on `dev` yet. Stop and tell the human.
+2. From the main checkout, run `git worktree add ../nifty-evaluation-service -b feat/evaluation-service origin/dev`. Start every Bash command with `cd /absolute/path/to/nifty-evaluation-service && pwd`, and pass only absolute worktree paths to Edit/Write. `forge.mjs` reads `.env` from the main checkout, so do not copy it. Never read `.env` yourself.
 3. The shared interfaces, records and enums of `docs/tickets/00-parallel-waves-and-contracts.md` §3 already exist as stubs on `dev`. Implement only the ones your slice owns. Mock the others. Never create a second copy of a shared type.
 
 Read these files first (do NOT scan the whole source tree):
@@ -33,7 +33,7 @@ Read these files first (do NOT scan the whole source tree):
 4. `openspec/changes/evaluation-service/{proposal.md,design.md,tasks.md,specs/evidence-pipeline/spec.md}`
 
 Non-negotiable rules:
-- Never merge. Ask the human before you push or open the PR/MR. Update `tasks.md` `## Status` before every stop, so another session can resume.
+- Use the `spec-implementer` skill for the tasks and the `pr-memo` skill for the PR/MR body. Commit after each task, but push only after the human says yes. Never merge. Ask the human before you push or open the PR/MR. Update `tasks.md` `## Status` before every stop, so another session can resume.
 - Follow TDD strictly (RED failing test -> GREEN minimal code -> REFACTOR) for US-EV-01 through US-EV-06 in `tasks.md`.
 - Keep all production backend code inside `de.fhdortmund.nifty.evaluation.{web,service,repository}` using `UUID` PKs/FKs in `V7__evaluation.sql`. Write `audit_log` ONLY via `AuditService.record(...)`.
 - Never use Java Streams inside `VerbatimQuoteVerifier`, `ConfidenceCalculator`, `SkillFormulaCalculator`, or `ReleaseGateEvaluator`.

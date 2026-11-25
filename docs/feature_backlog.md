@@ -33,16 +33,16 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 ### 1. `backend-foundation` (Wave 0)
 Check each dependency change against `docs/ai_docs/` first.
 - **US-BF-01:** Replace `spring-boot-starter-web` with `spring-boot-starter-webmvc`. Move `spring.ai.openai.chat.options.model` to `spring.ai.openai.chat.model`. All existing tests pass and app boots with no LLM key.
-- **US-BF-02:** Add `spring-boot-starter-data-jpa-test` and a PostgreSQL Testcontainers base class. One `@DataJpaTest` runs Flyway `V1` on PostgreSQL.
+- **US-BF-02:** Add `spring-boot-starter-data-jpa-test`, Testcontainers PostgreSQL and the abstract base class `de.fhdortmund.nifty.PostgresContainerBase`. Move every `@SpringBootTest` (`HealthEndpointTest`, `RoleAccessTest`) onto it and drop H2 from the tests, because H2 cannot run JSONB or plpgsql triggers. One `@DataJpaTest` runs Flyway `V1` on PostgreSQL.
 - **US-BF-03:** Add a `docker:dind` service to the GitLab `backend` job so Testcontainers runs on both forges. CI parity drift test passes.
 - **US-BF-04:** Add generic `FieldValidationException(List<FieldErrorDetail>)` in `shared/exception/` and map it in `GlobalExceptionHandler` to `400` RFC 9457 `ProblemDetail` (`errors: [{ field, message, code }]`) so slices report multi-field validation errors without breaking ArchUnit `sharedIsFeatureFree` (Decisions 1.18, 1.19).
 - **US-BF-05:** Add shared cross-slice event records (`AssessmentDeletedEvent(UUID configId, String actorId)` and `AttemptCompletedEvent(UUID attemptId, UUID configId, UUID inviteId)`) in `shared/config/` (the only package REQ-BA-01 allows for them) without referencing any feature class (Decision 1.19).
-- **US-BF-06:** Add every cross-slice interface, record and enum of [`docs/tickets/00-parallel-waves-and-contracts.md`](tickets/00-parallel-waves-and-contracts.md) §3 as compile-only Java stubs in the owner packages (`audit.service`, `auth.service`, `studio.service`, `context.service`, `assessment.service`, `evaluation.service`). No implementations and no Spring beans. `./mvnw -B test` passes, including `ArchitectureTest`. Teammates start only after this story merges.
+- **US-BF-06:** Add every cross-slice interface, record and enum of [`docs/tickets/00-parallel-waves-and-contracts.md`](tickets/00-parallel-waves-and-contracts.md) §3 as Java stubs in the owner packages (`audit.service`, `auth.service`, `studio.service`, `context.service`, `assessment.service`, `evaluation.service`). Enums carry `@JsonValue` literals. Add one placeholder `@Service` per interface that throws `UnsupportedOperationException`, so `@SpringBootTest` contexts start. Change the `RoleAccessTest` probes to unmapped paths (`/api/v1/ranking/__probe`, `/api/v1/assessment/__probe`), so later UUID routes cannot turn the expected `404` into `400`. `./mvnw -B test` passes, including `ArchitectureTest`. Teammates start only after this story merges.
 
 ### 2. `frontend-foundation` (Wave 0)
-- **US-FF-01:** Add Vitest and `@vue/test-utils`, an `npm run test` script, and the test step in both CI files.
+- **US-FF-01:** Add Vitest, `@vue/test-utils` and `jsdom`, an ECharts mock for component tests, an `npm run test` script, and the test step in both CI files.
 - **US-FF-02:** Install PrimeVue. Define the design tokens as Tailwind `@theme` variables and map them into one PrimeVue preset. Component test shows `ScoreBadge` for levels `0..4` and hatched `N/A`.
-- **US-FF-03:** Move `RankingView.vue` and `AssessmentView.vue` into `views/ranking/` and `views/assessment/`. Routes stay the same.
+- **US-FF-03:** Move `RankingView.vue` and `AssessmentView.vue` into `views/ranking/` and `views/assessment/`. Give each feature folder a `routes.ts` (`auth`, `studio`, `assessment`, `ranking`, `teams`) that `router/index.ts` spreads in, so each ticket edits only its own routes file. Routes stay the same.
 - **US-FF-04:** Add a shared API client. It parses RFC 9457 `ProblemDetail` errors (including `errors[]`) and reads an SSE stream from a `POST` response (`fetch` + `ReadableStream`).
 
 ### 3. `auth-accounts` (Wave 1)

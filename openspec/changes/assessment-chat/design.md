@@ -14,7 +14,7 @@
 - `bfi_response(attempt_id UUID PK FK, item_1..item_10 SMALLINT CHECK (1..5), conscientiousness NUMERIC(4,2), agreeableness NUMERIC(4,2), neuroticism NUMERIC(4,2), extraversion NUMERIC(4,2), openness NUMERIC(4,2), submitted_at TIMESTAMPTZ)`
 
 ## Upstream/Downstream Contracts
-- Reads `StudioQueryService.interviewerView(configId)` (`studio`) and `ContextCreationService.buildInterviewerContext(...)` / `inspectCandidateInput(...)` (`context`).
+- Reads `StudioQueryService.interviewerView(configId)` (`studio`) and `ContextCreationService.buildInterviewerContext(...)` / `inspectCandidateInput(attemptId, text)` (context writes the injection audit row, not assessment) (`context`).
 - Publishes `AttemptCompletedEvent(attemptId, configId, inviteId)` inside the committing transaction when entering `COMPLETED`.
 - Exposes `AssessmentQueryService` (`getTranscriptForAttempt`, `getLatestCompletedAttemptId`, `getSoftSkillProfilesForConfig`, `getSoftSkillProfileForAttempt`).
 - **No professor transcript route under `/api/v1/assessment/**`:** Professor export lives in `evaluation` at `GET /api/v1/ranking/transcripts/{attemptId}` (Decision 1.19).

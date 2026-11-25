@@ -22,6 +22,17 @@
 > 3. `shared/` never imports any feature slice. Use `shared/exception/FieldValidationException` for multi-field `400` RFC 9457 `ProblemDetail` errors.
 > 4. Every PK and FK across every slice is `UUID` (Decision 1.19). Only the merged `V1` `audit_log` keeps `BIGSERIAL id` and stores `entity_id` as UUID text.
 > 5. `V5` stays unused/reserved so `V6__assessment.sql` does not shift.
+> 6. `repository/` never depends on `service/`. Entities store the §3 enum values as `String` columns (the JSON/DB literal). Map them to the enum in the service layer.
+
+> **Shared conventions (all slices):**
+> - **Placeholders:** US-BF-06 ships every §3 interface plus one placeholder `@Service` per interface that throws `UnsupportedOperationException`. `@SpringBootTest` contexts therefore start. Each owner deletes their placeholder when the real implementation lands.
+> - **Tests on PostgreSQL:** US-BF-02 moves all Spring tests to Testcontainers through `de.fhdortmund.nifty.PostgresContainerBase`. H2 cannot run JSONB or the triggers. Extend that base class in `@DataJpaTest` and `@SpringBootTest` tests.
+> - **`@WebMvcTest` security:** add `@Import(SecurityConfig.class)` so the `403` tests see the real path rules.
+> - **`AssessmentDeletedEvent`:** listeners are synchronous `@EventListener` methods with `@Transactional(propagation = MANDATORY)`. They run in the deleting transaction, which holds `SET LOCAL nifty.allow_purge = 'on'`. This is the one exception to the AFTER_COMMIT rule. `AttemptCompletedEvent` stays `@TransactionalEventListener(phase = AFTER_COMMIT)`.
+> - **`ChatClient`:** no slice defines a `@Bean ChatClient`. Each slice builds its own client from the injected `ChatClient.Builder` inside its service.
+> - **`@EnableAsync` / `@EnableScheduling`:** a slice that needs one puts it on a `@Configuration` class in its own `service/` package, with a bounded executor.
+> - **Foreign keys across slices:** store the foreign `UUID` without a database FK to a table of another slice (for example `professor_id`). Only rows inside the same slice use FKs.
+> - **Shared files:** `docs/api.md`, `CHANGELOG.md`, `docs/feature_backlog.md`, `docs/feature_history.md` and `frontend/src/api/` change in several branches. Edit only your own section, run `git merge origin/dev` before the PR, and keep both sides on a conflict. Write the history entry with `PR/MR: pending` and fill it in after the PR opens.
 
 ## 2. Parallel Delivery Waves & Mocking Strategy
 
@@ -39,7 +50,7 @@ flowchart LR
 **How everyone starts immediately without waiting idle:**
 - **Wave 0** (`backend-foundation` with the US-BF-06 stubs, `frontend-foundation`) runs first via `orchestrate-changes`. **Wave 1** (`auth-accounts`, `audit-log-service`) can run beside the teammates, because the stubs let them mock `AuthContextService` and `AuditService`.
 - **#2 Teammate A (`context`)** has zero DB tables and can start immediately in Wave 1 (mock `AuditService` in unit tests).
-- **#1 Teammate R (`studio`)** merges `US-ST-01` (`StudioQueryService` + 4 JSON fixtures) first so `#3`, `#4`, and `#5` can import or mirror the exact contract records.
+- **#1 Teammate R (`studio`)** implements `StudioQueryService` behind the US-BF-06 stub. Teammates #3, #4 and #5 import the stub records directly and never copy them.
 - **#3 Teammate S (`assessment`), #4 Teammate M (`evaluation`), and #5 Teammate C (`teams`)** can each begin all pure-JVM unit tests (`US-*-01`..`US-*-04`) immediately in parallel by mocking upstream `@Service` interfaces (`StudioQueryService`, `ContextCreationService`, `AssessmentQueryService`, `EvaluationQueryService`, `AuditService`) using the exact signatures below, then merge `origin/dev` once upstream waves merge. Each owner replaces the stub of their own interface with the real implementation.
 
 ## 3. Locked Java Interfaces, Record DTOs & Domain Events
@@ -101,14 +112,14 @@ public interface StudioQueryService {
     TeamView        teamView(UUID configId);
 }
 
-// studio/service/view/ — typed enums; JSON and DB use the same upper-case names
+// studio/service/view/ — typed enums. Every §3 enum stub carries @JsonValue with its JSON/DB literal (for example "N/A", "follow_up", "auto_released").
 public enum GroupingMode { HARD_SKILLS, SOFT_SKILLS, COMBINED }
 public enum SoftPreset { ENGINEERING_DEFAULT, EQUAL_WEIGHTS, CUSTOM }
 
 // studio/service/view/ — STRICT RUBRIC GUARD: InterviewerView & InterviewerQuestion NEVER carry rubric/weight/threshold/coverage
 public record InterviewerView(
         UUID configId,
-        String configVersion,              // "v1"
+        String configVersion,              // "v1" in records; the DB stores version INT 1
         String vision,
         int maxAttempts,
         boolean inventedQuestionsEnabled,
@@ -177,12 +188,15 @@ public record TeamView(
 public interface ContextCreationService {
     BuiltPromptContext buildInterviewerContext(InterviewerContextInput input);
     BuiltPromptContext buildJudgeContext(JudgeContextInput input);
-    SanitizationReport inspectCandidateInput(String rawCandidateText);
+    // Only context writes the PROMPT_INJECTION_DETECTED audit row (entityId = attemptId). assessment never audits it.
+    SanitizationReport inspectCandidateInput(UUID attemptId, String rawCandidateText);
 }
 
 // context/service/dto/
 public enum AgentRole { INTERVIEWER, EVALUATOR_JUDGE }
 public record PromptMessage(String role, String content) {}
+// Parse target of the evaluator judge JSON (REQ-EP-08, Decision 2.25). evaluation validates level 0..4.
+public record JudgeEvaluationOutput(int level, String verbatimQuote, String rationale, String suggestion) {}
 public record SanitizationReport(boolean injectionSuspected, List<String> matchedRuleIds, boolean truncated) {}
 public record BuiltPromptContext(
         AgentRole agentRole,
@@ -252,6 +266,7 @@ public record ImmutableTranscriptView(
         List<TranscriptEntryView> entries
 ) {}
 
+// One entry = one question/answer pair. entryId is the ID of the candidate-answer row in conversation_entry.
 public record TranscriptEntryView(
         UUID entryId,
         int seq,

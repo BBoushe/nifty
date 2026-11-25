@@ -15,7 +15,7 @@
 6. **Extensible architecture:** Implement `PromptContextBuilder<I>` + `AgentRole` so Post-MVP builders (UX-10 advice, Team Mode B) plug in without modifying Agent 1 or Agent 2.
 
 ## Exposes / Consumes
-- **Exposes:** `ContextCreationService` (`buildInterviewerContext`, `buildJudgeContext`, `inspectCandidateInput`), `POST /api/v1/ranking/context/preview/interviewer` (`PROFESSOR` only).
+- **Exposes:** `ContextCreationService` (`buildInterviewerContext`, `buildJudgeContext`, `inspectCandidateInput(attemptId, text)`), `POST /api/v1/ranking/context/preview/interviewer` (`PROFESSOR` only).
 - **Consumes:** `AuditService.record(...)` (`audit`). Zero other slice dependencies!
 
 ## Ready-to-Paste Agent Launch Prompt
@@ -23,8 +23,8 @@
 ```text
 You are implementing the `context` vertical slice (`context-creation`) for Nifty.
 Setup (do this before anything else):
-1. Prerequisite check: run `git fetch origin && git show origin/dev:backend/src/main/java/de/fhdortmund/nifty/audit/service/AuditService.java > /dev/null`. If it fails, Wave 0 (`backend-foundation` with the US-BF-06 contract stubs, and `frontend-foundation`) is not on `dev` yet. Stop and tell the human.
-2. From the main checkout, run `git worktree add ../nifty-context-creation -b feat/context-creation origin/dev`. Work only in `../nifty-context-creation` and confirm it with `pwd` before each command. Ask the human to copy `.env` into the worktree. Never read `.env` yourself.
+1. Prerequisite check: run `git fetch origin && git show origin/dev:backend/src/main/java/de/fhdortmund/nifty/audit/service/AuditService.java > /dev/null && git show origin/dev:frontend/package.json | grep -q '"test":'`. If it fails, Wave 0 (`backend-foundation` with the US-BF-06 contract stubs, and `frontend-foundation`) is not on `dev` yet. Stop and tell the human.
+2. From the main checkout, run `git worktree add ../nifty-context-creation -b feat/context-creation origin/dev`. Start every Bash command with `cd /absolute/path/to/nifty-context-creation && pwd`, and pass only absolute worktree paths to Edit/Write. `forge.mjs` reads `.env` from the main checkout, so do not copy it. Never read `.env` yourself.
 3. The shared interfaces, records and enums of `docs/tickets/00-parallel-waves-and-contracts.md` §3 already exist as stubs on `dev`. Implement only the ones your slice owns. Mock the others. Never create a second copy of a shared type.
 
 Read these files first (do NOT scan the whole source tree):
@@ -34,7 +34,7 @@ Read these files first (do NOT scan the whole source tree):
 4. `openspec/changes/context-creation/{proposal.md,design.md,tasks.md,specs/context-creation/spec.md}`
 
 Non-negotiable rules:
-- Never merge. Ask the human before you push or open the PR/MR. Update `tasks.md` `## Status` before every stop, so another session can resume.
+- Use the `spec-implementer` skill for the tasks and the `pr-memo` skill for the PR/MR body. Commit after each task, but push only after the human says yes. Never merge. Ask the human before you push or open the PR/MR. Update `tasks.md` `## Status` before every stop, so another session can resume.
 - Follow TDD strictly (RED failing test -> GREEN minimal code -> REFACTOR) for US-CC-01 through US-CC-06 in `tasks.md`.
 - Keep `context` stateless (`web/` and `service/` only; no `repository/` or Flyway migration).
 - Implement exact `ContextCreationService` and `context/service/dto/*` signatures from `docs/tickets/00-parallel-waves-and-contracts.md`.
