@@ -64,7 +64,7 @@ description: Java 21, Spring Boot 4, Spring AI 2.0, Flyway, PostgreSQL, and team
    |---|---|---|
    | Unit (~80%) | JUnit 5, Mockito, AssertJ, pure JVM | Domain logic, calculators, validators |
    | Web slice | `@WebMvcTest` + `@MockitoBean` services (Boot 4: not `@MockBean`) | Controllers, validation, error mapping |
-   | Persistence slice | `@DataJpaTest` + PostgreSQL Testcontainers (from the first `@Entity`). H2 cannot run JSONB. | Repositories, queries, Flyway |
+   | Persistence slice | `@DataJpaTest` + PostgreSQL Testcontainers. Every `@SpringBootTest` and `@DataJpaTest` extends `de.fhdortmund.nifty.PostgresContainerBase` (Decision 1.22). H2 cannot run JSONB or triggers. | Repositories, queries, Flyway |
    | Architecture | ArchUnit `ArchitectureTest` | §9 rules |
 
    Test output is quiet by design (`.mvn/maven.config` `-ntp`, profile `test`: no banner, root `WARN`). Spring tests use `@ActiveProfiles("test")`.

@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-25 — backend-foundation
+- **What:** Moved to the `webmvc` starter and the Spring AI 2 model property. All Spring tests now run on PostgreSQL Testcontainers (`PostgresContainerBase`), and H2 is gone. The GitLab backend job uses `docker:dind`. Added `FieldValidationException` (400 with `errors[]`), the two cross-slice events, and compile-only stubs of every contract-pack interface, record and enum with 6 placeholder beans. `RoleAccessTest` probes unmapped paths.
+- **Why:** The five teammate tickets need the shared types in code, a database that runs JSONB and triggers, and one validation error format before they start.
+- **PR/MR:** pending
+- **Specs:** REQ-BF-01..03 (change-local, archived with `--skip-specs`)   **Decisions:** 1.22; applies 1.10, 1.18, 1.19
+
 ## 2026-11-25 — five-service-convergence
 - **What:** Merged five teammate service designs into one contract: 7 backend slices, UUID keys, shared events, professor routes under `/api/v1/ranking/**`, one-shot immutable assessments, question-only weights, grouping modes, injection flags, separate per-attempt contexts and machine-parsable evaluator output. Replaced Timefold with a seeded Simulated Annealing optimizer. Added the `context-creation` spec, five teammate changes and the tickets in `docs/tickets/`.
 - **Why:** The five designs disagreed on IDs, events, routes, weights and the solver. One contract lets the teammates build in parallel against mocks.

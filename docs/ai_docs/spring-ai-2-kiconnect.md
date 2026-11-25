@@ -36,7 +36,7 @@ spring.ai.openai:
 - Spring AI 2.0 removes the `.options` segment from most chat property keys. Old `.options` aliases still work. [4]
 - `OpenAiChatProperties.getOptions()` carries `@Deprecated(since = "2.0.0", forRemoval = true)`. [5: OpenAiChatProperties.java, v2.0.0]
 - The key `spring.ai.openai.chat.options.model` is therefore deprecated. Use `spring.ai.openai.chat.model`. [1][5]
-- The project application.yml still uses `chat.options.model`. Migrate it to `chat.model`. [7]
+- The project application.yml uses `chat.model` (migrated in `backend-foundation`). [7]
 
 ## Base URL and path
 - Spring AI has no `completions-path` property for OpenAI in 2.0. The property classes do not define one. [5: OpenAiChatProperties.java, AbstractOpenAiProperties.java]

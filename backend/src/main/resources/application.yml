@@ -24,8 +24,7 @@ spring:
       api-key: ${KICONNECT_API_KEY:not-configured}
       base-url: ${AI_EVALUATOR_BASE_URL:https://chat.kiconnect.nrw/api/v1}
       chat:
-        options:
-          model: ${AI_EVALUATOR_MODEL:OpenAI GPT OSS 120B}
+        model: ${AI_EVALUATOR_MODEL:OpenAI GPT OSS 120B}
 
 nifty:
   ai:

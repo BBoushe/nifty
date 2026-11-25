@@ -200,3 +200,12 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Alternatives Considered:** One shared context object for both agents; filtering a shared context before each call
 - **Rationale / Justification:** Isolation by construction: data that the builder never reads cannot leak, so no filter or extra check is needed.
 - **Affected Files / Pointers:** openspec/specs/context-creation/spec.md, openspec/specs/assessment-chat/spec.md, docs/architecture.md
+
+## 1.22 — All Spring tests run on PostgreSQL Testcontainers from Wave 0
+- **Date:** 2026-11-25
+- **Triggered By:** team
+- **Context:** Decision 1.10 kept the Spring tests on H2 until the first @Entity. The teammate slices add JSONB columns and plpgsql immutability triggers, which H2 cannot run. The third ticket review found that the shared @SpringBootTest tests would break.
+- **Decision:** Every Spring test (@SpringBootTest, @DataJpaTest) extends de.fhdortmund.nifty.PostgresContainerBase, which starts one postgres:17-alpine container with @ServiceConnection. H2 is gone from the tests. The GitLab backend job runs Testcontainers through a docker:dind service. Supersedes the H2 part of 1.10.
+- **Alternatives Considered:** Keep H2 and skip trigger tests; a separate integration-test profile
+- **Rationale / Justification:** Tests run on the same database as production, so triggers, JSONB and Flyway are tested for real before five slices depend on them.
+- **Affected Files / Pointers:** backend/src/test/java/de/fhdortmund/nifty/PostgresContainerBase.java, .gitlab-ci.yml, docs/feature_backlog.md
