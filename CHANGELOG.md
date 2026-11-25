@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Bash guard gaps (post-merge review of PR #7):** the guard now finds `-c` after other shell options (`bash -euo pipefail -c …`) and in `dash`/`ksh`, attached or `=` command strings (`env --split-string=…`, `rtk run -c"…"`), abbreviated `--no-verify`/`--force*`, `-fu`, `+` refspecs, `HEAD`/`@` destinations, `git -c core.hooksPath=…`, commands after `&`, in `( … )`, `{ …; }`, `if`/`while`, `$( … )` and behind `exec`/`timeout`/`nohup`, add/commit chaining through command strings, pipes into a bare shell, and globs that match a secret env file.
+
 ### Changed
 - **PR-only `dev` (Decision 3.10):** every change, including `docs:` and `hotfix:` commits, now reaches `dev` through a PR, matching the GitHub `dev` ruleset. The harness upgrade board records the outcome and lessons, and the archived F1–F5 `tasks.md` Status blocks show the merges.
 

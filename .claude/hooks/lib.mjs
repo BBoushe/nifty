@@ -68,49 +68,82 @@ const WRAPPER_VALUE_FLAGS = {
   time: [],
   sudo: ['-u', '-g', '-C', '-h', '-p', '-r', '-t', '-U', '-D'],
   xargs: ['-I', '-n', '-P', '-L', '-s', '-d', '-E', '-a'],
+  exec: ['-a'],
+  nohup: [],
+  timeout: ['-s', '--signal', '-k', '--kill-after'], // then one duration operand
 };
+// Shell grouping tokens and keywords that only introduce the command after them.
+const SHELL_PREFIX_WORDS = new Set(['(', '{', '!', 'if', 'then', 'else', 'elif', 'do', 'while', 'until']);
 // `proxy` is the deprecated alias of `bypass`; all of these run the command that follows.
 const RTK_PASSTHROUGH = ['proxy', 'bypass', 'err', 'test', 'summary'];
 
-function skipFlags(tokens, idx, valueFlags, stopFlags = []) {
+/**
+ * If `value` is a command-string flag of `wrapper` (`'env'`, `'rtk-run'` or `'any'`), return
+ * `{ inline }`: the string attached to the flag, or null when the string is the next token.
+ * Otherwise return null. The one place that lists these flags (`env -S`, `rtk run -c`).
+ */
+export function commandStringFlag(value, wrapper = 'any') {
+  const forms = [];
+  if (wrapper !== 'rtk-run') forms.push(/^--split-string(?:=(.*))?$/s, /^-[iv0]*S(.*)$/s);
+  if (wrapper !== 'env') forms.push(/^--command(?:=(.*))?$/s, /^-c(.*)$/s);
+  for (const re of forms) {
+    const m = re.exec(value);
+    if (m) return { inline: m[1] || null };
+  }
+  return null;
+}
+
+function skipFlags(tokens, idx, valueFlags, isStop = () => false) {
   while (idx < tokens.length) {
     const v = tokens[idx].value;
-    if (!v.startsWith('-') || stopFlags.includes(v)) break;
+    if (!v.startsWith('-') || isStop(v)) break;
     idx += valueFlags.includes(v) ? 2 : 1;
   }
   return idx;
 }
 
 /**
- * Strip leading env assignments (`CI=true npm run build`) and pass-through wrappers
- * (`env`, `command`, `nice`, `time`, `sudo`, `xargs`, `rtk [flags] [proxy|bypass|err|test|summary|run]`)
- * in any order, so every guard sees the real command. RTK's PreToolUse hook rewrites `git ...` to
- * `rtk git ...`. Peeling stops on a command-string flag (`env -S`, `rtk run -c|--command`) and
- * leaves it first, so guard-bash can evaluate the string (Decision: design.md §1-§2).
- * shortcut: interpreter one-liners (python -c, node -e), here-docs into a shell, find -exec, and scripts run by path are not inspected; extend the command-string table in guard-bash.mjs if agents start using them.
+ * Strip leading env assignments (`CI=true npm run build`), shell group/keyword prefixes (`(`, `{`, `if`, `!`, …)
+ * and pass-through wrappers (`env`, `command`, `nice`, `time`, `sudo`, `xargs`, `exec`, `timeout`, `nohup`,
+ * `rtk [flags] [proxy|bypass|err|test|summary|run]`) in any order, so every guard sees the real command.
+ * RTK's PreToolUse hook rewrites `git ...` to `rtk git ...`. Peeling stops on a command-string flag
+ * (`commandStringFlag`) and leaves it first, so guard-bash can evaluate the string.
+ * See openspec/changes/archive/*-bash-guard-hardening/design.md and *-bash-guard-gaps/design.md.
+ * shortcut: interpreter one-liners (python -c, node -e), find -exec, and scripts run by path are not inspected; extend extractCommandString in guard-bash.mjs if agents start using them.
  */
 export function stripLeadingEnvAssignments(tokens) {
   let idx = 0;
   for (;;) {
     const t = idx < tokens.length ? tokens[idx].value : '';
     const name = t.split('/').pop();
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) idx += 1;
-    else if (Object.hasOwn(WRAPPER_VALUE_FLAGS, name)) {
-      const stop = name === 'env' ? ['-S', '--split-string'] : [];
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t) || (!tokens[idx]?.quoted && SHELL_PREFIX_WORDS.has(t))) idx += 1;
+    else if (!tokens[idx]?.quoted && /^[({]+./.test(t)) {
+      // `(git push ...)`: drop the group opener stuck to the command and look again.
+      tokens = [...tokens.slice(0, idx), { ...tokens[idx], value: t.replace(/^[({]+/, '') }, ...tokens.slice(idx + 1)];
+    } else if (Object.hasOwn(WRAPPER_VALUE_FLAGS, name)) {
+      const stop = name === 'env' ? (v) => commandStringFlag(v, 'env') : undefined;
       idx = skipFlags(tokens, idx + 1, WRAPPER_VALUE_FLAGS[name], stop);
+      if (name === 'timeout') idx += 1;
     } else if (name === 'rtk') {
       idx = skipFlags(tokens, idx + 1, []);
       const sub = tokens[idx]?.value;
       if (RTK_PASSTHROUGH.includes(sub)) idx += 1;
-      else if (sub === 'run') idx = skipFlags(tokens, idx + 1, ['--shell'], ['-c', '--command']);
+      else if (sub === 'run') idx = skipFlags(tokens, idx + 1, ['--shell'], (v) => commandStringFlag(v, 'rtk-run'));
     } else break;
   }
-  return tokens.slice(idx);
+  const out = tokens.slice(idx);
+  const last = out[out.length - 1];
+  // `(git push origin master)`: an unquoted trailing `)` closes the group, it is not part of the argument.
+  if (last && !last.quoted && /[^)]\)+$/.test(last.value)) {
+    out[out.length - 1] = { ...last, value: last.value.replace(/\)+$/, '') };
+  }
+  return out;
 }
 
 /**
- * Extract `{ subcommand, args }` from tokenized git command, skipping global
+ * Extract `{ subcommand, args, globals }` from tokenized git command, skipping global
  * flags that take a separate value (`-C`, `-c`, `--git-dir`, `--work-tree`, `--namespace`).
+ * `globals` holds the tokens between `git` and the subcommand (for `-c core.hooksPath=…`).
  */
 export function getGitSubcommand(tokens) {
   const cleaned = stripLeadingEnvAssignments(tokens);
@@ -137,9 +170,34 @@ export function getGitSubcommand(tokens) {
       i += 1;
       continue;
     }
-    return { subcommand: tok, args: cleaned.slice(i + 1) };
+    return { subcommand: tok, args: cleaned.slice(i + 1), globals: cleaned.slice(1, i) };
   }
   return null;
+}
+
+/**
+ * True when an unquoted glob argument (`.en?`, `.e*`, `.[e]nv`, `.*`) would match a secret env file.
+ * The example file stays allowed.
+ */
+export function globMatchesEnv(input) {
+  if (typeof input !== 'string' || !/[*?[]/.test(input) || /\.env\.example$/i.test(input)) return false;
+  return input.split('/').some((seg) => {
+    // Only a literal leading `.` can match a dotfile (default shell globbing).
+    if (!seg.startsWith('.') || !/[*?[]/.test(seg)) return false;
+    const body = seg
+      .replace(/[.+^${}()|\\]/g, '\\$&')
+      .replace(/\*/g, '[^/]*')
+      .replace(/\?/g, '[^/]')
+      .replace(/\[!/g, '[^')
+      .replace(/\[\\\^/g, '[^') // `[^x]` was escaped to `[\^x]` above
+      .replace(/\[:[a-z]+:\]/g, '\\s\\S');
+    try {
+      const re = new RegExp(`^${body}$`, 'i');
+      return re.test('.env') || re.test('.env.local');
+    } catch {
+      return false; // not a valid glob class, so the shell passes it literally
+    }
+  });
 }
 
 /**
@@ -193,6 +251,15 @@ export function splitShellSegments(command) {
       continue;
     }
 
+    // bash ends a backtick substitution at the next unescaped backtick, whatever quotes are inside it.
+    if (ch === '`' && !inSingle) {
+      let j = i + 1;
+      while (j < command.length && command[j] !== '`') j += command[j] === '\\' ? 2 : 1;
+      current += command.slice(i, j + 1);
+      i = j;
+      continue;
+    }
+
     if (ch === "'" && !inDouble) {
       inSingle = !inSingle;
       current += ch;
@@ -212,6 +279,13 @@ export function splitShellSegments(command) {
         i += 1;
         continue;
       }
+      // A single `&` runs the left side in the background; `2>&1`, `>&2`, `&>` are redirections.
+      const prev = command[i - 1] ?? '';
+      if (ch === '&' && prev !== '>' && prev !== '<' && next !== '>') {
+        if (current.trim()) segments.push(current.trim());
+        current = '';
+        continue;
+      }
       if (ch === ';' || ch === '|' || ch === '\n') {
         if (current.trim()) segments.push(current.trim());
         current = '';
@@ -226,6 +300,90 @@ export function splitShellSegments(command) {
   return segments;
 }
 
+// The only commands whose quoted heredoc text the guard treats as data, never as code.
+const TEXT_COMMAND_RE = /^\s*(?:rtk\s+)?(?:git|gh|glab)\s/;
+// Flags whose value is message text in git/gh/glab.
+// `<<-` is not accepted: bash ends it at a tab-indented delimiter.
+const TEXT_FLAG_RE = /(\s(?:-m|-F|--message|--body|--title|--description|--notes)[=\s]+)"\$\(cat <<(['"])(\w+)\2\n([\s\S]*?)\n\3\n\)"/g;
+
+/** Quote state at the end of `text`: true when it ends outside quotes and has no substitution. */
+function isPlainPrefix(text) {
+  if (/\$\(|`/.test(text)) return false;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '\\' && !inSingle) i += 1;
+    else if (ch === "'" && !inDouble) inSingle = !inSingle;
+    else if (ch === '"' && !inSingle) inDouble = !inDouble;
+    else if (!inSingle && !inDouble && /[;&|\n#<>()]/.test(ch)) return false;
+  }
+  return !inSingle && !inDouble;
+}
+
+/**
+ * True when every shell reads `body` the same way inside `"$(cat <<'X' … X)"`: no line starts with the
+ * delimiter (bash ends the heredoc at `X` or, in bash 3.2, at `X)`), parentheses balance (bash 3.2 closes
+ * the substitution at an unbalanced `)`), and quote and backtick counts are even.
+ */
+function isUnambiguousBody(body, delim) {
+  if (body.split('\n').some((line) => line.startsWith(delim))) return false;
+  let depth = 0;
+  for (const ch of body) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')' && --depth < 0) return false;
+  }
+  if (depth !== 0) return false;
+  for (const q of ["'", '"', '`']) {
+    if (body.split(q).length % 2 === 0) return false; // odd count
+  }
+  return true;
+}
+
+/**
+ * Allow-list of heredocs that only carry message text (Decision: bash-guard-gaps design §6):
+ *  - `git|gh|glab … -m|-F|--message|--body|--title|--description|--notes "$(cat <<'X'⏎…⏎X⏎)"`,
+ *    when everything before it in the command is plain arguments of that one command;
+ *  - `git|gh|glab … -F -|--file -|--body-file - … <<'X'` as the whole first line (`git commit -F - <<'EOF'`),
+ *    when the text before `<<` is plain arguments.
+ * Returns `{ text, bodies }`: `text` has those bodies removed; callers still scan `bodies` as data.
+ * Every other heredoc stays in place, so its lines are checked as commands.
+ */
+export function stripTextHeredocs(command) {
+  const bodies = [];
+  let text = command;
+
+  const first = /^(\s*(?:rtk\s+)?(?:git|gh|glab)\s[^;&|`$()<>\n#]*)<<(['"])(\w+)\2[ \t]*\n/.exec(text);
+  const readsStdin = (head) => /\s(?:-F|--file|--body-file)[=\s]+-(?=\s)/.test(`${head} `);
+  // The text before `<<` must be plain arguments: no open quote and no `\` that turns `<<` into `\<`.
+  if (first && isPlainPrefix(first[1]) && !/\\$/.test(first[1]) && readsStdin(first[1])) {
+    const [, head, quote, delim] = first;
+    const lines = text.slice(first[0].length).split('\n');
+    const end = lines.findIndex((l) => l === delim);
+    if (end !== -1) {
+      bodies.push(lines.slice(0, end).join('\n'));
+      text = `${head}<<${quote}${delim}${quote}\n${lines.slice(end).join('\n')}`;
+    }
+  }
+
+  if (TEXT_COMMAND_RE.test(text)) {
+    let out = '';
+    let pos = 0;
+    let m;
+    TEXT_FLAG_RE.lastIndex = 0;
+    while ((m = TEXT_FLAG_RE.exec(text)) !== null) {
+      const prefix = out + text.slice(pos, m.index) + m[1];
+      const [, , , delim, body] = m;
+      if (!isPlainPrefix(prefix) || !isUnambiguousBody(body, delim)) break;
+      bodies.push(body);
+      out = `${prefix}"heredoc-text"`;
+      pos = TEXT_FLAG_RE.lastIndex;
+    }
+    text = out + text.slice(pos);
+  }
+  return { text, bodies };
+}
+
 /**
  * Tokenize a single shell segment respecting single and double quotes.
  * Each token keeps `{ value, quoted }` so message flags can be distinguished cleanly.
@@ -237,6 +395,7 @@ export function tokenizeSegment(segment) {
   let inDouble = false;
   let escaped = false;
   let quoted = false;
+  let globUnquoted = false;
   let hasToken = false;
 
   for (let i = 0; i < segment.length; i += 1) {
@@ -266,19 +425,21 @@ export function tokenizeSegment(segment) {
     }
     if (!inSingle && !inDouble && /\s/.test(ch)) {
       if (hasToken) {
-        tokens.push({ value: current, quoted });
+        tokens.push({ value: current, quoted, globUnquoted });
         current = '';
         quoted = false;
+        globUnquoted = false;
         hasToken = false;
       }
       continue;
     }
+    if (!inSingle && !inDouble && (ch === '*' || ch === '?' || ch === '[')) globUnquoted = true;
     current += ch;
     hasToken = true;
   }
 
   if (hasToken) {
-    tokens.push({ value: current, quoted });
+    tokens.push({ value: current, quoted, globUnquoted });
   }
   return tokens;
 }

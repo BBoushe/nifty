@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-25 — bash-guard-gaps
+- **What:** Closed the bash guard gaps that two cold reviews found after PR #7: `-c` after other shell options and in `dash`/`ksh`, attached or `=` command strings, abbreviated `--no-verify`/`--force*`, `+` refspecs, `HEAD`/`@` destinations, `core.hooksPath` overrides, commands in groups, keywords and substitutions, pipes into a bare shell, and globs that match the secret env file. Quoted heredoc bodies now count as text.
+- **Why:** PR #7 merged without a review. Its own requirements (REQ-BG-02, REQ-BG-04) were not met, and only this guard stops agents from reading the secret env file.
+- **PR/MR:** GitHub #13, GitLab !12
+- **Specs:** REQ-BG-06 to REQ-BG-13   **Decisions:** 3.10
+
 ## 2026-11-24 — ai-context-docs
 - **What:** Added this feature history with a test that keeps it complete, a feature backlog and `docs/ai_docs/` library notes. Added the vetted `asd-ste100` skill, an STE writing rule and three `AGENTS.md` dispatch rows.
 - **Why:** Agents could not see what was built, what to pick next, or current APIs for Spring Boot 4, Spring AI 2 and Timefold 2.
