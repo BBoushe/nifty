@@ -69,12 +69,33 @@ export function parseSafeEnvContent(content) {
 }
 
 /**
+ * The `.env` to read: the folder's own, or, in a linked git worktree without one, the main checkout's
+ * (Decision 3.11), so `forge.mjs` works in `../nifty-<change>` without copying `.env`.
+ */
+export function findEnvPath(absRoot) {
+  const local = path.join(absRoot, '.env');
+  if (fs.existsSync(local)) return local;
+  try {
+    const common = execFileSync('git', ['-C', absRoot, 'rev-parse', '--path-format=absolute', '--git-common-dir'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    // Only a normal `<main>/.git` folder names the main checkout; bare repos and `--separate-git-dir` do not.
+    const shared = path.join(path.dirname(common), '.env');
+    if (path.basename(common) === '.git' && fs.existsSync(shared)) return shared;
+  } catch {
+    // not a git repository: keep the local path
+  }
+  return local;
+}
+
+/**
  * Resolve active forge config from `.env` (fallback `.env.example`, then defaults)
  * without ever returning secret values.
  */
 export function resolveForgeConfig(rootDir = process.cwd(), envOverride = process.env) {
   const absRoot = path.resolve(rootDir);
-  const envPath = path.join(absRoot, '.env');
+  const envPath = findEnvPath(absRoot);
   const examplePath = path.join(absRoot, '.env.example');
 
   const exampleParsed = fs.existsSync(examplePath)

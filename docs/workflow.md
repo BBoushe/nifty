@@ -62,6 +62,7 @@ GitHub (`origin`) is primary. GitLab (`gitlab`) is the secondary course repo. Ne
 | Step | Command |
 |---|---|
 | Push current branch to both (GitHub first. Stops if GitHub fails) | `node scripts/forge.mjs push` |
+| Show open PRs and MRs side by side, with CI state | `node scripts/forge.mjs prs` |
 | Open PR **and** MR with the same text | `node scripts/forge.mjs pr --title "<conventional title>" --body-file <file>` |
 | After merging the PR **on GitHub**, fast-forward GitLab (`dev`/`alpha`/`master`) | `node scripts/forge.mjs sync` |
 | Check for drift between the two | `node scripts/forge.mjs status` |
@@ -119,6 +120,17 @@ No developer is tied to a single harness (Kiro Crew, T3 Code, Claude Code, Antig
 | **Independent Test Writer** | Separate `test-writer` session | Writes JUnit 5 / Vitest tests strictly from `openspec/` EARS criteria (`tests-only` paths). |
 | **Cold Reviewer / Auditor** | Fresh Antigravity (`agy`) or Claude `reviewer` session | Read-only audit of `git diff dev...HEAD` against `openspec/` + `AGENTS.md` invariants (<=30-line report). |
 | **Approver** | Human Teammate | Reviews PRs, checks evidence/tests, approves merges into `alpha` (>=2) and `master` (>=4). |
+
+### Orchestrated Delivery (Decision 3.11)
+
+One Claude Code session can run several changes at once with the [`orchestrate-changes`](../.agents/skills/orchestrate-changes/SKILL.md) skill. You talk to that session only:
+
+- A builder agent per change works in its own `../nifty-<change>` worktree. Every command starts with a `pwd` check.
+- A fresh cold reviewer agent checks each PR.
+- The orchestrator opens and tracks PRs/MRs by branch name. `node scripts/forge.mjs prs` shows each branch's GitHub PR and checks next to its GitLab MR and pipeline.
+- Agents never merge. Before every merge, the orchestrator asks you and first summarises the change's high-level architecture decisions, the review verdict and the CI state.
+
+Other tools follow the same steps by hand, with one session per change.
 
 ### Using Optional Wrappers (Kiro Crew & T3 Code) vs. Direct CLI
 

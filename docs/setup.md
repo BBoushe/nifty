@@ -81,6 +81,8 @@ This section is the **canonical source of truth** for any AI agent that must und
 | `.claude/hooks/archive-gate.mjs` | Archive gate (Decision 3.8): lists changes whose tasks above `## Delivery` are all `[x]` but still sit outside `openspec/changes/archive/`. Modes: `--stop-hook` and `--pre-push`. A repo-invariant test is in `hooks.test.mjs` | Claude Code `Stop` hook, `.githooks/pre-push`, CI | **Canonical (Enforcement)** |
 | `.claude/settings.json` `hooks.Stop` | Runs `node .claude/hooks/archive-gate.mjs --stop-hook`. It blocks the stop with a reason that names each unarchived completed change. It allows the stop when `stop_hook_active` is set | Claude Code | **Adapter** |
 | `.claude/settings.json` `enabledPlugins` | Declares `superpowers@claude-plugins-official` (Decision 3.7). Declaring it does not install it. Each teammate runs `claude plugin install superpowers@claude-plugins-official --scope project` once per clone. Other tools use the inline Build Loop in `.claude/agents/spec-builder.md` | Claude Code | **Adapter** |
+| `.agents/skills/orchestrate-changes/` | Orchestrator procedure (Decision 3.11): builder agents per change in `../nifty-<change>` worktrees, a cold reviewer per PR, PR/MR handling by branch, merge order, and a user question with an architecture summary before every merge. Symlinked to `.claude/skills/orchestrate-changes` | Claude Code (other tools follow it by hand) | **Canonical (Delivery)** |
+| `scripts/forge.mjs prs` | Prints each open branch's GitHub PR and checks next to its GitLab MR and pipeline. `forge.mjs` also reads the main checkout's `.env` from a worktree | All tools | **Canonical (Forge)** |
 
 ### 2. Modification Rules (Zero-Drift Policy)
 

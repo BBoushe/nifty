@@ -93,3 +93,12 @@ Engineering workflow, AI harness governance, coding standards, and review polici
 - **Alternatives Considered:** Add a ruleset bypass for docs: pushes (needs an admin bypass actor and a second policy layer); tighten the local hooks too (more code and tests for no extra safety, since GitHub already rejects).
 - **Rationale / Justification:** Matches the server behaviour that already exists, keeps one rule, and needs no ruleset or hook change.
 - **Affected Files / Pointers:** .agents/rules/git-workflow.md, AGENTS.md, docs/workflow.md, .github/rulesets/dev.json
+
+## 3.11 — Orchestrated multi-agent delivery from one session
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** Running one terminal session per change and managing GitHub PR numbers next to different GitLab MR numbers was too much manual work. The F6 rewrite already ran as subagents from one session and worked.
+- **Decision:** One orchestrator session runs the parallel changes: a builder subagent per change in its own ../nifty-<change> worktree (pwd check on every command), a fresh cold reviewer subagent per PR, PR/MR handling keyed by branch name (forge.mjs prs/pr/push/sync), and the merge order. Agents never merge. The orchestrator asks the user before every merge and first gives a short summary of the high-level architecture decisions of that change.
+- **Alternatives Considered:** One terminal session per change (the 2026-11-24 board); merging automatically on green CI plus an approving review.
+- **Rationale / Justification:** The user talks to one session and never needs PR/MR numbers; the per-merge architecture summary keeps a human steering direction; the tasks.md Status block keeps every change resumable from any tool.
+- **Affected Files / Pointers:** .agents/skills/orchestrate-changes/SKILL.md, scripts/forge.mjs, docs/workflow.md

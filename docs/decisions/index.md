@@ -48,6 +48,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **3.8** | — | Team & Process | Completed OpenSpec changes must be archived | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#38--completed-openspec-changes-must-be-archived) |
 | **3.9** | — | Team & Process | Parallel, resumable delivery by blast radius | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#39--parallel-resumable-delivery-by-blast-radius) |
 | **3.10** | — | Team & Process | All changes reach dev through a pull request | Decided | 2026-11-24 | prompter-change | [3-team-process.md](./3-team-process.md#310--all-changes-reach-dev-through-a-pull-request) |
+| **3.11** | — | Team & Process | Orchestrated multi-agent delivery from one session | Decided | 2026-11-25 | prompter-change | [3-team-process.md](./3-team-process.md#311--orchestrated-multi-agent-delivery-from-one-session) |
 <!-- DECISION_INDEX_END -->
 
 ---
