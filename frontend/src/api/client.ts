@@ -27,24 +27,28 @@ export class ApiProblem extends Error {
 const isProblem = (response: Response) =>
   response.headers.get('Content-Type')?.includes('application/problem+json') ?? false
 
+// HTTP/2 always sends an empty statusText, so fall back to the status code.
+const statusTitle = (response: Response) => response.statusText || `HTTP ${response.status}`
+
 async function toApiProblem(response: Response): Promise<ApiProblem> {
   if (isProblem(response)) {
     const body = await response.json().catch(() => ({}))
     return new ApiProblem(
       body.status ?? response.status,
-      body.title ?? response.statusText,
+      body.title ?? statusTitle(response),
       body.detail ?? '',
       Array.isArray(body.errors) ? body.errors : [],
     )
   }
-  return new ApiProblem(response.status, response.statusText, '')
+  return new ApiProblem(response.status, statusTitle(response), '')
 }
 
 export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init)
   if (!response.ok) throw await toApiProblem(response)
-  if (response.status === 204) return undefined as T
-  return (await response.json()) as T
+  // 204 or an empty 200/201 body has nothing to parse.
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 /** Parses one SSE block (lines between blank lines). Returns null when it has no data field. */
@@ -93,8 +97,7 @@ export async function* postSse(url: string, body?: unknown, init: RequestInit = 
       }
       if (done) break
     }
-    const rest = parseSseBlock(buffer)
-    if (rest) yield rest
+    // SSE standard: a block without its closing blank line is incomplete, so it is dropped.
   } finally {
     await reader.cancel().catch(() => undefined)
   }

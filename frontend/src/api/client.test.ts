@@ -68,6 +68,20 @@ describe('apiFetch (REQ-FF-02)', () => {
   })
 })
 
+describe('apiFetch edge cases', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('uses the status code as title when statusText is empty (HTTP/2)', async () => {
+    stubFetch(new Response('bad gateway', { status: 502, statusText: '' }))
+    await expect(apiFetch('/x')).rejects.toMatchObject({ status: 502, title: 'HTTP 502' })
+  })
+
+  it('returns undefined for an empty 201 body', async () => {
+    stubFetch(new Response('', { status: 201 }))
+    await expect(apiFetch('/x')).resolves.toBeUndefined()
+  })
+})
+
 describe('postSse (REQ-FF-03)', () => {
   it('yields 3 events in order across chunk boundaries, then ends', async () => {
     const fetchMock = stubFetch(
@@ -96,6 +110,11 @@ describe('postSse (REQ-FF-03)', () => {
   it('throws an ApiProblem on a failed POST', async () => {
     stubFetch(problem(409, { title: 'Conflict', status: 409, detail: 'Maximum attempts reached.' }))
     await expect(collect(postSse('/x'))).rejects.toMatchObject({ status: 409, detail: 'Maximum attempts reached.' })
+  })
+
+  it('drops a last block that has no closing blank line', async () => {
+    stubFetch(sseResponse(['data: one\n\n', 'data: {"half":']))
+    await expect(collect(postSse('/x'))).resolves.toEqual([{ event: 'message', data: 'one' }])
   })
 
   it('rejects a response that is not an event stream', async () => {

@@ -6,7 +6,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 
 ## 2026-11-25 — frontend-foundation
 - **What:** Added Vitest (jsdom, ECharts mock) and `npm run test` in both CI files. Added the PrimeVue 4 preset from Tailwind `@theme` tokens and `ScoreBadge`, which never shows `N/A` as `0`. Moved views into feature folders with one `routes.ts` each. Added the shared API client for RFC 9457 errors and SSE streams from a `POST`. `npm run typecheck` now checks the app sources.
-- **Why:** The five teammate tickets need a test runner, the design system, separate route files and one client, so they do not edit the same files.
+- **Why:** The five teammate tickets need a test runner, the design system, separate route files and one client. Then they do not edit the same files.
 - **PR/MR:** pending
 - **Specs:** REQ-FF-01..03 (change-local, archived with `--skip-specs`)   **Decisions:** 1.14
 
