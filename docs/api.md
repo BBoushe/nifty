@@ -74,6 +74,22 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 | `POST` | `/api/v1/auth/logout` | Public (CSRF) | — | `204` | Ends the session. `403` without the CSRF header (REQ-AA-06, `SecurityConfig`). |
 | `GET` | `/api/v1/auth/me` | Authenticated | — | `{ role, professorId }` | `role` is `PROFESSOR` or `CANDIDATE`. `professorId` is `null` for a candidate. `401` without a session. |
 | `POST` | `/api/v1/ranking/context/preview/interviewer` | `PROFESSOR` | `{ vision, targetSkillNames[], questionText, followUpLimit (0..3), inventedQuestionsEnabled? }` | `{ templateVersion, systemPrompt, promptSha256, rubricLeakCheckPassed }` | Dry run of the rubric-blind Agent 1 prompt for the opening question, with no conversation (`ContextController`, Decision 1.18). Stores nothing and calls no LLM. `rubricLeakCheckPassed` is `false` when the prompt holds a rubric, weight, threshold, score, confidence or BFI-10 term. It is a keyword check only: rubric prose without these words passes, and a skill named "Credit scoring" fails. `400` ProblemDetail with `errors[]` for a blank `vision`, `questionText` or skill name, an empty `targetSkillNames`, or a missing or out-of-range `followUpLimit`. `403` for `CANDIDATE`, `401` without a session. |
+| `POST` | `/api/v1/assessment/sessions` | `CANDIDATE` | — | `text/event-stream` (new attempt) or `SessionStateResponse` JSON | Starts the next attempt of the invite and streams question 1 (§4.1). A `SOFT_SKILLS`-only configuration answers JSON with `status: "BFI10"` and calls no LLM (REQ-AC-01). When the invite has an unfinished attempt, the call returns it as JSON with the same `attemptId` (Decision 1.21). `409` when the candidate has no attempts left (REQ-AC-11). |
+| `POST` | `/api/v1/assessment/sessions/{attemptId}/answers` | `CANDIDATE` | `{ content }` (0..4000 characters) | `text/event-stream` | Stores the answer, then streams the follow-up or next question, or `done` (§4.1). After `expiresAt` within the grace period (`nifty.assessment.grace-seconds`, default 5 s), the ledger keeps the text with `timedOut = true` (Decision 2.20). After the grace period, the call answers `409`. The ledger then records the question as timed out without text, and the next question opens. `409` when no question is open. `400` ProblemDetail with `errors[].field = content` for a missing or longer `content`. The ledger stays unchanged (REQ-AC-20, Decision 2.26). `403` for another candidate's attempt. |
+| `GET` | `/api/v1/assessment/sessions/{attemptId}` | `CANDIDATE` | — | `SessionStateResponse` | Resume after a reload (REQ-AC-06): `attemptId`, `status` (`IN_PROGRESS` \| `BFI10` \| `COMPLETED`), `attemptNo`, `bfi10Enabled`, `questionsRemaining` (core questions after the current one), `expiresAt` (open question only, else `null`), `messages[]` (`seq`, `author`, `content`, `createdAt`). No scores or flags (REQ-AC-03). `403` for another candidate's attempt, `404` for an unknown ID. |
+| `POST` | `/api/v1/assessment/sessions/{attemptId}/bfi10` | `CANDIDATE` | `{ items: [1..5 x 10] }` | `204` | Scores the 5 traits once in Java and completes the attempt (REQ-AC-15, Decision 4.3). `400` with one `errors[]` entry per missing or invalid item (`field: "items[6]"` for item 7). `409` when the attempt is not at `BFI10` or was already submitted. |
+
+### 4.1 Interview SSE Events (`assessment`)
+
+The start and answer endpoints send `text/event-stream` with `X-Accel-Buffering: no`. Each event has one `data:` line of JSON.
+
+| Event | `data` | Meaning |
+|---|---|---|
+| `delta` | `{ text }` | One part of the interviewer reply. Append the parts in order. |
+| `question` | `{ entryId, origin, expiresAt, questionsRemaining }` | Last event: the reply is complete, and the question is open until `expiresAt`. `origin` is `core` or `follow_up`. |
+| `done` | `{ status }` | Last event: the interview ended. `status` is `BFI10` (show the form) or `COMPLETED`. |
+
+If the interviewer LLM fails or sends no text, the stream sends the configured question text as one `delta`.
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
@@ -84,11 +100,8 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
   - `DELETE /api/v1/ranking/studio/configs/{id}/invites/{inviteId}` (`PROFESSOR`) → revoke an invite link.
 - **Studio (`studio`, `/api/v1/ranking/studio/configs/**`, `PROFESSOR` — Decisions 1.19, 2.21):**
   - Implemented (§4).
-- **Assessment Chat (`assessment`, `/api/v1/assessment/sessions/**`, `CANDIDATE` — Decisions 1.11, 2.20, 2.23, 2.24):**
-  - `POST /api/v1/assessment/sessions` → `text/event-stream` greeting + question 1 with `expiresAt` (or JSON `BFI10` start for `SOFT_SKILLS`-only). `409` if `max_attempts` is exceeded.
-  - `POST /api/v1/assessment/sessions/{id}/answers` (`{ content }`) → `text/event-stream` reply + next question with `expiresAt` or `done`. `409` after `expiresAt + grace` or invalid state. `400` ProblemDetail (`errors[].field = content`) when `content` is longer than 4000 characters; nothing is stored (REQ-AC-20, Decision 2.26).
-  - `GET /api/v1/assessment/sessions/{id}` → session state from ledger (`messages`, `status`, `questionsRemaining`, `expiresAt`, `bfi10Enabled`).
-  - `POST /api/v1/assessment/sessions/{id}/bfi10` (`{ items: [1..5 x 10] }`) → `204` (`400` naming each missing/invalid item, `409` if wrong state or already submitted).
+- **Assessment Chat (`assessment`, `/api/v1/assessment/sessions/**`, `CANDIDATE`):**
+  - Implemented (§4). Candidate sessions start working when `invite-links` replaces the `403` of `AuthContextService.currentCandidate()`.
 - **Evaluation, Matrix, Review, Cohort Gaps & Candidate Results (`evaluation` — Decisions 1.18, 1.19, 2.10, 2.22):**
   - `GET /api/v1/ranking/transcripts/{attemptId}` (`PROFESSOR`) → `assessment-transcript/v1` export (`*.transcript.json`) + `timedOut`/`pasteSuspected`/`injectionSuspected` markers.
   - `GET /api/v1/ranking/configs/{configId}/matrix` (`PROFESSOR`) → candidate skill matrix (`status: "SCORED" | "N/A"`, `value: number | null`, `fit`, `coverage`, `releaseStatus`, `flaggedCount`) over each candidate's latest counted attempt.

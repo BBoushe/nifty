@@ -3,8 +3,15 @@
 > **Canonical Contract Reference:** `docs/architecture.md`, `docs/api.md`, `docs/tickets/00-parallel-waves-and-contracts.md`, `docs/tickets/03-assessment-chat.md`.
 
 ## Package Layout (`de.fhdortmund.nifty.assessment`)
-- `web/`: `AssessmentSessionController` (`/api/v1/assessment/sessions/**`, `CANDIDATE` only), record DTOs (`AnswerRequest`, `SessionStateResponse`, `Bfi10SubmitRequest`).
-- `service/`: `AssessmentSessionService`, `AttemptStateMachine`, `AttemptExpiryScheduler`, `Bfi10ScoringService` (zero Streams), `PasteVelocityDetector` (zero Streams), `AssessmentQueryService` (public interface), `AssessmentQueryServiceImpl`, `AssessmentCleanupListener` (`AssessmentDeletedEvent`).
+- `web/`: `AssessmentSessionController` (`/api/v1/assessment/sessions/**`, `CANDIDATE` only), request records (`AnswerRequest`, `Bfi10SubmitRequest`), and `SessionReplies` (writes JSON or SSE through `StreamingResponseBody`).
+- `service/`: `AssessmentSessionService` (public API, streams the interviewer reply outside any transaction), `AttemptService` (every write, one short transaction under a row lock), `AttemptStateMachine`, `AttemptExpiryScheduler`, `Bfi10ScoringService` (zero Streams), `PasteVelocityDetector` (zero Streams), `AssessmentQueryService` (public interface), `AssessmentQueryServiceImpl`, `AssessmentCleanupListener` (`AssessmentDeletedEvent`). Response records (`SessionStateResponse`, `SessionReply`) live here, as in `studio`, because `service` must not depend on `web`.
+
+## Gap-Filling Choices (not fixed by the spec)
+- Grace period: `nifty.assessment.grace-seconds`, default 5 s.
+- `POST /sessions` with an unfinished attempt returns that attempt as JSON, so a reload in a new browser never uses up a retake.
+- A blank answer, a too-late answer and an expired question skip follow-ups. The next core question then uses its configured text, with no LLM call.
+- If the interviewer LLM fails or sends no text, the ledger stores the configured core question text. The ledger always holds the text that the candidate saw.
+- The state machine asks every allowed follow-up and no invented question (`shortcut:` in `AttemptStateMachine`).
 - `repository/`: Private `@Entity` classes (`AssessmentAttemptEntity`, `ConversationEntryEntity`, `BfiResponseEntity`) and private `JpaRepository` interfaces.
 
 ## Flyway Migration (`V6__assessment.sql`)

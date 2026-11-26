@@ -35,11 +35,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(assessment): add AssessmentQueryService read contracts`
 
-- [ ] **US-AC-05: `AssessmentSessionController` (`CANDIDATE` only) and `docs/api.md` sync**
-  - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `POST /api/v1/assessment/sessions`, `POST /api/v1/assessment/sessions/{id}/answers` (SSE), `GET /api/v1/assessment/sessions/{id}` (refresh resume), `POST /api/v1/assessment/sessions/{id}/bfi10` (`204` / `400` missing items / `409` wrong state), `PROFESSOR` → `403`, cross-candidate read → `403`, answer `content` of 4001 characters → `400` ProblemDetail (`errors[].field = content`) with no ledger write and no `ContextCreationService` call, 4000 characters → accepted (REQ-AC-20, Decision 2.26).
-  - [ ] Implement `AssessmentSessionController` and sync `docs/api.md`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
-  - [ ] Commit: `feat(assessment): add candidate session SSE and BFI-10 endpoints`
+- [x] **US-AC-05: `AssessmentSessionController` (`CANDIDATE` only) and `docs/api.md` sync**
+  - [x] Write RED `@WebMvcTest` + `@MockitoBean` tests: `POST /api/v1/assessment/sessions`, `POST /api/v1/assessment/sessions/{id}/answers` (SSE), `GET /api/v1/assessment/sessions/{id}` (refresh resume), `POST /api/v1/assessment/sessions/{id}/bfi10` (`204` / `400` missing items / `409` wrong state), `PROFESSOR` → `403`, cross-candidate read → `403`, answer `content` of 4001 characters → `400` ProblemDetail (`errors[].field = content`) with no ledger write and no `ContextCreationService` call, 4000 characters → accepted (REQ-AC-20, Decision 2.26).
+  - [x] Implement `AssessmentSessionController` and sync `docs/api.md`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
+  - [x] Commit: `feat(assessment): add candidate session SSE and BFI-10 endpoints`
 
 - [ ] **US-AC-06: Vue 3.5 + PrimeVue Chat & BFI-10 UI (`frontend/src/views/assessment/`)**
   - [ ] Write RED Vitest tests verifying countdown auto-submit at zero, zero pause/resume button, zero mid-interview score display, SSE streaming via shared `fetch` + `ReadableStream` client, refresh resume, 10-item BFI-10 form validation, and an answer box with `maxlength=4000` and a character counter (REQ-AC-20).
@@ -84,3 +84,10 @@
 - Contracts/Migrations added: `AssessmentQueryServiceImpl` replaces `AssessmentQueryServicePlaceholder` (deleted)
 - Decisions: 1.19 (transcript route lives in `evaluation`), 2.13 (latest completed attempt per invite), REQ-AC-16 (transcript types carry no BFI-10 field)
 - Open Questions: none
+
+### US-AC-05 (2026-11-26)
+- Commits: `feat(assessment): add candidate session SSE and BFI-10 endpoints`
+- Verification: RED: `./mvnw -B test -Dtest=AssessmentSessionControllerTest` → FAIL (`AssessmentSessionController` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (36 suites, 0 failures)
+- Contracts/Migrations added: `POST/GET /api/v1/assessment/sessions/**` (`docs/api.md` §4 + §4.1 SSE events), `spring.mvc.async.request-timeout: 180s`
+- Decisions: 2.26 (`@Size(max = 4000)` rejects before the service), 1.19 (no transcript route here)
+- Open Questions: candidate sessions return `403` until `invite-links` implements `AuthContextService.currentCandidate()`
