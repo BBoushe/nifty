@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { HeatmapChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent } from 'echarts/components'
 import { use } from 'echarts/core'
@@ -10,11 +10,9 @@ import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
 import VChart from 'vue-echarts'
 import {
-  bulkApproveEvaluations,
   formatRatioPercent,
   formatScore,
   getSkillsMatrix,
-  type BulkApproveResponse,
   type MatrixCell,
 } from '@/api/evaluation'
 
@@ -23,22 +21,12 @@ use([CanvasRenderer, HeatmapChart, GridComponent, TooltipComponent, VisualMapCom
 const props = defineProps<{ configId: string }>()
 const emit = defineEmits<{ selectAttempt: [attemptId: string] }>()
 
-const queryClient = useQueryClient()
 const needsAttentionOnly = ref(false)
-const bulkResult = ref<BulkApproveResponse | null>(null)
 
 const matrixQuery = useQuery({
   queryKey: computed(() => ['evaluation-matrix', props.configId]),
   queryFn: () => getSkillsMatrix(props.configId),
   enabled: computed(() => Boolean(props.configId)),
-})
-
-const bulkApproveMutation = useMutation({
-  mutationFn: () => bulkApproveEvaluations(props.configId),
-  onSuccess: (res) => {
-    bulkResult.value = res
-    queryClient.invalidateQueries({ queryKey: ['evaluation-matrix', props.configId] })
-  },
 })
 
 const visibleRows = computed(() => {
@@ -147,6 +135,7 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
           Backend-calculated Formula B scores. N/A cells are hatched and excluded from fit.
         </p>
       </div>
+      <!-- Decision 2.30: professors review and approve every student attempt individually (no bulk approval). -->
       <div class="flex flex-wrap items-center gap-2">
         <Button
           :label="needsAttentionOnly ? 'Showing Needs Attention' : 'Filter: Needs Attention'"
@@ -155,20 +144,8 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
           data-testid="filter-needs-attention"
           @click="needsAttentionOnly = !needsAttentionOnly"
         />
-        <Button
-          label="Bulk-Approve Unflagged"
-          size="small"
-          :loading="bulkApproveMutation.isPending.value"
-          data-testid="bulk-approve-btn"
-          @click="bulkApproveMutation.mutate()"
-        />
       </div>
     </div>
-
-    <Message v-if="bulkResult" severity="info" :closable="false" data-testid="bulk-approve-result">
-      Bulk approval finished: {{ bulkResult.approvedCount }} approved,
-      {{ bulkResult.skippedFlaggedCount }} flagged skipped for individual review.
-    </Message>
 
     <div v-if="matrixQuery.isPending.value" class="rounded-lg border border-slate-200 bg-surface p-6 text-sm text-ink-muted">
       Loading skills matrix...

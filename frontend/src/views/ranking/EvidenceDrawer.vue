@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import {
   approveEvaluation,
   formatRatioPercent,
@@ -24,10 +24,30 @@ const overrideReasons = reactive<Record<string, string>>({})
 const actionError = ref<string | null>(null)
 const actionSuccess = ref<string | null>(null)
 
+watch(
+  () => props.attemptId,
+  () => {
+    actionError.value = null
+    actionSuccess.value = null
+  },
+)
+
 const drilldownQuery = useQuery({
   queryKey: computed(() => ['attempt-evaluations', props.attemptId]),
   queryFn: () => getAttemptEvaluations(props.attemptId!),
   enabled: computed(() => Boolean(props.visible && props.attemptId)),
+})
+
+// REQ-SM-08: load the full conversation ledger with timestamps, durationSec, and anomaly markers.
+const transcriptQuery = useQuery({
+  queryKey: computed(() => ['attempt-transcript', props.attemptId]),
+  queryFn: () => getTranscriptExport(props.attemptId!),
+  enabled: computed(() => Boolean(props.visible && props.attemptId)),
+})
+
+const isAlreadyReleased = computed(() => {
+  const status = drilldownQuery.data.value?.releaseStatus
+  return status === 'auto_released' || status === 'approved' || status === 'overridden'
 })
 
 const overrideMutation = useMutation({
@@ -37,7 +57,9 @@ const overrideMutation = useMutation({
     actionError.value = null
     actionSuccess.value = 'Override saved, audited, and Formula B recalculated.'
     queryClient.invalidateQueries({ queryKey: ['attempt-evaluations', props.attemptId] })
+    queryClient.invalidateQueries({ queryKey: ['attempt-transcript', props.attemptId] })
     queryClient.invalidateQueries({ queryKey: ['evaluation-matrix'] })
+    queryClient.invalidateQueries({ queryKey: ['cohort-gaps'] })
     emit('updated')
   },
   onError: (err: Error) => {
@@ -52,6 +74,7 @@ const approveMutation = useMutation({
     actionSuccess.value = 'Evaluation approved as-is and recorded in audit log.'
     queryClient.invalidateQueries({ queryKey: ['attempt-evaluations', props.attemptId] })
     queryClient.invalidateQueries({ queryKey: ['evaluation-matrix'] })
+    queryClient.invalidateQueries({ queryKey: ['cohort-gaps'] })
     emit('updated')
   },
   onError: (err: Error) => {
@@ -66,6 +89,7 @@ const releaseMutation = useMutation({
     actionSuccess.value = 'Attempt approved and released to candidate.'
     queryClient.invalidateQueries({ queryKey: ['attempt-evaluations', props.attemptId] })
     queryClient.invalidateQueries({ queryKey: ['evaluation-matrix'] })
+    queryClient.invalidateQueries({ queryKey: ['cohort-gaps'] })
     emit('updated')
   },
   onError: (err: Error) => {
@@ -85,14 +109,19 @@ function submitOverride(responseEvalId: string, fallbackLevel: number | null) {
 
 async function downloadTranscript() {
   if (!props.attemptId) return
-  const payload = await getTranscriptExport(props.attemptId)
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `${props.attemptId}.transcript.json`
-  link.click()
-  URL.revokeObjectURL(url)
+  try {
+    // REQ-SM-02, REQ-SM-08: always fetch fresh export so post-override evidence is never stale.
+    const payload = await getTranscriptExport(props.attemptId)
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${props.attemptId}.transcript.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : 'Failed to export transcript.'
+  }
 }
 </script>
 
@@ -112,7 +141,7 @@ async function downloadTranscript() {
         <Button
           label="Release Attempt"
           size="small"
-          :disabled="!drilldownQuery.data.value || drilldownQuery.data.value.flaggedCount > 0"
+          :disabled="!drilldownQuery.data.value || drilldownQuery.data.value.flaggedCount > 0 || isAlreadyReleased"
           :loading="releaseMutation.isPending.value"
           data-testid="release-attempt-btn"
           @click="releaseMutation.mutate()"
@@ -243,6 +272,78 @@ async function downloadTranscript() {
           </div>
         </li>
       </ul>
+
+      <!-- REQ-SM-08: Full conversation ledger with timestamps, time to answer, and anomaly/timeout markers -->
+      <section class="border-t border-slate-200 pt-4 space-y-3" data-testid="conversation-ledger">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-ink">Full Conversation Ledger</h4>
+          <span v-if="transcriptQuery.data.value" class="font-mono text-xs text-ink-muted">
+            {{ transcriptQuery.data.value.format }}
+          </span>
+        </div>
+
+        <div v-if="transcriptQuery.isPending.value" class="text-xs text-ink-muted">
+          Loading conversation ledger...
+        </div>
+
+        <Message v-else-if="transcriptQuery.isError.value" severity="error" :closable="false">
+          Could not load conversation ledger.
+        </Message>
+
+        <div
+          v-else-if="!transcriptQuery.data.value || transcriptQuery.data.value.entries.length === 0"
+          class="text-xs text-ink-muted"
+        >
+          No conversation entries recorded for this attempt.
+        </div>
+
+        <ol v-else class="space-y-3">
+          <li
+            v-for="entry in transcriptQuery.data.value.entries"
+            :key="entry.entryId"
+            class="rounded-lg border border-slate-200 bg-surface-sunken/50 p-3 text-xs space-y-2"
+            :data-testid="`ledger-entry-${entry.entryId}`"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 text-ink-muted">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-semibold text-ink">Turn #{{ entry.turn }}</span>
+                <Tag :value="entry.question.origin" severity="secondary" />
+                <span class="tabular-nums">Time to answer: {{ entry.answer.durationSec }}s</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-1">
+                <Tag
+                  v-if="entry.answer.timedOut"
+                  value="Timed Out"
+                  severity="warn"
+                  :data-testid="`marker-timed-out-${entry.entryId}`"
+                />
+                <Tag
+                  v-if="entry.answer.pasteSuspected"
+                  value="Paste Suspected"
+                  severity="danger"
+                  :data-testid="`marker-paste-${entry.entryId}`"
+                />
+                <Tag
+                  v-if="entry.answer.injectionSuspected"
+                  value="Injection Suspected"
+                  severity="danger"
+                  :data-testid="`marker-injection-${entry.entryId}`"
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-ink-muted">
+              <span>Asked: {{ entry.question.askedAt }}</span>
+              <span v-if="entry.answer.submittedAt">Submitted: {{ entry.answer.submittedAt }}</span>
+            </div>
+
+            <p class="font-medium text-ink">Q: {{ entry.question.text }}</p>
+            <p class="whitespace-pre-wrap text-ink-muted">
+              A: {{ entry.answer.text || '(No answer submitted)' }}
+            </p>
+          </li>
+        </ol>
+      </section>
     </template>
   </aside>
 </template>

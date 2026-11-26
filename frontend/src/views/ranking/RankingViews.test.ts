@@ -40,9 +40,9 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     vi.unstubAllGlobals()
   })
 
-  it('SkillsMatrixPanel renders hatched N/A, flagged red border, separate fit/coverage, and bulk-approve skipping flagged', async () => {
+  it('SkillsMatrixPanel renders hatched N/A, flagged red border, separate fit/coverage, and no bulk-approve button (Decision 2.30)', async () => {
     const configId = '11111111-1111-1111-1111-111111111111'
-    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/matrix')) {
         return Promise.resolve(
           jsonResponse({
@@ -123,9 +123,6 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
           }),
         )
       }
-      if (url.includes('/evaluations/approve') && init?.method === 'POST') {
-        return Promise.resolve(jsonResponse({ approvedCount: 2, skippedFlaggedCount: 1 }))
-      }
       return Promise.resolve(jsonResponse({}))
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -153,11 +150,8 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     expect(wrapper.get('[data-testid="evaluation-status-att-2"]').text()).toContain('evaluating')
     expect(wrapper.get('[data-testid="matrix-cell-att-2-s1"]').text()).toContain('N/A')
 
-    // Bulk approve skips flagged items and shows feedback
-    await wrapper.get('[data-testid="bulk-approve-btn"]').trigger('click')
-    await flushPromises()
-    expect(wrapper.text()).toContain('2 approved')
-    expect(wrapper.text()).toContain('1 flagged skipped')
+    // Decision 2.30 / REQ-SM-03: no bulk approval action in professor UI
+    expect(wrapper.find('[data-testid="bulk-approve-btn"]').exists()).toBe(false)
   })
 
   it('EvidenceDrawer displays verified quote, requires override reason, submits override, and blocks release while flagged', async () => {
@@ -219,6 +213,44 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
           }),
         )
       }
+      if (url.includes('/transcripts/att-1')) {
+        return Promise.resolve(
+          jsonResponse({
+            format: 'assessment-transcript/v1',
+            transcriptId: attemptId,
+            candidateId: 'inv-1',
+            configId: 'cfg-1',
+            configVersion: 'v1',
+            attempt: 1,
+            startedAt: '2026-11-26T11:50:00Z',
+            entries: [
+              {
+                entryId: 'e-1',
+                turn: 1,
+                question: {
+                  text: 'Explain @Transactional boundaries.',
+                  origin: 'core',
+                  coreQuestionId: 'q-1',
+                  weight: 2.0,
+                  targetSkills: ['s1'],
+                  askedAt: '2026-11-26T11:50:05Z',
+                  expiresAt: '2026-11-26T11:55:05Z',
+                },
+                answer: {
+                  text: 'I wrap the write in @Transactional so failures roll back.',
+                  submittedAt: '2026-11-26T11:50:47Z',
+                  durationSec: 42,
+                  timedOut: true,
+                  pasteSuspected: true,
+                  injectionSuspected: true,
+                },
+                metadata: { promptedTerms: [], unpromptedTerms: [] },
+              },
+            ],
+            evidence: [],
+          }),
+        )
+      }
       if (url.includes('/evaluations/re-1/override') && init?.method === 'POST') {
         return Promise.resolve(
           jsonResponse({
@@ -250,6 +282,19 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     expect(wrapper.text()).toContain('JUDGE_DISAGREEMENT')
     expect(wrapper.get('[data-testid="release-attempt-btn"]').attributes('disabled')).toBeDefined()
 
+    // REQ-SM-08: full conversation ledger renders timestamps, time to answer, Q&A, and anomaly/timeout markers
+    const ledger = wrapper.get('[data-testid="conversation-ledger"]')
+    expect(ledger.text()).toContain('assessment-transcript/v1')
+    expect(ledger.text()).toContain('Turn #1')
+    expect(ledger.text()).toContain('Time to answer: 42s')
+    expect(ledger.text()).toContain('Asked: 2026-11-26T11:50:05Z')
+    expect(ledger.text()).toContain('Submitted: 2026-11-26T11:50:47Z')
+    expect(ledger.text()).toContain('Explain @Transactional boundaries.')
+    expect(ledger.text()).toContain('I wrap the write in @Transactional so failures roll back.')
+    expect(ledger.find('[data-testid="marker-timed-out-e-1"]').exists()).toBe(true)
+    expect(ledger.find('[data-testid="marker-paste-e-1"]').exists()).toBe(true)
+    expect(ledger.find('[data-testid="marker-injection-e-1"]').exists()).toBe(true)
+
     // Professor can approve a flagged item as-is without fabricating an override
     await wrapper.get('[data-testid="approve-eval-re-1"]').trigger('click')
     await flushPromises()
@@ -267,6 +312,63 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
       expect.stringContaining('/api/v1/ranking/evaluations/re-1/override'),
       expect.objectContaining({ method: 'POST' }),
     )
+    // REQ-SM-02 / REQ-SM-08: override invalidates transcript query so export/ledger stay fresh
+    const transcriptCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes('/transcripts/att-1'),
+    )
+    expect(transcriptCalls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('EvidenceDrawer disables Release Attempt when attempt is already auto_released (Decision 2.10)', async () => {
+    const attemptId = 'att-released'
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/attempts/att-released/evaluations')) {
+          return Promise.resolve(
+            jsonResponse({
+              attemptId,
+              configId: 'cfg-1',
+              inviteId: 'inv-1',
+              attemptNo: 1,
+              fitScore: 3.5,
+              coverage: 1.0,
+              minCoverage: 0.7,
+              releaseStatus: 'auto_released',
+              flaggedCount: 0,
+              releasedAt: '2026-11-26T12:00:00Z',
+              skillScores: [],
+              responses: [],
+            }),
+          )
+        }
+        if (url.includes('/transcripts/att-released')) {
+          return Promise.resolve(
+            jsonResponse({
+              format: 'assessment-transcript/v1',
+              transcriptId: attemptId,
+              candidateId: 'inv-1',
+              configId: 'cfg-1',
+              configVersion: 'v1',
+              attempt: 1,
+              startedAt: '2026-11-26T11:50:00Z',
+              entries: [],
+              evidence: [],
+            }),
+          )
+        }
+        return Promise.resolve(jsonResponse({}))
+      }),
+    )
+
+    const { pinia, queryClient } = createPlugins()
+    const wrapper = mount(EvidenceDrawer, {
+      props: { attemptId, visible: true },
+      global: { plugins: [pinia, PrimeVue, [VueQueryPlugin, { queryClient }]] },
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="release-attempt-btn"]').attributes('disabled')).toBeDefined()
   })
 
   it('CohortGapsPanel renders backend SQL stats without client-side recomputation', async () => {
