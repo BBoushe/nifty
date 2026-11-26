@@ -3,10 +3,10 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-06 complete (Skills Matrix, Evidence Drawer, Cohort Gaps, Formula Presets, and Candidate ResultsView verified: 85/85 Vitest, typecheck, lint, build)
-- **Next action:** Delivery (merge origin/dev, run full backend + frontend + openspec + harness verification, archive change, update backlog & history)
+- **Current:** Archived (`2026-11-26-evaluation-service`), all backend (234), frontend (85), OpenSpec (11), and harness (43) checks passing; awaiting human approval to push and open PR/MR
+- **Next action:** Ask human for approval to run `node scripts/forge.mjs push` and `node scripts/forge.mjs pr`
 - **Uncommitted changes:** none
-- **PR / MR:** —
+- **PR / MR:** pending
 - **Open review findings:** —
 
 ## Tasks
@@ -55,9 +55,9 @@
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
-- [ ] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive evaluation-service -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive evaluation-service`.
+- [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive evaluation-service -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive evaluation-service`.
 - [ ] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
@@ -106,7 +106,7 @@
 - Open Questions: none
 
 ### US-EV-06
-- Commits: `feat(frontend): add Skills Matrix, Evidence Drawer, Cohort Gaps, and Results views`
+- Commits: `1fb0fa5 feat(frontend): add Skills Matrix, Evidence Drawer, Cohort Gaps, and Results views`
 - Verification: `RED: npx vitest run src/views/ranking/RankingViews.test.ts src/views/assessment/ResultsView.test.ts → FAIL (Failed to resolve import ./ResultsView.vue and ./SkillsMatrixPanel.vue); GREEN: cd frontend && npm run typecheck && npm run lint && npm run test && npm run build → exit 0 (85 tests)`
 - Contracts/Migrations added: `frontend/src/api/evaluation.ts`, `frontend/src/views/ranking/{RankingView,SkillsMatrixPanel,EvidenceDrawer,CohortGapsPanel}.vue`, `frontend/src/views/assessment/ResultsView.vue`, updated ranking/assessment `routes.ts`
 - Decisions: 1.14, 2.10, 2.15, 2.16, 4.3
