@@ -9,7 +9,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
  * Bounded async executor for post-commit evaluation runs (00-parallel-waves-and-contracts.md §1, REQ-EP-05).
- * Decision 2.24: a full queue rejects the submission (default AbortPolicy). The run is already persisted as QUEUED,
+ * Decision 2.28: a full queue rejects the submission (default AbortPolicy). The run is already persisted as QUEUED,
  * so the {@link EvaluationRetryScheduler} pass picks it up later and no work is lost.
  */
 @Configuration

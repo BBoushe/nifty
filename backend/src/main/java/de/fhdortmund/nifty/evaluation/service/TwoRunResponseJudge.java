@@ -57,7 +57,7 @@ public class TwoRunResponseJudge {
     public record TwoRunResult(String templateVersion, ParsedRun run1, ParsedRun run2) {
     }
 
-    // Decision 2.24: two slow LLM calls must never hold a pooled DB connection, so this runs outside any transaction.
+    // Decision 2.28: two slow LLM calls must never hold a pooled DB connection, so this runs outside any transaction.
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public TwoRunResult judge(JudgeContextInput input) {
         BuiltPromptContext context = contextCreationService.buildJudgeContext(input);

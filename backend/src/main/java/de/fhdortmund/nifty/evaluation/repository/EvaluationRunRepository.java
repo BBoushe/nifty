@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 public interface EvaluationRunRepository extends JpaRepository<EvaluationRunEntity, UUID> {
 
     /**
-     * Decision 2.24 / REQ-EP-09: atomically claims one run for one worker. Returns 1 only for the single winner,
+     * Decision 2.28 / REQ-EP-09: atomically claims one run for one worker. Returns 1 only for the single winner,
      * so two workers never evaluate the same attempt. QUEUED, FAILED, or a RUNNING run whose heartbeat is older
      * than {@code staleBefore} (crashed worker) can be claimed while it still has tries left.
      */

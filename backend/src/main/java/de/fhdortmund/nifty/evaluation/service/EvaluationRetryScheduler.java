@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Decision 2.24 / REQ-EP-09: periodic pass that dispatches QUEUED, FAILED, and stale RUNNING runs again.
+ * Decision 2.28 / REQ-EP-09: periodic pass that dispatches QUEUED, FAILED, and stale RUNNING runs again.
  * The runner bounds the tries and claims each run atomically, so this pass is safe to overlap.
  * shortcut: single-node fixed delay; upgrade to a shared scheduler lock if the backend runs on many nodes.
  */

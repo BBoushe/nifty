@@ -258,3 +258,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** SOFT_SKILLS only (allow COMBINED without BFI-10 as skills-only grouping); no studio rule (team builder rejects SOFT_SKILLS later).
 - **Rationale / Justification:** COMBINED means skills plus personality. Without BFI-10 it silently equals HARD_SKILLS, which misleads the professor. Rejecting at creation is cheaper than failing at team generation after candidates have finished.
 - **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/studio/service/SettingsRules.java, openspec/specs/interviewer-studio/spec.md, openspec/specs/team-builder/spec.md, openspec/changes/team-builder/specs/team-builder/spec.md
+
+## 2.28 — Durable evaluation queue with bounded retry
+- **Date:** 2026-11-26
+- **Triggered By:** prompter-change
+- **Context:** Cold review of PR #29: an evaluation could be lost for good (full executor queue, one transient LLM error ended the attempt, waiting attempts vanished from the matrix and pendingInviteIds).
+- **Decision:** After the attempt commits, persist a QUEUED evaluation_run and summary before dispatch. A scheduled pass retries QUEUED, FAILED and stale RUNNING runs (stale after 30 minutes, at most nifty.evaluation.retry.max-attempts = 3 tries); one atomic UPDATE claims a run, so two workers never evaluate one attempt. LLM calls run outside DB transactions. Waiting and failed attempts show as pending; once a newer attempt exists, the older one never counts. Known MVP gaps: a crash before enqueue drops the event; a run that crashes on its last try stays RUNNING.
+- **Alternatives Considered:** Message broker; synchronous evaluation in the request; CallerRunsPolicy only; BEFORE_COMMIT insert of the queue rows.
+- **Rationale / Justification:** Uses the existing V7 status and attempt_count columns and plain Spring scheduling, with no new infrastructure, and makes every completed attempt either scored or visibly pending.
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/evaluation/service/AsyncEvaluationRunner.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/service/EvaluationRetryScheduler.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/repository/EvaluationRunRepository.java, openspec/changes/archive/2026-11-26-evaluation-service/design.md

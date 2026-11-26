@@ -113,11 +113,11 @@ public class AsyncEvaluationRunner {
     }
 
     /**
-     * Decision 2.24: persists the QUEUED run and QUEUED summary of a completed attempt BEFORE any dispatch. Each
+     * Decision 2.28: persists the QUEUED run and QUEUED summary of a completed attempt BEFORE any dispatch. Each
      * transaction here is its own: this runs on the listener thread right after the publisher committed, where a
      * plain REQUIRED transaction would join the already finished one and silently write nothing.
      *
-     * @return the new run id, or null when this attempt is already known (duplicate event, Decision 2.24)
+     * @return the new run id, or null when this attempt is already known (duplicate event, Decision 2.28)
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public UUID enqueue(AttemptCompletedEvent event) {
@@ -335,7 +335,7 @@ public class AsyncEvaluationRunner {
     }
 
     /**
-     * Decision 2.24 / REQ-EP-09: one atomic UPDATE decides which worker owns the run, so two workers never
+     * Decision 2.28 / REQ-EP-09: one atomic UPDATE decides which worker owns the run, so two workers never
      * evaluate one attempt. shortcut: a worker that outlives {@code staleAfter} can be overtaken by a twin; the
      * completed-twin guards in the final write keep the data single, upgrade to a lease heartbeat if runs get long.
      */

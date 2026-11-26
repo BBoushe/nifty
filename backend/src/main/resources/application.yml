@@ -33,7 +33,7 @@ nifty:
     professor:
       email: ${NIFTY_BOOTSTRAP_PROFESSOR_EMAIL:}
       password: ${NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD:}
-  # Decision 2.24: bounded retry of QUEUED, FAILED, and stale RUNNING evaluation runs.
+  # Decision 2.28: bounded retry of QUEUED, FAILED, and stale RUNNING evaluation runs.
   evaluation:
     retry:
       enabled: true

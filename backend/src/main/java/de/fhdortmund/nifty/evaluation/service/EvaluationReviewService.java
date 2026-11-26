@@ -395,7 +395,7 @@ public class EvaluationReviewService {
     public EvaluationDtos.ReleaseAttemptResponse releaseAttempt(UUID attemptId) {
         UUID professorId = authContextService.currentProfessorId();
         CandidateEvaluationSummaryEntity summary = requireOwnedSummary(attemptId);
-        // Decision 2.24: a queued, running, or failed attempt has no evidence yet and must never be released.
+        // Decision 2.28: a queued, running, or failed attempt has no evidence yet and must never be released.
         if (!summary.isCompleted()) {
             throw new DomainException(HttpStatus.CONFLICT, "This attempt has not finished evaluation yet.");
         }
