@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-05 complete (RankingEvaluationController, CandidateResultsController, CandidateResultsService, DeterministicAdviceBuilder, docs/api.md synced; 234 backend tests GREEN)
-- **Next action:** Start US-EV-06 (Vue 3.5 + PrimeVue + ECharts Ranking Views and Candidate ResultsView.vue)
+- **Current:** US-EV-06 complete (Skills Matrix, Evidence Drawer, Cohort Gaps, Formula Presets, and Candidate ResultsView verified: 85/85 Vitest, typecheck, lint, build)
+- **Next action:** Delivery (merge origin/dev, run full backend + frontend + openspec + harness verification, archive change, update backlog & history)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -47,11 +47,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
   - [x] Commit: `feat(evaluation): add professor matrix/review and candidate results endpoints`
 
-- [ ] **US-EV-06: Vue 3.5 + PrimeVue + ECharts Ranking Views (`views/ranking/`) and Candidate Results (`views/assessment/ResultsView.vue`)**
-  - [ ] Write RED Vitest tests: ECharts Skills Matrix renders hatched `N/A` and flagged border (zero client-side math), Evidence Drawer shows quote + override reason form, bulk-approve skips flagged items, Cohort Gaps renders SQL data, and `ResultsView.vue` shows pending state pre-release and full evidence + log + advice + neutral BFI-10 traits post-release.
-  - [ ] Implement views using PrimeVue + ECharts + Tailwind v4 tokens.
-  - [ ] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
-  - [ ] Commit: `feat(frontend): add Skills Matrix, Evidence Drawer, Cohort Gaps, and Results views`
+- [x] **US-EV-06: Vue 3.5 + PrimeVue + ECharts Ranking Views (`views/ranking/`) and Candidate Results (`views/assessment/ResultsView.vue`)**
+  - [x] Write RED Vitest tests: ECharts Skills Matrix renders hatched `N/A` and flagged border (zero client-side math), Evidence Drawer shows quote + override reason form, bulk-approve skips flagged items, Cohort Gaps renders SQL data, and `ResultsView.vue` shows pending state pre-release and full evidence + log + advice + neutral BFI-10 traits post-release.
+  - [x] Implement views using PrimeVue + ECharts + Tailwind v4 tokens.
+  - [x] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
+  - [x] Commit: `feat(frontend): add Skills Matrix, Evidence Drawer, Cohort Gaps, and Results views`
 
 ## Delivery
 
@@ -99,8 +99,15 @@
 - Open Questions: none
 
 ### US-EV-05
-- Commits: `feat(evaluation): add professor matrix/review and candidate results endpoints`
+- Commits: `29db5ce feat(evaluation): add professor matrix/review and candidate results endpoints`
 - Verification: `RED: ./mvnw -B test -Dtest=DeterministicAdviceBuilderTest,CandidateResultsServiceTest,RankingEvaluationControllerTest,CandidateResultsControllerTest → FAIL (cannot find symbol CandidateResultsService/DeterministicAdviceBuilder/RankingEvaluationController/CandidateResultsController); GREEN: cd backend && ./mvnw -B test → exit 0 (234 tests)`
 - Contracts/Migrations added: `DeterministicAdviceBuilder.java`, `CandidateResultsService.java`, `RankingEvaluationController.java`, `CandidateResultsController.java`, `docs/api.md`
 - Decisions: 2.10, 2.15, 2.16, 4.3
+- Open Questions: none
+
+### US-EV-06
+- Commits: `feat(frontend): add Skills Matrix, Evidence Drawer, Cohort Gaps, and Results views`
+- Verification: `RED: npx vitest run src/views/ranking/RankingViews.test.ts src/views/assessment/ResultsView.test.ts → FAIL (Failed to resolve import ./ResultsView.vue and ./SkillsMatrixPanel.vue); GREEN: cd frontend && npm run typecheck && npm run lint && npm run test && npm run build → exit 0 (85 tests)`
+- Contracts/Migrations added: `frontend/src/api/evaluation.ts`, `frontend/src/views/ranking/{RankingView,SkillsMatrixPanel,EvidenceDrawer,CohortGapsPanel}.vue`, `frontend/src/views/assessment/ResultsView.vue`, updated ranking/assessment `routes.ts`
+- Decisions: 1.14, 2.10, 2.15, 2.16, 4.3
 - Open Questions: none
