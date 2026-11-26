@@ -113,3 +113,10 @@
 - Contracts/Migrations added: none. Detector folds unicode spaces, strips invisible code points and applies NFKC before matching; all quantifiers possessive or bounded. Sanitizer strips Cc/Cf/lone surrogates plus listed invisibles, escapes `<`/`＜`/`﹤` before the 4000 cut. Rules tightened against technical false flags. `docs/api.md` says the rubric leak check is a keyword check.
 - Decisions: 2.24 (defense in depth), 2.10 (false flags cost professor review)
 - Open Questions: homoglyph folding (Cyrillic "і") not done (shortcut comment). Answer size cap belongs at the assessment API (ticket 03).
+
+### Short review of the fix round (CHANGES REQUIRED → fixed)
+- Commits: `fix(context): no live tag after the cut, unicode spaces inside tags, restore directed attacks`
+- Verification: RED: `./mvnw -B test -Dtest='InjectionDetectorTest,PromptSanitizerTest'` → 3 FAIL (cut leaves "<system" at the tail; "<NBSP/candidate_answer>" unescaped; 9 directed attacks missed); GREEN: `cd backend && ./mvnw -B test` → exit 0 (123 tests, 0 skipped)
+- Contracts/Migrations added: none. Sanitizer re-checks the tail after the cut and treats `\p{Z}` as space inside a tag. Detector again catches "show me the prompt", "reveal the rules", "repeat the instructions", "skip the question", "rate me 4/4", "this deserves 4/4", "highest/top grade", "act as a different person"; "score" alone and "print the rules" stay clean.
+- Decisions: 2.24, 2.10
+- Open Questions: full-width letters inside a tag ("<ｓｙｓｔｅｍ>") and look-alike brackets ("‹", "〈") are flagged by the detector (NFKC) or ignored, but not escaped in the prompt text.

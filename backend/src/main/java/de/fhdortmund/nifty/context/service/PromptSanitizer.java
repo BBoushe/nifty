@@ -3,6 +3,7 @@ package de.fhdortmund.nifty.context.service;
 import de.fhdortmund.nifty.context.service.dto.SanitizationReport;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -21,8 +22,10 @@ final class PromptSanitizer {
             "candidate_answer|transcript_entry|system|assistant|instructions?|developer";
     // Possessive quantifiers keep the scan linear: "<" + 100k spaces must not backtrack (review round 2).
     // Full-width (U+FF1C) and small (U+FE64) less-than signs look like "<" to a model, so they are escaped too.
+    // [\s\p{Z}] also covers NBSP, em space and other Unicode spaces that Java's ASCII \s misses.
     private static final Pattern RESERVED_TAG_START = Pattern.compile(
-            "[<\uFF1C\uFE64](?=\\s*+/?+\\s*+(?:" + RESERVED_TAGS + ")\\b|\\|)", Pattern.CASE_INSENSITIVE);
+            "[<＜﹤](?=[\\s\\p{Z}]*+/?+[\\s\\p{Z}]*+(?:" + RESERVED_TAGS + ")\\b|\\|)",
+            Pattern.CASE_INSENSITIVE);
 
     static final SanitizationReport CLEAN = new SanitizationReport(false, List.of(), false);
 
@@ -34,10 +37,10 @@ final class PromptSanitizer {
     }
 
     static Sanitized sanitize(String raw) {
-        // Escape before the cut, so "&lt;" can never push the text over the ceiling. A cut never creates a tag.
+        // Escape before the cut, so "&lt;" can never push the text over the ceiling.
         String escaped = RESERVED_TAG_START.matcher(stripSpoofing(raw)).replaceAll("&lt;");
         boolean truncated = escaped.length() > MAX_CHARS;
-        String text = truncated ? escaped.substring(0, cutIndex(escaped)) : escaped;
+        String text = truncated ? cutWithoutTag(escaped) : escaped;
         // Injection rules run on the full raw text, so padding past the ceiling cannot hide an attack.
         List<String> ruleIds = InjectionDetector.detect(raw);
         return new Sanitized(text, new SanitizationReport(!ruleIds.isEmpty(), ruleIds, truncated));
@@ -72,8 +75,19 @@ final class PromptSanitizer {
                 first.truncated() || second.truncated());
     }
 
-    private static int cutIndex(String text) {
-        return Character.isHighSurrogate(text.charAt(MAX_CHARS - 1)) ? MAX_CHARS - 1 : MAX_CHARS;
+    /**
+     * Cuts at the ceiling without splitting a surrogate pair. A cut can turn "<systemx" into a real "<system" at the
+     * end, so any tag start that is still live after the cut sits in the tail: cut again just before it.
+     */
+    private static String cutWithoutTag(String escaped) {
+        String text = escaped.substring(0, Character.isHighSurrogate(escaped.charAt(MAX_CHARS - 1)) ? MAX_CHARS - 1
+                : MAX_CHARS);
+        Matcher live = RESERVED_TAG_START.matcher(text);
+        while (live.find()) {
+            text = text.substring(0, live.start()); // a BMP "<" sign, so no surrogate pair splits here
+            live = RESERVED_TAG_START.matcher(text);
+        }
+        return text;
     }
 
     static boolean isSpoofing(int cp) {

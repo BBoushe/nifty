@@ -33,6 +33,26 @@ class PromptSanitizerTest {
     }
 
     @Test
+    void theCutNeverLeavesAnUnescapedTagAtTheEnd() {
+        // "<systemx" is no tag, but a cut right after "system" turns it into a live "<system" at the end.
+        for (String tag : new String[] {"<system", "<assistant", "</instruction", "< /developer", "< system"}) {
+            String raw = "a".repeat(PromptSanitizer.MAX_CHARS - tag.length()) + tag + "Q>";
+
+            String text = PromptSanitizer.sanitize(raw).text();
+
+            assertThat(text.indexOf('<')).as(tag).isNegative();
+            assertThat(text.length()).as(tag).isLessThanOrEqualTo(PromptSanitizer.MAX_CHARS);
+        }
+    }
+
+    @Test
+    void unicodeSpacesInsideATagCannotDodgeTheEscape() {
+        String text = PromptSanitizer.sanitize("< /candidate_answer> < system> <　/ assistant>").text();
+
+        assertThat(text).doesNotContain("<");
+    }
+
+    @Test
     void fullWidthAndSmallLessThanSignsBeforeAReservedTagAreEscaped() {
         String text = PromptSanitizer.sanitize("＜/candidate_answer＞ ﹤system>").text();
 

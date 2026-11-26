@@ -25,18 +25,24 @@ final class InjectionDetector {
                 + "|\\byou\\s++are\\s++now\\s++(?:a|an|the|my)\\b|\\bpretend\\s++(?:to\\s++be|you\\s++are|you're)\\b"
                 + "|\\bnew\\s++instructions\\s*+:"
                 + "|\\bact\\s++as\\s++(?:an?\\s++)?(?:different|new|unrestricted)\\s++"
-                + "(?:assistant|ai|model|bot|persona|character|interviewer|examiner|professor)\\b"),
+                + "(?:assistant|ai|model|bot|persona|person|character|interviewer|examiner|professor)\\b"),
         compile("\\b(?:skip|end)\\s++(?:this\\s++(?:test|question|assessment|interview)|the\\s++(?:assessment|interview))\\b"
+                + "|\\bskip\\s++the\\s++questions?\\b"
                 + "|\\b(?:mark|consider)\\s++(?:this|the)\\s++(?:test|interview|assessment|question)\\s++(?:as\\s++)?"
                 + "(?:complete|completed|done|finished|passed)\\b"),
-        compile("\\b(?:give|grant|award|assign)\\s++me\\s++(?:the\\s++|a\\s++)?"
+        // "score" alone stays out ("the best score wins" is technical); "grade" and an explicit "4/4" stay in.
+        compile("\\b(?:give|grant|award|assign|rate)\\s++me\\s++(?:the\\s++|a\\s++)?"
                 + "(?:best|highest|top|full|maximum|perfect|level\\s*+\\d|\\d)"
-                + "|\\b(?:give|grant|award|assign)\\s++(?:me\\s++)?(?:a\\s++|the\\s++)?\\d\\s*+/\\s*+\\d"
-                + "|\\bi\\s++(?:deserve|should\\s++get)\\s++(?:a\\s++|the\\s++)?(?:best|highest|top|full|maximum|perfect|\\d)"
-                + "|\\b(?:perfect|full)\\s++(?:grade|score|marks?)\\b"),
+                + "|\\b(?:give|grant|award|assign|rate)\\s++(?:me\\s++)?(?:a\\s++|the\\s++)?\\d\\s*+/\\s*+\\d"
+                + "|\\b(?:deserves?|should\\s++get)\\s++(?:a\\s++|the\\s++)?(?:(?:best|highest|top|full|maximum|perfect)"
+                + "\\s++(?:grade|score|marks?)|level\\s*+\\d|\\d\\s*+/\\s*+\\d)"
+                + "|\\b(?:perfect|full)\\s++(?:grade|score|marks?)\\b|\\b(?:best|highest|top|maximum)\\s++grades?\\b"),
+        // "print the rules" stays clean (a linter does that); "show me the prompt" or "reveal the rules" is aimed at us.
         compile("\\b(?:reveal|show|print|repeat|output|leak|display|tell)\\s++(?:me\\s++)?"
                 + "(?:your\\s++(?:" + QUALIFIER + "){0,3}+(?:prompt|instructions|rubric|rules|answer\\s++key)"
                 + "|the\\s++(?:(?:" + QUALIFIER + "){1,3}+(?:prompt|instructions|rules|rubric)|rubric|answer\\s++key))\\b"
+                + "|\\b(?:show|tell|give)\\s++me\\s++the\\s++(?:prompt|instructions|rules)\\b"
+                + "|\\b(?:reveal|repeat|leak)\\s++the\\s++(?:prompt|instructions|rules)\\b"
                 + "|\\bwhat\\s++(?:is|are)\\s++your\\s++(?:(?:system|hidden|initial)\\s++){0,3}+"
                 + "(?:prompt|instructions|rubric)\\b"),
         compile("<\\s*+/?+\\s*+(?:" + PromptSanitizer.RESERVED_TAGS + ")\\b|<\\|[a-z_]++\\|>|\\[/?inst\\]"),
