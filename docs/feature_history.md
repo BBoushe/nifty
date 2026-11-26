@@ -4,10 +4,16 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — evaluation-service
+- **What:** Added `V7__evaluation.sql` (`formula_version`, `evaluation_run`, `candidate_evaluation_summary` with `UNIQUE(attempt_id)`, `response_evaluation`, `skill_score` with `chk_na_score_null`), private JPA repositories, synchronous `AssessmentDeletedEvent` GDPR cleanup (`EvaluationCleanupListener`), zero-Stream deterministic calculators (`VerbatimQuoteVerifier`, `ConfidenceCalculator`, `SkillFormulaCalculator`, `ReleaseGateEvaluator`, `DeterministicAdviceBuilder`), async `AFTER_COMMIT` 2-run fresh-context `TwoRunResponseJudge` via `ContextCreationService.buildJudgeContext`, review queue with `AuditService` overrides and zero-LLM Formula B recomputation, SQL-only `CohortGapQueryService`, `EvaluationQueryServiceImpl` (placeholder removed), named `WEIGHTED_MEAN` formula presets/versions/preview, `PROFESSOR` `/api/v1/ranking/**` and `CANDIDATE` `/api/v1/assessment/results/{configId}` endpoints, synced `docs/api.md`, and Vue 3.5 + PrimeVue + ECharts views (`views/ranking/` and `views/assessment/ResultsView.vue`).
+- **Why:** Completed attempts need auditable, evidence-first scoring with explicit `N/A`, threshold-gated auto-release, human override traceability, SQL-only cohort gap insights, post-release candidate transparency, and a read-only hard-skill query contract for Team Builder (Decisions 1.18, 1.19, 2.10–2.13, 2.15, 2.16, 2.19, 2.20, 2.22, 2.24, 2.25, 4.3, 4.4).
+- **PR/MR:** GitHub #29, GitLab !27
+- **Specs:** REQ-EV-01..02 (added to `evidence-pipeline`); REQ-EP-01..09, REQ-FE-01..03, REQ-FE-05..06, REQ-SM-01..08, REQ-CR-01..06 (implemented)   **Decisions:** applies 1.10, 1.12, 1.14, 1.15, 1.18, 1.19, 2.10–2.13, 2.15, 2.16, 2.19, 2.20, 2.22, 2.24, 2.25, 4.3, 4.4
+
 ## 2026-11-26 — team-builder
 - **What:** Added `V8__teams.sql` (`team_proposal`, `team_member` with `UNIQUE (proposal_id, invite_id)`), a zero-Stream `TeamObjectiveCalculator` (hard skills `0..4` and BFI-10 `1..5` normalized to `0..1`, `N/A` excluded per dimension), a seeded Simulated Annealing optimizer with 2-opt swaps, and `TeamBuilderService` (generate `DRAFT`, recalculate after drag and drop, publish with a `TEAMS_PUBLISHED` audit row). Added `PROFESSOR`-only `/api/v1/ranking/configs/{configId}/teams/**` and `/api/v1/ranking/teams/{proposalId}/**` endpoints scoped via `StudioQueryService.ownedBy`, `TeamCleanupListener` on `AssessmentDeletedEvent`, and the Vue Team Builder view in `views/teams/`.
 - **Why:** Professors form balanced teams from released results only, deterministically and without an LLM, and approve them before publishing (Decisions 1.20, 2.23, 2.27, 4.3, 4.4).
-- **PR/MR:** open (see `tasks.md` Status)
+- **PR/MR:** GitHub #27, GitLab !26
 - **Specs:** REQ-TB-08 (added), REQ-TB-06 (modified); REQ-TB-03..05, REQ-TB-07, REQ-TB-09..12 (implemented)   **Decisions:** applies 1.20, 2.10, 2.13, 2.23, 2.27, 4.3, 4.4
 
 ## 2026-11-26 — invite-links
