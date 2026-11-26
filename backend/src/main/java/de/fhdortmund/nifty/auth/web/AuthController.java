@@ -16,12 +16,13 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Professor sign-in and session info (Decision 1.23). {@code SecurityConfig} handles logout. */
+/** Professor sign-in, candidate invite-link sign-in, and session info (Decisions 1.17, 1.23). */
 @RestController
 @RequestMapping("/api/v1/auth")
 class AuthController {
@@ -38,6 +39,26 @@ class AuthController {
     ResponseEntity<Void> login(@Valid @RequestBody LoginRequest body, HttpServletRequest request,
             HttpServletResponse response) {
         Authentication authentication = sessions.login(body.email(), body.password());
+        establishSession(authentication, request, response);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/invite/{token}")
+    InviteSignInResponse inviteLogin(@PathVariable String token, HttpServletRequest request,
+            HttpServletResponse response) {
+        Authentication authentication = sessions.loginWithInvite(token);
+        establishSession(authentication, request, response);
+        NiftyPrincipal principal = (NiftyPrincipal) authentication.getPrincipal();
+        return new InviteSignInResponse(principal.configId());
+    }
+
+    @GetMapping("/me")
+    MeResponse me() {
+        return MeResponse.of(sessions.me());
+    }
+
+    private void establishSession(
+            Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
         // Session fixation: an existing session gets a new ID before it holds the signed-in context.
         if (request.getSession(false) != null) {
             request.changeSessionId();
@@ -46,21 +67,21 @@ class AuthController {
         context.setAuthentication(authentication);
         contextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/me")
-    MeResponse me() {
-        return MeResponse.of(sessions.me());
     }
 
     record LoginRequest(@NotBlank String email, @NotBlank String password) {
     }
 
-    record MeResponse(Role role, UUID professorId) {
+    record InviteSignInResponse(UUID configId) {
+    }
+
+    record MeResponse(Role role, UUID professorId, UUID inviteId, UUID configId) {
 
         static MeResponse of(NiftyPrincipal principal) {
-            return new MeResponse(principal.role(), principal.role() == Role.PROFESSOR ? principal.id() : null);
+            if (principal.role() == Role.PROFESSOR) {
+                return new MeResponse(Role.PROFESSOR, principal.id(), null, null);
+            }
+            return new MeResponse(Role.CANDIDATE, null, principal.inviteId(), principal.configId());
         }
     }
 }

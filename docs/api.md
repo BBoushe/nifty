@@ -72,16 +72,17 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 | `DELETE` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `204` | GDPR purge: sets `SET LOCAL nifty.allow_purge = 'on'`, publishes `AssessmentDeletedEvent`, deletes rows, writes `CONFIG_DELETED` audit row. `404` for non-owner (REQ-IS-07, Decision 4.4). |
 | `POST` | `/api/v1/auth/login` | Public (CSRF) | `{ email, password }` | `204`, session cookie | `401` ProblemDetail with the same detail for an unknown email and a wrong password (REQ-AA-02). Email is case-insensitive (`AuthController`). |
 | `POST` | `/api/v1/auth/logout` | Public (CSRF) | — | `204` | Ends the session. `403` without the CSRF header (REQ-AA-06, `SecurityConfig`). |
-| `GET` | `/api/v1/auth/me` | Authenticated | — | `{ role, professorId }` | `role` is `PROFESSOR` or `CANDIDATE`. `professorId` is `null` for a candidate. `401` without a session. |
+| `POST` | `/api/v1/auth/invite/{token}` | Public (CSRF) | — | `{ configId }`, session cookie | Starts a `CANDIDATE` session bound to the invite's assessment and candidate. Unknown and revoked tokens return the same `401` ProblemDetail (REQ-AA-04, `AuthController`). |
+| `GET` | `/api/v1/auth/me` | Authenticated | — | `{ role, professorId, inviteId, configId }` | `role` is `PROFESSOR` or `CANDIDATE`. `professorId` is `null` for a candidate; `inviteId` and `configId` are `null` for a professor. `401` without a session or after invite revocation. |
+| `POST` | `/api/v1/ranking/studio/configs/{configId}/invites` | `PROFESSOR` | `{ candidateRefs: string[] }` (1..500 unique non-blank) | `CreatedInvite[]` (`{ inviteId, candidateRef, link }`, `201`) | Generates 256-bit random tokens, stores only SHA-256 hashes, returns links once. `400` on duplicate/invalid refs, `404` for unowned or unknown config (REQ-AA-03, REQ-AA-09, `InviteController`). |
+| `GET` | `/api/v1/ranking/studio/configs/{configId}/invites` | `PROFESSOR` | — | `InviteSummary[]` (`{ inviteId, candidateRef, revoked, createdAt }`) | Lists invites newest first without tokens. `404` for unowned or unknown config (REQ-AA-09). |
+| `DELETE` | `/api/v1/ranking/studio/configs/{configId}/invites/{inviteId}` | `PROFESSOR` | — | `204` | Revokes the invite; open candidate sessions end with `401` on their next request (`RevokedInviteFilter`, REQ-AA-08). `404` for unowned config or unknown invite. |
 | `POST` | `/api/v1/ranking/context/preview/interviewer` | `PROFESSOR` | `{ vision, targetSkillNames[], questionText, followUpLimit (0..3), inventedQuestionsEnabled? }` | `{ templateVersion, systemPrompt, promptSha256, rubricLeakCheckPassed }` | Dry run of the rubric-blind Agent 1 prompt for the opening question, with no conversation (`ContextController`, Decision 1.18). Stores nothing and calls no LLM. `rubricLeakCheckPassed` is `false` when the prompt holds a rubric, weight, threshold, score, confidence or BFI-10 term. It is a keyword check only: rubric prose without these words passes, and a skill named "Credit scoring" fails. `400` ProblemDetail with `errors[]` for a blank `vision`, `questionText` or skill name, an empty `targetSkillNames`, or a missing or out-of-range `followUpLimit`. `403` for `CANDIDATE`, `401` without a session. |
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
 - **Auth (`/api/v1/auth/**`, `/api/v1/ranking/studio/configs/{id}/invites`):**
-  - Login, logout and `me` are implemented (§4).
-  - `POST /api/v1/auth/invite/{token}` (Public) → candidate session from personal invite link (`401` on unknown/revoked token).
-  - `POST /api/v1/ranking/studio/configs/{id}/invites` (`PROFESSOR`) → create single invite or CSV import returning invite links.
-  - `DELETE /api/v1/ranking/studio/configs/{id}/invites/{inviteId}` (`PROFESSOR`) → revoke an invite link.
+  - Implemented (§4).
 - **Studio (`studio`, `/api/v1/ranking/studio/configs/**`, `PROFESSOR` — Decisions 1.19, 2.21):**
   - Implemented (§4).
 - **Assessment Chat (`assessment`, `/api/v1/assessment/sessions/**`, `CANDIDATE` — Decisions 1.11, 2.20, 2.23, 2.24):**

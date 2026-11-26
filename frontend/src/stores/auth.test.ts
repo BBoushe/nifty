@@ -75,4 +75,37 @@ describe('useAuthStore (REQ-AA-02, REQ-AA-06, Decision 1.23)', () => {
     await auth.login('prof@example.test', 'synthetic-pass')
     expect(auth.me).toEqual({ role: 'PROFESSOR', professorId: 'prof-1' })
   })
+
+  it('bootstraps CSRF cookie before loginWithInvite on a cold browser without XSRF-TOKEN', async () => {
+    let inviteCalled = false
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/api/v1/auth/me') {
+        if (!document.cookie.includes('XSRF-TOKEN=')) {
+          document.cookie = 'XSRF-TOKEN=cold-csrf-token; path=/'
+          return problemResponse(401, 'Sign in to use this resource.')
+        }
+        return jsonResponse({
+          role: 'CANDIDATE',
+          professorId: null,
+          inviteId: 'inv-1',
+          configId: 'cfg-1',
+        })
+      }
+      if (url === '/api/v1/auth/invite/raw-tok') {
+        inviteCalled = true
+        expect(new Headers(init?.headers).get('X-XSRF-TOKEN')).toBe('cold-csrf-token')
+        return jsonResponse({ configId: 'cfg-1' })
+      }
+      throw new Error(`Unexpected URL: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const auth = useAuthStore()
+    const result = await auth.loginWithInvite('raw-tok')
+
+    expect(inviteCalled).toBe(true)
+    expect(result).toEqual({ configId: 'cfg-1' })
+    expect(auth.me).toMatchObject({ role: 'CANDIDATE', inviteId: 'inv-1', configId: 'cfg-1' })
+  })
 })

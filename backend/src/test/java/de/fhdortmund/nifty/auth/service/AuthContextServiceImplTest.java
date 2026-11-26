@@ -2,7 +2,10 @@ package de.fhdortmund.nifty.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import de.fhdortmund.nifty.auth.repository.InviteRepository;
 import de.fhdortmund.nifty.shared.config.Role;
 import de.fhdortmund.nifty.shared.exception.DomainException;
 import java.util.List;
@@ -13,10 +16,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-/** Contract pack §3.3: currentProfessorId() answers only for a signed-in professor. */
+/** Contract pack §3.3: currentProfessorId() and currentCandidate() enforce role and active-invite invariants. */
 class AuthContextServiceImplTest {
 
-    private final AuthContextServiceImpl service = new AuthContextServiceImpl();
+    private final InviteRepository inviteRepository = mock(InviteRepository.class);
+    private final AuthContextServiceImpl service = new AuthContextServiceImpl(inviteRepository);
 
     @AfterEach
     void clearContext() {
@@ -26,28 +30,42 @@ class AuthContextServiceImplTest {
     @Test
     void professorPrincipalGivesItsId() {
         UUID id = UUID.randomUUID();
-        signIn(new NiftyPrincipal(id, Role.PROFESSOR));
+        signIn(NiftyPrincipal.professor(id));
 
         assertThat(service.currentProfessorId()).isEqualTo(id);
     }
 
     @Test
     void noAuthenticationIsForbidden() {
-        assertForbidden(() -> service.currentProfessorId());
+        assertStatus(() -> service.currentProfessorId(), HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.currentCandidate(), HttpStatus.FORBIDDEN);
     }
 
     @Test
     void candidatePrincipalIsForbiddenForProfessorId() {
-        signIn(new NiftyPrincipal(UUID.randomUUID(), Role.CANDIDATE));
+        signIn(NiftyPrincipal.candidate(UUID.randomUUID(), UUID.randomUUID(), "cand_1"));
 
-        assertForbidden(() -> service.currentProfessorId());
+        assertStatus(() -> service.currentProfessorId(), HttpStatus.FORBIDDEN);
     }
 
     @Test
-    void currentCandidateIsForbiddenUntilInviteLinks() {
-        signIn(new NiftyPrincipal(UUID.randomUUID(), Role.PROFESSOR));
+    void professorPrincipalIsForbiddenForCurrentCandidate() {
+        signIn(NiftyPrincipal.professor(UUID.randomUUID()));
 
-        assertForbidden(() -> service.currentCandidate());
+        assertStatus(() -> service.currentCandidate(), HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void activeCandidateReturnsBoundPrincipalAndRevokedCandidateGets401() {
+        UUID inviteId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        signIn(NiftyPrincipal.candidate(inviteId, configId, "cand_42"));
+
+        when(inviteRepository.existsByIdAndRevokedFalse(inviteId)).thenReturn(true);
+        assertThat(service.currentCandidate()).isEqualTo(new CandidateSessionPrincipal(inviteId, configId, "cand_42"));
+
+        when(inviteRepository.existsByIdAndRevokedFalse(inviteId)).thenReturn(false);
+        assertStatus(() -> service.currentCandidate(), HttpStatus.UNAUTHORIZED);
     }
 
     private static void signIn(NiftyPrincipal principal) {
@@ -55,10 +73,11 @@ class AuthContextServiceImplTest {
                 UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of()));
     }
 
-    private static void assertForbidden(org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
+    private static void assertStatus(
+            org.assertj.core.api.ThrowableAssert.ThrowingCallable call, HttpStatus expected) {
         assertThatThrownBy(call)
                 .isInstanceOf(DomainException.class)
                 .extracting(e -> ((DomainException) e).getStatus())
-                .isEqualTo(HttpStatus.FORBIDDEN);
+                .isEqualTo(expected);
     }
 }
