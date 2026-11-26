@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** change authored (proposal, design, delta specs, tasks); Decisions 2.31–2.34 recorded. No code yet.
-- **Next action:** Task 1 (Transcript dialog).
+- **Current:** Task 1 done (TranscriptDialog and transcript.ts committed).
+- **Next action:** Task 2 (Evidence dialog and ResultsView "Open conversation").
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -14,11 +14,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group A — Professor review in modals (user request; do first)
 
-- [ ] **Task 1: Shared Transcript dialog (REQ-SM-10, REQ-CR-07)**
-  - [ ] RED: `frontend/src/components/TranscriptDialog.test.ts` covers four cases. (1) Interviewer and candidate bubbles render in turn order with the origin labels "Core question N" and "Follow-up". (2) A `null` answer shows "No answer". (3) Markers render only with `showMarkers`. (4) `highlight` wraps the quote in `<mark>` with no `v-html`: a quote with `<b>` stays text. Also `transcript.test.ts` for `fromTranscriptExport`, `fromCandidateTurn` and `formatDuration` (`48 → "48 s"`, `72 → "1 min 12 s"`, `null → "—"`).
-  - [ ] GREEN: `frontend/src/components/transcript.ts` and `TranscriptDialog.vue` per design §1, using PrimeVue `Dialog`.
-  - [ ] Verify: `npx vitest run src/components` → pass.
-  - [ ] Commit `feat(frontend): add readable transcript dialog`.
+- [x] **Task 1: Shared Transcript dialog (REQ-SM-10, REQ-CR-07)**
+  - [x] RED: `frontend/src/components/TranscriptDialog.test.ts` covers four cases. (1) Interviewer and candidate bubbles render in turn order with the origin labels "Core question N" and "Follow-up". (2) A `null` answer shows "No answer". (3) Markers render only with `showMarkers`. (4) `highlight` wraps the quote in `<mark>` with no `v-html`: a quote with `<b>` stays text. Also `transcript.test.ts` for `fromTranscriptExport`, `fromCandidateTurn` and `formatDuration` (`48 → "48 s"`, `72 → "1 min 12 s"`, `null → "—"`).
+  - [x] GREEN: `frontend/src/components/transcript.ts` and `TranscriptDialog.vue` per design §1, using PrimeVue `Dialog`.
+  - [x] Verify: `npx vitest run src/components` → pass.
+  - [x] Commit `feat(frontend): add readable transcript dialog`.
 
 - [ ] **Task 2: Evidence review in a modal (REQ-SM-09, REQ-SM-10)**
   - [ ] RED in `RankingViews.test.ts`. (1) Inspect opens a dialog (`role="dialog"`) and the matrix stays mounted. (2) Close or Esc closes it. (3) "View transcript" opens `TranscriptDialog` with markers. (4) "Show in transcript" passes `focusEntryId` and the highlighted quote. (5) The inline ledger section is gone from the evidence view.
@@ -141,4 +141,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: n/a (spec text); GREEN: `OPENSPEC_TELEMETRY=0 openspec validate mvp-hardening --type change --strict` → exit 0
 - Contracts/Migrations added: none yet; planned new endpoint `POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry`; no migration planned
 - Decisions: 2.31, 2.32, 2.33, 2.34 recorded (question-round, 2026-11-26)
+- Open Questions: none
+
+### Task 1: Shared Transcript dialog
+- Commits: (this commit) feat(frontend): add readable transcript dialog
+- Verification: RED: `npx vitest run src/components` → FAIL (`./transcript` and `./TranscriptDialog.vue` did not exist); GREEN: `npx vitest run src/components` → exit 0 (27 tests, 3 files)
+- Contracts/Migrations added: none (new `frontend/src/components/transcript.ts`, `TranscriptDialog.vue`)
+- Decisions: none new. Design choices: styling uses only the existing Tailwind tokens (`bg-surface-sunken`, `bg-green-soft`, `bg-brand-yellow-soft`, `text-ink*`), so it follows the tokens if dark mode is added (the app has `darkModeSelector: false` today). Extra helpers `formatClock`, `originLabels`, `splitHighlights` live in `transcript.ts` for unit tests. Extra optional props `loading` and `error` give the dialog the loading/error states that frontend rule 2 needs.
 - Open Questions: none
