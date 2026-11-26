@@ -23,4 +23,10 @@ class PromptTemplatesTest {
         assertThat(prompt(2, 0)).contains("Do not invent new questions").doesNotContain("You may invent");
         assertThat(prompt(0, 0)).contains("Do not invent new questions");
     }
+
+    @Test
+    void followUpLimitZeroTellsTheInterviewerToAskTheCoreQuestionNow() {
+        assertThat(prompt(0, 0)).contains("Ask this question now. Do not ask a follow-up after the answer.")
+                .doesNotContain("the next question comes next");
+    }
 }

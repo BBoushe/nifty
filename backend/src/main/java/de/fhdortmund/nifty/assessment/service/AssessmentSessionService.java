@@ -17,6 +17,7 @@ import de.fhdortmund.nifty.shared.exception.DomainException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -24,8 +25,10 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -42,17 +45,35 @@ public class AssessmentSessionService {
     private final AuthContextService auth;
     private final ContextCreationService context;
     private final ChatClient chat;
+    private final ThreadPoolTaskExecutor streams;
 
     AssessmentSessionService(AttemptService attempts, AuthContextService auth, ContextCreationService context,
-            ChatClient.Builder chatBuilder) {
+            ChatClient.Builder chatBuilder,
+            @Qualifier(StreamExecutorConfig.STREAM_EXECUTOR) ThreadPoolTaskExecutor streams) {
         this.attempts = attempts;
         this.auth = auth;
         this.context = context;
         this.chat = chatBuilder.build();
+        this.streams = streams;
+    }
+
+    /**
+     * REQ-AC-24: refuse before any write, so a 503 leaves the ledger unchanged. The pool takes the next task unless
+     * its queue is full and every thread exists; {@code TaskRejectedException} stays the safety net for a race.
+     * shortcut: the check and the later submit are not atomic; a race can still reach the 503 handler after the
+     * answer is stored; the expiry sweep then opens the next question. Upgrade to a semaphore around check and
+     * submit if that shows in the logs.
+     */
+    private void requireStreamCapacity() {
+        ThreadPoolExecutor pool = streams.getThreadPoolExecutor();
+        if (pool.getQueue().remainingCapacity() == 0 && pool.getPoolSize() >= pool.getMaximumPoolSize()) {
+            throw new DomainException(HttpStatus.SERVICE_UNAVAILABLE, "The server is busy. Try again in a moment.");
+        }
     }
 
     public SessionReply start() {
         CandidateSessionPrincipal who = auth.currentCandidate();
+        requireStreamCapacity();
         try {
             return toReply(attempts.start(who));
         } catch (DataIntegrityViolationException ex) {
@@ -62,6 +83,7 @@ public class AssessmentSessionService {
     }
 
     public SessionReply answer(UUID attemptId, String content) {
+        requireStreamCapacity();
         return toReply(attempts.answer(attemptId, auth.currentCandidate().inviteId(), content));
     }
 
@@ -84,9 +106,10 @@ public class AssessmentSessionService {
 
     private void streamInterviewer(AwaitInterviewer await, SseSink out) {
         TolerantSink sink = new TolerantSink(out);
-        BuiltPromptContext prompt = context.buildInterviewerContext(await.input());
         StringBuilder text = new StringBuilder();
         try {
+            // REQ-AC-23: a build failure takes the same fallback as a failed model call, with no wait for a deadline.
+            BuiltPromptContext prompt = context.buildInterviewerContext(await.input());
             for (String chunk : chat.prompt().messages(toMessages(prompt)).stream().content().toIterable()) {
                 if (chunk != null && !chunk.isEmpty()) {
                     text.append(chunk);
@@ -96,7 +119,7 @@ public class AssessmentSessionService {
         } catch (RuntimeException ex) {
             // Decision 2.29: the ledger keeps what the candidate saw; with no text, AttemptService asks the configured
             // question.
-            log.warn("Interviewer call failed for attempt {}: {}", await.attemptId(), ex.getMessage());
+            log.warn("Interviewer call failed for attempt {}: {}", await.attemptId(), ex.getClass().getName());
         }
         String streamed = text.toString();
         sendOutcome(sink, attempts.recordInterviewerReply(await.attemptId(), await.step(), streamed), streamed);

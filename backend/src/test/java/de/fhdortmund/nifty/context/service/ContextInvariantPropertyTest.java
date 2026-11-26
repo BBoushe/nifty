@@ -555,7 +555,7 @@ class ContextInvariantPropertyTest {
             CoreQuestionPromptView q = new CoreQuestionPromptView(UUID.randomUUID(), "q", List.of("s"), limit, used);
             String system = new InterviewerContextBuilder().build(new InterviewerContextInput(UUID.randomUUID(), "v",
                     "vision", List.of("s"), q, 1, List.of())).systemPrompt();
-            assertThat(system).contains("Follow-ups left for this question: 0").contains("Ask no follow-up")
+            assertThat(system).contains("Follow-ups left for this question: 0").contains("Do not ask a follow-up")
                     .doesNotContain("at most -").doesNotContain("left for this question: -");
         }
     }

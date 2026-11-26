@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 11 done (committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group D, Task 12 (prompt wording, prompt failure, bounded streams). Not started.
+- **Current:** Tasks 1 to 12 done (committed, not pushed). Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group D, Task 13 (expire and evaluate). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -79,9 +79,9 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] GREEN per design §4. Keep the DB column. Remove the `shortcut:` comment in `AttemptStateMachine` that names invented questions. Follow-up behaviour stays unchanged: existing follow-up tests stay green.
   - [x] Commit `refactor: remove the invented-questions toggle`.
 
-- [ ] **Task 12: Prompt wording, prompt failure, bounded streams (REQ-CC-10, REQ-AC-23, REQ-AC-24)**
-  - [ ] RED. (1) `PromptTemplatesTest`: core question 1 with `followUpLimit = 0` gives a prompt that contains "Ask this question now" and not "the next question comes next". (2) `AssessmentSessionServiceTest`: `buildInterviewerContext` throws → the configured question is sent in the same call, and `recordInterviewerReply` gets an empty text. (3) A context test asserts that the stream executor is a `ThreadPoolTaskExecutor` with max 32 and queue 100. (4) A rejected task gives `503` ProblemDetail.
-  - [ ] GREEN per design §4. Commit `fix(assessment): ask the core question first, fall back at once, bound stream threads`.
+- [x] **Task 12: Prompt wording, prompt failure, bounded streams (REQ-CC-10, REQ-AC-23, REQ-AC-24)**
+  - [x] RED. (1) `PromptTemplatesTest`: core question 1 with `followUpLimit = 0` gives a prompt that contains "Ask this question now" and not "the next question comes next". (2) `AssessmentSessionServiceTest`: `buildInterviewerContext` throws → the configured question is sent in the same call, and `recordInterviewerReply` gets an empty text. (3) A context test asserts that the stream executor is a `ThreadPoolTaskExecutor` with max 32 and queue 100. (4) A rejected task gives `503` ProblemDetail.
+  - [x] GREEN per design §4. Commit `fix(assessment): ask the core question first, fall back at once, bound stream threads`.
 
 - [ ] **Task 13: Expire and evaluate (REQ-AC-21, Decision 2.33)**
   - [ ] RED in `AttemptExpirySchedulerTest`. (1) An attempt in the BFI-10 step past its deadline becomes `COMPLETED` with no profile, and `AttemptCompletedEvent` is published. (2) A SOFT_SKILLS-only attempt that expires before the BFI-10 form also completes, and stays `pending` through Task 10.
@@ -225,4 +225,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='PromptTemplatesTest'` → FAIL (compile: `InterviewerContextInput` still requires the flag); `npx vitest run src/views/studio/StudioViews.test.ts` → FAIL (form still shows "Allow interviewer-invented questions"); GREEN: `./mvnw -B test -Dtest='PromptTemplatesTest,InterviewerContextBuilderTest,StudioConfigControllerTest,ContextInvariantPropertyTest,AttemptStateMachineTest,ContextControllerTest,ContextCreationServiceImplTest,ConfigValidatorTest,ConfigCreationAndQueryIntegrationTest,AssessmentReadAndDeletionIntegrationTest,AssessmentSessionServiceIntegrationTest,AssessmentInvariantPropertyTest,AssessmentSpecInvariantPropertyTest,InviteRevocationAndPurgeTest'` → exit 0 (124 run); `npx vitest run src/views/studio` → exit 0 (19 run); typecheck and lint → exit 0
 - Contracts/Migrations added: `docs/api.md` (preview request loses `inventedQuestionsEnabled`; create ignores an old `inventedQuestions`; detail response has no such field); no migration (column `invented_questions` stays, new rows store `false`)
 - Decisions: 2.32 applied (`// Decision 2.32` in `PromptTemplates` and `ConfigCreationService`). Design differed from code: the field also lived in `InterviewerView`, `InterviewerPreviewRequest`, `AssessmentDetailResponse` and the Studio detail page. All lose it (a dead "Invented questions: Off" row would mislead). The `AttemptStateMachine` shortcut keeps its follow-up part and loses the invented part. Jackson ignores unknown JSON fields, so no extra code serves old clients (test added). `AssessmentConfigEntity` keeps its constructor parameter, and `isInventedQuestions()` is removed (no reader).
+- Open Questions: none
+
+### Task 12: Prompt wording, prompt failure, bounded streams
+- Commits: (this commit) fix(assessment): ask the core question first, fall back at once, bound stream threads
+- Verification: RED: `./mvnw -B test -Dtest='PromptTemplatesTest,AssessmentSessionServiceTest'` → FAIL (prompt still said "the next question comes next"; `buildInterviewerContext` threw out of `streamInterviewer`: `IllegalStateException: boom`); the executor, 503 and capacity tests failed to compile (no pool constructor argument); GREEN: `./mvnw -B test -Dtest='AssessmentSessionServiceTest,StreamExecutorConfigTest,GlobalExceptionHandlerTest,PromptTemplatesTest,InterviewerContextBuilderTest,ContextInvariantPropertyTest,AssessmentSessionServiceIntegrationTest,AssessmentSessionControllerTest,ArchitectureTest'` → exit 0 (91 run)
+- Contracts/Migrations added: `docs/api.md` (503 on start and answer, §4.1 pool bounds and the fallback log line); `nifty.assessment.stream.*` in `application.yml`; no migration
+- Decisions: 2.29 applied. Design differed from code: (1) Boot's MVC async executor was off, because `EvaluationAsyncConfig` already defines an `Executor` bean, so streams ran on an unbounded `SimpleAsyncTaskExecutor`. `StreamExecutorConfig` now defines `streamExecutor` and a `WebMvcConfigurer` that sets it (`StreamExecutorConfigTest` checks the MVC adapter uses it). (2) A `TaskRejectedException` alone would store the answer before the 503, but REQ-AC-24 says the ledger stays unchanged. `AssessmentSessionService.requireStreamCapacity()` therefore refuses first (503 `DomainException`); the `TaskRejectedException` handler in `GlobalExceptionHandler` is the safety net for the check-then-submit race (marked `shortcut:`). (3) The new "Ask this question now" line shows when no follow-ups are left, which is the only case with `followUpLimit = 0`; limits above 0 keep their wording. The WARN log now carries the exception class name, not its message.
 - Open Questions: none

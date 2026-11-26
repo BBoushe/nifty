@@ -44,7 +44,7 @@ class InterviewerContextBuilderTest {
                 List.of());
 
         assertThat(builder.build(in).systemPrompt()).contains("Follow-ups left for this question: 0")
-                .contains("Ask no follow-up");
+                .contains("Do not ask a follow-up");
     }
 
     @Test
