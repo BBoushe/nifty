@@ -108,7 +108,7 @@ All backend Java enums, PostgreSQL columns, OpenAPI schemas, and frontend TypeSc
 | `question.origin` | `core`, `follow_up`, `invented` | Stored, immutable. | `assessment` |
 | `evaluationRun.status` | `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED` | Async job lifecycle in `evaluation`. | `evaluation` |
 | `score` (`N/A` wire format) | `value: number (0..4) \| null`, `status: "SCORED" \| "N/A"` | Computed in Java/SQL. `null` + `"N/A"` when zero verified quotes exist (never `0` or `1`). Excluded from `fit`. | `evaluation` |
-| `reviewStatus` | `pending`, `flagged`, `auto_released`, `approved`, `overridden` | `pending -> flagged` when a flag rule fires (REQ-SM-01). `pending -> auto_released` when release gate passes. `pending \| flagged -> approved \| overridden` by professor. `auto_released -> overridden` by professor. `flagged` blocks bulk-approve. `overridden` requires reason + `audit_log` row. | `evaluation` |
+| `reviewStatus` | `pending`, `flagged`, `auto_released`, `approved`, `overridden` | `pending -> flagged` when a flag rule fires (REQ-SM-01). `pending -> auto_released` when release gate passes. `pending \| flagged -> approved \| overridden` by professor individually (no bulk approval, Decision 2.30). `auto_released -> overridden` by professor. `overridden` requires reason + `audit_log` row. | `evaluation` |
 
 ## 5. Domain Model (`UUID` Primary & Foreign Keys — Decision 1.19)
 

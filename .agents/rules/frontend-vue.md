@@ -21,7 +21,7 @@ description: Vue 3.5 (stable), TypeScript, Vite 8, Tailwind CSS v4, Pinia, TanSt
    - Visually distinguish `N/A` (hatched pattern) from low scores (`0`/`1`). Never render `N/A` as `0`.
    - Display `fit` and `coverage` separately.
    - During an active Assessment Chat, NEVER render scores, weights, or formulas.
-   - Flagged cells (confidence below the question's threshold, paste-suspected, or low coverage) MUST highlight clearly and block bulk-approve.
+   - Flagged cells (confidence below the question's threshold, paste-suspected, or low coverage) MUST highlight clearly. Every non-auto-released attempt requires individual professor review (no bulk approval, Decision 2.30).
    - Display the per-question countdown from the server's `expiresAt`. Submit the current text automatically at zero. Never offer pause or resume (Decision 2.14).
 5. **Verification:** Before finishing frontend edits, run `npm run typecheck && npm run test && npm run lint && npm run build` inside `frontend/`.
 6. Use <script setup lang="ts"> and Composition API. No Options API, no defineComponent unless needed.

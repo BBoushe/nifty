@@ -276,3 +276,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Grace 0-2 s or 30 s; 409 for a start with an open attempt; an SSE error event and a stuck attempt on LLM failure; no stale recovery; browser clock only.
 - **Rationale / Justification:** Each choice keeps the candidate able to finish without a human, keeps the ledger equal to what the candidate saw, and stays deterministic (no LLM decides the flow).
 - **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/assessment/service/AttemptService.java, backend/src/main/java/de/fhdortmund/nifty/assessment/service/AssessmentSessionService.java, backend/src/main/java/de/fhdortmund/nifty/assessment/service/AttemptExpiryScheduler.java, frontend/src/views/assessment/AssessmentChatView.vue, docs/api.md
+
+## 2.30 — Individual professor approval only (no bulk approval)
+- **Date:** 2026-11-26
+- **Triggered By:** prompter-change
+- **Context:** Cold review and prompter review of the evaluation slice identified bulk approval of unflagged evaluations as undesired.
+- **Decision:** Remove bulk approval completely from the backend API and professor UI. Professors must review and approve or override student evaluations and release attempts individually. Threshold-gated auto_released (Decision 2.10) remains unchanged.
+- **Alternatives Considered:** Keep bulk approval for unflagged pending items only while skipping flagged items (original REQ-SM-03).
+- **Rationale / Justification:** Eliminates rubber-stamping risk in human-in-the-loop review under EU AI Act Annex III and simplifies the review state machine.
+- **Affected Files / Pointers:** openspec/specs/skills-matrix-review/spec.md, docs/api.md, docs/architecture.md, .agents/rules/frontend-vue.md, backend/src/main/java/de/fhdortmund/nifty/evaluation/service/EvaluationReviewService.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/web/RankingEvaluationController.java, frontend/src/views/ranking/SkillsMatrixPanel.vue

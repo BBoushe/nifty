@@ -27,12 +27,12 @@ Provide an evidence-first visual review workspace. Professors use it to inspect 
 - **WHEN** a professor changes a candidate's skill level from `2` to `3` with reason `"Follow-up explanation showed practical mastery"`
 - **THEN** the system persists the new score and inserts an immutable `audit_log` row containing actor, timestamp, old value, new value, and reason.
 
-### Requirement: REQ-SM-03 No Bulk Approval for Flagged Scores
-**WHILE** a score is marked as flagged **THE SYSTEM SHALL** prevent bulk approval and require individual human review.
+### Requirement: REQ-SM-03 Individual Review Only (No Bulk Approval)
+**THE SYSTEM SHALL** require individual professor review for every evaluation and attempt release, and **SHALL NOT** provide bulk approval (Decision 2.30).
 
-#### Scenario: Bulk approve skips flagged items
-- **WHEN** the professor triggers bulk approval across the attempts in the "Needs attention" queue
-- **THEN** only unflagged scores are approved, and every flagged score stays pending individual review.
+#### Scenario: Professor reviews an attempt individually
+- **WHEN** the professor opens an unreleased attempt in the Evidence Drawer
+- **THEN** the professor approves or overrides each flagged evaluation individually before releasing the attempt, with no bulk-approval action in the UI or API.
 
 ### Requirement: REQ-SM-04 SQL-Only Cohort Gap Overview
 **THE SYSTEM SHALL** compute all Cohort Gap Overview statistics in deterministic SQL from the released scores (`approved`, `overridden` or `auto_released`) of each candidate's counted attempt only, and **SHALL NOT** generate cohort numbers via an LLM.
