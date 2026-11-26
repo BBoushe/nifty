@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-05 done, committed
-- **Next action:** US-TB-06 (Team Builder Vue UI)
+- **Current:** US-TB-06 done, committed; all six stories complete
+- **Next action:** Delivery section (orchestrator): merge origin/dev, archive, push, PR
 - **Uncommitted changes:** none (after the task commit)
 - **PR / MR:** — (orchestrator opens it)
 - **Open review findings:** —
@@ -41,11 +41,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
   - [x] Commit: `feat(teams): add professor team builder endpoints and update api docs`
 
-- [ ] **US-TB-06: Vue 3.5 + PrimeVue + ECharts Team Builder UI (`frontend/src/views/teams/`)**
-  - [ ] Write RED Vitest tests: team cards show per-skill averages, `N/A` counts, balance/diversity diagnostics, and professor-only BFI-10 trait summaries; dragging a member calls `/recalculate` and updates cards live; Publish button calls `/publish` and locks UI.
-  - [ ] Implement `TeamBuilderView.vue` under `frontend/src/views/teams/`.
-  - [ ] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
-  - [ ] Commit: `feat(frontend): add Team Builder UI with drag-and-drop balance charts`
+- [x] **US-TB-06: Vue 3.5 + PrimeVue + ECharts Team Builder UI (`frontend/src/views/teams/`)**
+  - [x] Write RED Vitest tests: team cards show per-skill averages, `N/A` counts, balance/diversity diagnostics, and professor-only BFI-10 trait summaries; dragging a member calls `/recalculate` and updates cards live; Publish button calls `/publish` and locks UI.
+  - [x] Implement `TeamBuilderView.vue` under `frontend/src/views/teams/`.
+  - [x] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
+  - [x] Commit: `feat(frontend): add Team Builder UI with drag-and-drop balance charts`
 
 ## Delivery
 
@@ -86,8 +86,15 @@
 - Open Questions: none
 
 ### US-TB-05 TeamBuilderController and docs/api.md
-- Commits: <sha-us-tb-05> feat(teams): add professor team builder endpoints and update api docs
+- Commits: f2a8c40 feat(teams): add professor team builder endpoints and update api docs
 - Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamBuilderControllerTest` → FAIL (compile error: controller absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (229 run, 6 in the new class, ArchitectureTest included)
 - Contracts/Migrations added: `teams/web/TeamBuilderController` (4 PROFESSOR-only endpoints); `docs/api.md` §4 rows added and §5 Team Builder block marked implemented; migrations none
 - Decisions: 1.20, 2.23, 2.27, 4.3
+- Open Questions: none
+
+### US-TB-06 Team Builder UI
+- Commits: <sha-us-tb-06> feat(frontend): add Team Builder UI with drag-and-drop balance charts
+- Verification: RED: `cd frontend && npx vitest run src/views/teams` → FAIL (TeamBuilderView.vue absent, import unresolved); GREEN: `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (86 tests, 6 new)
+- Contracts/Migrations added: `frontend/src/api/teams.ts`, `frontend/src/views/teams/{TeamBuilderView,TeamCard}.vue`, route `/ranking/teams/:configId`; migrations none. No link to the page exists yet in `views/studio/` (not owned by this change).
+- Decisions: 1.20, 4.3 (zero client-side maths, traits shown to the professor only)
 - Open Questions: none
