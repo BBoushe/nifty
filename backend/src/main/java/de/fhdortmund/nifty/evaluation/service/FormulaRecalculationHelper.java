@@ -8,8 +8,6 @@ import de.fhdortmund.nifty.evaluation.repository.SkillScoreEntity;
 import de.fhdortmund.nifty.evaluation.repository.SkillScoreRepository;
 import de.fhdortmund.nifty.studio.service.view.EvaluatorSkill;
 import de.fhdortmund.nifty.studio.service.view.EvaluatorView;
-import de.fhdortmund.nifty.studio.service.view.ScoringQuestion;
-import de.fhdortmund.nifty.studio.service.view.ScoringView;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,9 +35,15 @@ class FormulaRecalculationHelper {
         this.skillScoreRepository = skillScoreRepository;
     }
 
+    /**
+     * REQ-FE-02: recomputes with the weights of the given formula version (a snapshot), never with live studio
+     * weights. A new weight set is therefore always a new formula version.
+     *
+     * @param questionWeights core question id (as string) to weight, from {@code formula_version.question_weights_json}
+     */
     SkillFormulaCalculator.FormulaResult computeForResponses(
             EvaluatorView evaluatorView,
-            ScoringView scoringView,
+            Map<String, BigDecimal> questionWeights,
             List<ResponseEvaluationEntity> responses,
             BigDecimal maxEntryShare) {
 
@@ -48,21 +52,25 @@ class FormulaRecalculationHelper {
             configuredSkillIds.add(evaluatorView.skills().get(i).skillId());
         }
 
-        List<SkillFormulaCalculator.QuestionWeight> questionWeights = new ArrayList<>(scoringView.questions().size());
-        Map<UUID, BigDecimal> weightByQuestion = new HashMap<>(scoringView.questions().size());
-        for (int i = 0; i < scoringView.questions().size(); i++) {
-            ScoringQuestion q = scoringView.questions().get(i);
-            questionWeights.add(new SkillFormulaCalculator.QuestionWeight(q.coreQuestionId(), q.weight()));
-            weightByQuestion.put(q.coreQuestionId(), q.weight());
+        List<SkillFormulaCalculator.QuestionWeight> coreQuestions = new ArrayList<>(questionWeights.size());
+        Map<UUID, BigDecimal> weightByQuestion = new HashMap<>(questionWeights.size());
+        for (Map.Entry<String, BigDecimal> entry : questionWeights.entrySet()) {
+            UUID questionId = UUID.fromString(entry.getKey());
+            coreQuestions.add(new SkillFormulaCalculator.QuestionWeight(questionId, entry.getValue()));
+            weightByQuestion.put(questionId, entry.getValue());
         }
 
         List<SkillFormulaCalculator.ScoredEntryInput> inputs = new ArrayList<>(responses.size());
         Set<UUID> answeredCoreQuestions = new HashSet<>();
         for (int i = 0; i < responses.size(); i++) {
             ResponseEvaluationEntity r = responses.get(i);
-            answeredCoreQuestions.add(r.getCoreQuestionId());
+            // Decision 2.22: an invented-question entry never counts toward coverage.
+            if (!EntryOrigin.INVENTED.literal().equals(r.getQuestionOrigin())) {
+                answeredCoreQuestions.add(r.getCoreQuestionId());
+            }
             BigDecimal weight = weightByQuestion.getOrDefault(r.getCoreQuestionId(), r.getQuestionWeight());
-            boolean overridden = ReleaseStatus.OVERRIDDEN.literal().equals(r.getReviewStatus());
+            // Decision 2.10: the audited override marker decides, not the mutable review status.
+            boolean overridden = r.getOverriddenBy() != null;
             inputs.add(new SkillFormulaCalculator.ScoredEntryInput(
                     r.getEntryId(),
                     r.getCoreQuestionId(),
@@ -78,7 +86,7 @@ class FormulaRecalculationHelper {
 
         return formulaCalculator.calculate(
                 configuredSkillIds,
-                questionWeights,
+                coreQuestions,
                 inputs,
                 answeredCoreQuestions,
                 maxEntryShare);

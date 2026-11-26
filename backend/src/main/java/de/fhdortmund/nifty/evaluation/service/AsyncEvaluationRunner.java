@@ -23,6 +23,7 @@ import de.fhdortmund.nifty.studio.service.view.EvaluatorView;
 import de.fhdortmund.nifty.studio.service.view.ScoringQuestion;
 import de.fhdortmund.nifty.studio.service.view.ScoringView;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,11 +31,14 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -42,10 +46,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * REQ-EP-05, REQ-EP-06, REQ-EP-07, REQ-EP-09 / Decisions 2.10, 2.20, 2.22, 2.24:
- * Asynchronous, idempotent evaluation pipeline orchestrator. Executes LLM judge calls outside
+ * REQ-EP-05, REQ-EP-06, REQ-EP-07, REQ-EP-09 / Decisions 2.10, 2.13, 2.20, 2.22, 2.24:
+ * Asynchronous, idempotent evaluation pipeline orchestrator. {@link #enqueue} persists a QUEUED run and a QUEUED
+ * summary before any dispatch, so no completed attempt can vanish. Executes LLM judge calls outside
  * DB write transactions and commits summary + response evaluations + skill scores atomically
- * so failures never leave partial {@code skill_score} rows.
+ * so failures never leave partial {@code skill_score} rows. FAILED, QUEUED, and stale RUNNING runs are retried
+ * with a bounded try count ({@link #retryableRunIds}).
  */
 @Service
 @Transactional(readOnly = true)
@@ -53,6 +59,9 @@ public class AsyncEvaluationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsyncEvaluationRunner.class);
     private static final int MAX_ERROR_LEN = 1000;
+    private static final int RETRY_BATCH = 50;
+    private static final String RUNNING = "RUNNING";
+    private static final String FAILED = "FAILED";
 
     private final StudioQueryService studioQueryService;
     private final AssessmentQueryService assessmentQueryService;
@@ -67,6 +76,8 @@ public class AsyncEvaluationRunner {
     private final ResponseEvaluationRepository responseEvaluationRepository;
     private final SkillScoreRepository skillScoreRepository;
     private final TransactionTemplate transactionTemplate;
+    private final int maxAttempts;
+    private final Duration staleAfter;
 
     AsyncEvaluationRunner(
             StudioQueryService studioQueryService,
@@ -81,7 +92,9 @@ public class AsyncEvaluationRunner {
             CandidateEvaluationSummaryRepository summaryRepository,
             ResponseEvaluationRepository responseEvaluationRepository,
             SkillScoreRepository skillScoreRepository,
-            TransactionTemplate transactionTemplate) {
+            TransactionTemplate transactionTemplate,
+            @Value("${nifty.evaluation.retry.max-attempts:3}") int maxAttempts,
+            @Value("${nifty.evaluation.retry.stale-after:PT30M}") Duration staleAfter) {
         this.studioQueryService = studioQueryService;
         this.assessmentQueryService = assessmentQueryService;
         this.judge = judge;
@@ -95,27 +108,64 @@ public class AsyncEvaluationRunner {
         this.responseEvaluationRepository = responseEvaluationRepository;
         this.skillScoreRepository = skillScoreRepository;
         this.transactionTemplate = transactionTemplate;
+        this.maxAttempts = maxAttempts;
+        this.staleAfter = staleAfter;
+    }
+
+    /**
+     * Decision 2.24: persists the QUEUED run and QUEUED summary of a completed attempt BEFORE any dispatch. Each
+     * transaction here is its own: this runs on the listener thread right after the publisher committed, where a
+     * plain REQUIRED transaction would join the already finished one and silently write nothing.
+     *
+     * @return the new run id, or null when this attempt is already known (duplicate event, Decision 2.24)
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public UUID enqueue(AttemptCompletedEvent event) {
+        if (summaryRepository.findByAttemptId(event.attemptId()).isPresent()) {
+            return null;
+        }
+        FormulaVersionEntity formula = ensureFormulaVersion(event.configId());
+        int attemptNo = Math.max(1, assessmentQueryService.getTranscriptForAttempt(event.attemptId()).attemptNo());
+        try {
+            return transactionTemplate.execute(tx -> {
+                EvaluationRunEntity run = evaluationRunRepository.save(new EvaluationRunEntity(
+                        event.attemptId(), event.configId(), formula, null, "QUEUED", event.attemptId().toString()));
+                summaryRepository.save(CandidateEvaluationSummaryEntity.queued(
+                        event.attemptId(), event.configId(), event.inviteId(), attemptNo, formula, run));
+                return run.getId();
+            });
+        } catch (DataIntegrityViolationException ex) {
+            // Concurrent duplicate AttemptCompletedEvent lost the unique attempt_id race (REQ-EP-09).
+            return null;
+        }
+    }
+
+    /** Runs the scheduler should dispatch again. Order: oldest first. */
+    public List<UUID> retryableRunIds() {
+        return evaluationRunRepository.findRetryableIds(
+                maxAttempts, Instant.now().minus(staleAfter), PageRequest.ofSize(RETRY_BATCH));
     }
 
     @Async(EvaluationAsyncConfig.EVALUATION_EXECUTOR)
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void runAsync(AttemptCompletedEvent event) {
-        executeEvaluation(event);
+    public void runAsync(UUID runId) {
+        executeRun(runId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void executeEvaluation(AttemptCompletedEvent event) {
-        RunClaim claim = claimEvaluationRun(event);
+    void executeRun(UUID runId) {
+        RunClaim claim = claimRun(runId);
         if (claim == null) {
             return;
         }
-        EvaluationRunEntity run = claim.run();
         FormulaVersionEntity formulaVersion = claim.formulaVersion();
+        UUID configId = claim.configId();
+        UUID attemptId = claim.attemptId();
 
         try {
-            EvaluatorView evaluatorView = studioQueryService.evaluatorView(event.configId());
-            ScoringView scoringView = studioQueryService.scoringView(event.configId());
-            ImmutableTranscriptView transcript = assessmentQueryService.getTranscriptForAttempt(event.attemptId());
+            EvaluatorView evaluatorView = studioQueryService.evaluatorView(configId);
+            ScoringView scoringView = studioQueryService.scoringView(configId);
+            ImmutableTranscriptView transcript = assessmentQueryService.getTranscriptForAttempt(attemptId);
 
             Map<UUID, EvaluatorSkill> skillsById = indexSkills(evaluatorView.skills());
             Map<UUID, ScoringQuestion> scoringByQuestion = indexScoringQuestions(scoringView.questions());
@@ -132,7 +182,8 @@ public class AsyncEvaluationRunner {
                 if (entry.answerText() == null || entry.answerText().isBlank()) {
                     continue;
                 }
-                if (entry.coreQuestionId() != null) {
+                // Decision 2.22: an invented-question entry never counts toward coverage.
+                if (entry.coreQuestionId() != null && entry.origin() != EntryOrigin.INVENTED) {
                     answeredCoreQuestionIds.add(entry.coreQuestionId());
                 }
 
@@ -151,7 +202,7 @@ public class AsyncEvaluationRunner {
                         continue;
                     }
                     JudgeContextInput judgeInput = new JudgeContextInput(
-                            event.attemptId(),
+                            attemptId,
                             entry.entryId(),
                             skillId,
                             skill.name(),
@@ -186,7 +237,6 @@ public class AsyncEvaluationRunner {
                     pairStatuses, formulaResult.coverage(), scoringView.minCoverage());
 
             final String finalTemplateVersion = templateVersion;
-            final int attemptNo = Math.max(1, transcript.attemptNo());
 
             // Atomic write: summary + response evaluations + skill scores + COMPLETED status commit together.
             transactionTemplate.executeWithoutResult(tx -> {
@@ -194,19 +244,20 @@ public class AsyncEvaluationRunner {
                 Instant releasedAt = releaseDecision.autoReleased() ? now : null;
                 String summaryStatus = releaseDecision.releaseStatus().literal();
 
-                CandidateEvaluationSummaryEntity summary = summaryRepository.save(new CandidateEvaluationSummaryEntity(
-                        event.attemptId(),
-                        event.configId(),
-                        event.inviteId(),
-                        attemptNo,
+                CandidateEvaluationSummaryEntity summary = summaryRepository.findById(claim.summaryId()).orElseThrow();
+                if (summary.isCompleted()) {
+                    // A stale-claim twin finished first: never write a second set of rows for one attempt.
+                    return;
+                }
+                EvaluationRunEntity run = evaluationRunRepository.findById(runId).orElseThrow();
+                summary.markCompleted(
                         formulaVersion,
-                        run,
-                        "COMPLETED",
                         formulaResult.fitScore(),
                         formulaResult.coverage(),
                         releaseDecision.flaggedCount(),
                         summaryStatus,
-                        releasedAt));
+                        releasedAt);
+                summaryRepository.save(summary);
 
                 List<ResponseEvaluationEntity> responseEntities = new ArrayList<>(evaluatedPairs.size());
                 for (int i = 0; i < evaluatedPairs.size(); i++) {
@@ -259,35 +310,54 @@ public class AsyncEvaluationRunner {
                 evaluationRunRepository.save(run);
             });
         } catch (RuntimeException ex) {
-            LOG.error("Evaluation failed for attempt {}", event.attemptId(), ex);
+            LOG.error("Evaluation failed for attempt {}", attemptId, ex);
             String msg = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
             if (msg.length() > MAX_ERROR_LEN) {
                 msg = msg.substring(0, MAX_ERROR_LEN);
             }
-            final String finalMsg = msg;
-            transactionTemplate.executeWithoutResult(tx -> {
-                run.markFailed(finalMsg, Instant.now());
-                evaluationRunRepository.save(run);
-            });
+            markFailed(claim, msg);
         }
     }
 
-    private RunClaim claimEvaluationRun(AttemptCompletedEvent event) {
-        FormulaVersionEntity formula = ensureFormulaVersion(event.configId());
-        try {
-            return transactionTemplate.execute(tx -> {
-                String idempotencyKey = event.attemptId() + ":" + formula.getId();
-                if (evaluationRunRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
-                    return null;
-                }
-                EvaluationRunEntity run = evaluationRunRepository.save(new EvaluationRunEntity(
-                        event.attemptId(), event.configId(), formula, null, "RUNNING", idempotencyKey));
-                return new RunClaim(run, formula);
-            });
-        } catch (DataIntegrityViolationException ex) {
-            // Concurrent duplicate AttemptCompletedEvent lost the unique idempotency_key race (REQ-EP-09).
-            return null;
-        }
+    /** Keeps the run retryable (bounded by max attempts); a completed twin is never overwritten. */
+    private void markFailed(RunClaim claim, String message) {
+        transactionTemplate.executeWithoutResult(tx -> {
+            EvaluationRunEntity run = evaluationRunRepository.findById(claim.runId()).orElseThrow();
+            CandidateEvaluationSummaryEntity summary = summaryRepository.findById(claim.summaryId()).orElseThrow();
+            if (summary.isCompleted() || !RUNNING.equals(run.getStatus())) {
+                return;
+            }
+            run.markFailed(message, Instant.now());
+            evaluationRunRepository.save(run);
+            summary.markEvaluationStatus(FAILED);
+            summaryRepository.save(summary);
+        });
+    }
+
+    /**
+     * Decision 2.24 / REQ-EP-09: one atomic UPDATE decides which worker owns the run, so two workers never
+     * evaluate one attempt. shortcut: a worker that outlives {@code staleAfter} can be overtaken by a twin; the
+     * completed-twin guards in the final write keep the data single, upgrade to a lease heartbeat if runs get long.
+     */
+    private RunClaim claimRun(UUID runId) {
+        return transactionTemplate.execute(tx -> {
+            Instant now = Instant.now();
+            if (evaluationRunRepository.claim(runId, now, now.minus(staleAfter), maxAttempts) == 0) {
+                return null;
+            }
+            EvaluationRunEntity run = evaluationRunRepository.findById(runId).orElseThrow();
+            // REQ-FE-02: a run that waited while a new formula version appeared scores under the newest version.
+            FormulaVersionEntity formula = formulaVersionRepository
+                    .findTopByConfigIdOrderByVersionNumberDesc(run.getConfigId())
+                    .orElse(run.getFormulaVersion());
+            if (!Objects.equals(formula.getId(), run.getFormulaVersion().getId())) {
+                run.useFormulaVersion(formula);
+            }
+            CandidateEvaluationSummaryEntity summary = summaryRepository.findByAttemptId(run.getAttemptId())
+                    .orElseThrow();
+            summary.markEvaluationStatus(RUNNING);
+            return new RunClaim(run.getId(), run.getAttemptId(), run.getConfigId(), summary.getId(), formula);
+        });
     }
 
     private FormulaVersionEntity ensureFormulaVersion(UUID configId) {
@@ -506,7 +576,7 @@ public class AsyncEvaluationRunner {
         return inputs;
     }
 
-    private record RunClaim(EvaluationRunEntity run, FormulaVersionEntity formulaVersion) {
+    private record RunClaim(UUID runId, UUID attemptId, UUID configId, UUID summaryId, FormulaVersionEntity formulaVersion) {
     }
 
     private record EvaluatedPair(

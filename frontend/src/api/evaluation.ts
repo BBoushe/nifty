@@ -2,6 +2,8 @@ import { apiFetch } from './client'
 
 export type ReleaseStatus = 'pending' | 'flagged' | 'auto_released' | 'approved' | 'overridden'
 export type ScoreStatus = 'SCORED' | 'N/A'
+// Only COMPLETED rows carry scores; the others are attempts that still wait for the evaluator.
+export type EvaluationStatus = 'QUEUED' | 'RUNNING' | 'FAILED' | 'COMPLETED'
 
 export interface SkillColumn {
   skillId: string
@@ -22,6 +24,7 @@ export interface MatrixCandidateRow {
   inviteId: string
   attemptId: string
   attemptNo: number
+  evaluationStatus: EvaluationStatus
   fitScore: number | null
   coverage: number
   releaseStatus: ReleaseStatus
@@ -122,7 +125,7 @@ export interface SkillGapStat {
   totalCandidates: number
   scoredCount: number
   naCount: number
-  naShare: number
+  naShare: number | null
   meanScore: number | null
   levelDistribution: number[]
 }

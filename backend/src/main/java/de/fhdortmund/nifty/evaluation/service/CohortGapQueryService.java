@@ -5,7 +5,6 @@ import de.fhdortmund.nifty.shared.exception.DomainException;
 import de.fhdortmund.nifty.studio.service.StudioQueryService;
 import de.fhdortmund.nifty.studio.service.view.EvaluatorSkill;
 import de.fhdortmund.nifty.studio.service.view.EvaluatorView;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,31 +25,33 @@ public class CohortGapQueryService {
 
     private static final String CONFIG_NOT_FOUND = "Assessment configuration not found.";
 
+    // Decision 2.13 / REQ-SM-07: the newest attempt per invite in ANY status is picked first and only then tested
+    // for COMPLETED + released, so an older released attempt never shows through a queued, running, or failed retake.
     private static final String RELEASED_COUNT_SQL = """
             WITH latest_attempts AS (
-                SELECT DISTINCT ON (invite_id) id, release_status
+                SELECT DISTINCT ON (invite_id) id, release_status, evaluation_status
                 FROM candidate_evaluation_summary
                 WHERE config_id = ?
-                  AND evaluation_status = 'COMPLETED'
                 ORDER BY invite_id, attempt_no DESC, created_at DESC
             )
             SELECT COUNT(*)
             FROM latest_attempts
-            WHERE release_status IN ('auto_released', 'approved', 'overridden')
+            WHERE evaluation_status = 'COMPLETED'
+              AND release_status IN ('auto_released', 'approved', 'overridden')
             """;
 
     private static final String SKILL_GAPS_SQL = """
             WITH latest_attempts AS (
-                SELECT DISTINCT ON (invite_id) id, release_status
+                SELECT DISTINCT ON (invite_id) id, release_status, evaluation_status
                 FROM candidate_evaluation_summary
                 WHERE config_id = ?
-                  AND evaluation_status = 'COMPLETED'
                 ORDER BY invite_id, attempt_no DESC, created_at DESC
             ),
             released_latest AS (
                 SELECT id
                 FROM latest_attempts
-                WHERE release_status IN ('auto_released', 'approved', 'overridden')
+                WHERE evaluation_status = 'COMPLETED'
+                  AND release_status IN ('auto_released', 'approved', 'overridden')
             )
             SELECT
                 ss.skill_id,
@@ -129,9 +130,10 @@ public class CohortGapQueryService {
             List<EvaluationDtos.SkillGapStat> emptyStats = new ArrayList<>(evaluatorView.skills().size());
             for (int i = 0; i < evaluatorView.skills().size(); i++) {
                 EvaluatorSkill s = evaluatorView.skills().get(i);
+                // naShare is N/A (null) when nothing is released, never 0.0000 (REQ-EP-02).
                 emptyStats.add(new EvaluationDtos.SkillGapStat(
                         s.skillId(), s.name(), 0, 0, 0,
-                        BigDecimal.ZERO.setScale(4), null, List.of(0, 0, 0, 0, 0)));
+                        null, null, List.of(0, 0, 0, 0, 0)));
             }
             return new EvaluationDtos.CohortGapsResponse(configId, releasedCount, List.copyOf(emptyStats));
         }

@@ -88,7 +88,9 @@ public class EvaluationReviewService {
                 .findTopByConfigIdOrderByVersionNumberDesc(configId)
                 .orElse(null);
 
-        List<CandidateEvaluationSummaryEntity> latestSummaries = summaryRepository.findLatestCompletedPerInvite(configId);
+        // Decision 2.13 / REQ-SM-07: newest attempt per invite in any status. A queued, running, or failed retake
+        // shows as a waiting row and hides the older completed attempt.
+        List<CandidateEvaluationSummaryEntity> latestSummaries = summaryRepository.findLatestPerInvite(configId);
         Map<UUID, List<SkillScoreEntity>> scoresBySummary = loadScoresBySummary(latestSummaries);
 
         List<EvaluationDtos.SkillColumn> columns = new ArrayList<>(evaluatorView.skills().size());
@@ -105,6 +107,7 @@ public class EvaluationReviewService {
                     summary.getInviteId(),
                     summary.getAttemptId(),
                     summary.getAttemptNo(),
+                    summary.getEvaluationStatus(),
                     summary.getFitScore(),
                     summary.getCoverage(),
                     FormulaRecalculationHelper.parseReleaseStatus(summary.getReleaseStatus()),
@@ -225,7 +228,6 @@ public class EvaluationReviewService {
         if (!modified.isEmpty()) {
             responseEvaluationRepository.saveAll(modified);
             EvaluatorView evaluatorView = studioQueryService.evaluatorView(request.configId());
-            ScoringView scoringView = studioQueryService.scoringView(request.configId());
             for (int i = 0; i < summaries.size(); i++) {
                 CandidateEvaluationSummaryEntity summary = summaries.get(i);
                 if (!affectedSummaryIds.contains(summary.getId())) {
@@ -235,7 +237,7 @@ public class EvaluationReviewService {
                         .findBySummaryIdOrderByIdAsc(summary.getId());
                 FormulaVersionEntity fv = summary.getFormulaVersion();
                 SkillFormulaCalculator.FormulaResult recalculated = recalcHelper.computeForResponses(
-                        evaluatorView, scoringView, summaryResponses, fv.getMaxEntrySkillWeightShare());
+                        evaluatorView, fv.getQuestionWeightsJson(), summaryResponses, fv.getMaxEntrySkillWeightShare());
                 recalcHelper.replaceSkillScores(summary, fv, recalculated, null);
             }
         }
@@ -256,6 +258,11 @@ public class EvaluationReviewService {
             throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
         }
 
+        // Decision 2.10: an audited professor override must survive; approve would silently replace it.
+        if (target.getOverriddenBy() != null) {
+            throw new DomainException(HttpStatus.CONFLICT, "This evaluation was overridden and cannot be approved.");
+        }
+
         String oldStatus = target.getReviewStatus();
         Instant now = Instant.now();
         target.approve(now);
@@ -272,7 +279,6 @@ public class EvaluationReviewService {
                 null);
 
         EvaluatorView evaluatorView = studioQueryService.evaluatorView(summary.getConfigId());
-        ScoringView scoringView = studioQueryService.scoringView(summary.getConfigId());
         List<ResponseEvaluationEntity> allResponses = responseEvaluationRepository
                 .findBySummaryIdOrderByIdAsc(summary.getId());
         int remainingFlagged = countFlagged(allResponses);
@@ -282,7 +288,7 @@ public class EvaluationReviewService {
                 : (remainingFlagged > 0 ? ReleaseStatus.FLAGGED.literal() : ReleaseStatus.PENDING.literal());
         FormulaVersionEntity fv = summary.getFormulaVersion();
         SkillFormulaCalculator.FormulaResult recalculated = recalcHelper.computeForResponses(
-                evaluatorView, scoringView, allResponses, fv.getMaxEntrySkillWeightShare());
+                evaluatorView, fv.getQuestionWeightsJson(), allResponses, fv.getMaxEntrySkillWeightShare());
 
         summary.updateScores(
                 fv,
@@ -342,13 +348,15 @@ public class EvaluationReviewService {
 
         // REQ-FE-02: recompute Formula B deterministically in Java with ZERO LLM calls.
         EvaluatorView evaluatorView = studioQueryService.evaluatorView(summary.getConfigId());
-        ScoringView scoringView = studioQueryService.scoringView(summary.getConfigId());
         List<ResponseEvaluationEntity> allResponses = responseEvaluationRepository
                 .findBySummaryIdOrderByIdAsc(summary.getId());
         FormulaVersionEntity formulaVersion = summary.getFormulaVersion();
 
         SkillFormulaCalculator.FormulaResult recalculated = recalcHelper.computeForResponses(
-                evaluatorView, scoringView, allResponses, formulaVersion.getMaxEntrySkillWeightShare());
+                evaluatorView,
+                formulaVersion.getQuestionWeightsJson(),
+                allResponses,
+                formulaVersion.getMaxEntrySkillWeightShare());
 
         int remainingFlagged = countFlagged(allResponses);
         boolean wasReleased = FormulaRecalculationHelper.isReleased(summary.getReleaseStatus());
@@ -387,6 +395,10 @@ public class EvaluationReviewService {
     public EvaluationDtos.ReleaseAttemptResponse releaseAttempt(UUID attemptId) {
         UUID professorId = authContextService.currentProfessorId();
         CandidateEvaluationSummaryEntity summary = requireOwnedSummary(attemptId);
+        // Decision 2.24: a queued, running, or failed attempt has no evidence yet and must never be released.
+        if (!summary.isCompleted()) {
+            throw new DomainException(HttpStatus.CONFLICT, "This attempt has not finished evaluation yet.");
+        }
         List<ResponseEvaluationEntity> responses = responseEvaluationRepository
                 .findBySummaryIdOrderByIdAsc(summary.getId());
 
@@ -419,9 +431,12 @@ public class EvaluationReviewService {
         summaryRepository.save(summary);
 
         EvaluatorView evaluatorView = studioQueryService.evaluatorView(summary.getConfigId());
-        ScoringView scoringView = studioQueryService.scoringView(summary.getConfigId());
+        FormulaVersionEntity formulaVersion = summary.getFormulaVersion();
         SkillFormulaCalculator.FormulaResult result = recalcHelper.computeForResponses(
-                evaluatorView, scoringView, responses, summary.getFormulaVersion().getMaxEntrySkillWeightShare());
+                evaluatorView,
+                formulaVersion.getQuestionWeightsJson(),
+                responses,
+                formulaVersion.getMaxEntrySkillWeightShare());
         recalcHelper.replaceSkillScores(summary, summary.getFormulaVersion(), result, finalStatus.literal());
 
         auditService.record(

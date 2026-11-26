@@ -51,6 +51,9 @@ public class EvaluationRunEntity {
     @Column(name = "started_at", nullable = false, updatable = false)
     private Instant startedAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 
@@ -70,8 +73,10 @@ public class EvaluationRunEntity {
         this.contextTemplateVersion = contextTemplateVersion;
         this.status = status;
         this.idempotencyKey = idempotencyKey;
-        this.attemptCount = 1;
+        // attempt_count counts LLM tries: a QUEUED run has made none yet.
+        this.attemptCount = "QUEUED".equals(status) ? 0 : 1;
         this.startedAt = Instant.now();
+        this.updatedAt = this.startedAt;
     }
 
     public UUID getId() {
@@ -118,8 +123,13 @@ public class EvaluationRunEntity {
         return completedAt;
     }
 
-    public void markRunning() {
-        this.status = "RUNNING";
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    /** Re-points a not yet evaluated run at the newest formula version (REQ-FE-02). */
+    public void useFormulaVersion(FormulaVersionEntity formulaVersion) {
+        this.formulaVersion = formulaVersion;
     }
 
     public void markCompleted(String templateVersion, Instant completedAt) {
@@ -129,11 +139,13 @@ public class EvaluationRunEntity {
         this.status = "COMPLETED";
         this.errorMessage = null;
         this.completedAt = completedAt;
+        this.updatedAt = completedAt;
     }
 
     public void markFailed(String errorMessage, Instant completedAt) {
         this.status = "FAILED";
         this.errorMessage = errorMessage;
         this.completedAt = completedAt;
+        this.updatedAt = completedAt;
     }
 }

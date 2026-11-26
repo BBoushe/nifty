@@ -33,6 +33,13 @@ nifty:
     professor:
       email: ${NIFTY_BOOTSTRAP_PROFESSOR_EMAIL:}
       password: ${NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD:}
+  # Decision 2.24: bounded retry of QUEUED, FAILED, and stale RUNNING evaluation runs.
+  evaluation:
+    retry:
+      enabled: true
+      max-attempts: 3
+      fixed-delay: PT1M
+      stale-after: PT30M
   ai:
     provider-mode: ${AI_EVALUATOR_PROVIDER:kiconnect-nrw}
     evaluator:

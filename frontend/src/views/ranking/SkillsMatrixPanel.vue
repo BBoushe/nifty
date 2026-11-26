@@ -216,7 +216,13 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
                 {{ row.inviteId.slice(0, 8) }} <span class="text-ink-muted">(#{{ row.attemptNo }})</span>
               </td>
               <td class="px-4 py-3">
-                <Tag :value="row.releaseStatus" :severity="statusSeverity(row.releaseStatus)" />
+                <Tag
+                  v-if="row.evaluationStatus !== 'COMPLETED'"
+                  :value="row.evaluationStatus === 'FAILED' ? 'evaluation failed' : 'evaluating'"
+                  :severity="row.evaluationStatus === 'FAILED' ? 'danger' : 'secondary'"
+                  :data-testid="`evaluation-status-${row.attemptId}`"
+                />
+                <Tag v-else :value="row.releaseStatus" :severity="statusSeverity(row.releaseStatus)" />
                 <span v-if="row.flaggedCount > 0" class="ml-1 text-xs font-semibold text-danger">
                   ({{ row.flaggedCount }} flagged)
                 </span>

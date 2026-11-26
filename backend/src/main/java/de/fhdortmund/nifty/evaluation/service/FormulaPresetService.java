@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -90,13 +91,20 @@ public class FormulaPresetService {
                 .orElse(1);
 
         Map<String, BigDecimal> questionWeights = buildQuestionWeightsMap(scoringView.questions());
-        FormulaVersionEntity savedVersion = formulaVersionRepository.save(new FormulaVersionEntity(
-                configId,
-                nextVersion,
-                preset,
-                SkillFormulaCalculator.DEFAULT_MAX_ENTRY_SHARE,
-                questionWeights,
-                professorId));
+        FormulaVersionEntity savedVersion;
+        try {
+            // saveAndFlush surfaces the UNIQUE (config_id, version_number) race here, not at commit time.
+            savedVersion = formulaVersionRepository.saveAndFlush(new FormulaVersionEntity(
+                    configId,
+                    nextVersion,
+                    preset,
+                    SkillFormulaCalculator.DEFAULT_MAX_ENTRY_SHARE,
+                    questionWeights,
+                    professorId));
+        } catch (DataIntegrityViolationException ex) {
+            throw new DomainException(
+                    HttpStatus.CONFLICT, "Another formula version was created at the same time. Reload and retry.");
+        }
 
         List<CandidateEvaluationSummaryEntity> summaries = summaryRepository.findLatestCompletedPerInvite(configId);
         for (int i = 0; i < summaries.size(); i++) {
@@ -104,7 +112,10 @@ public class FormulaPresetService {
             List<ResponseEvaluationEntity> responses = responseEvaluationRepository
                     .findBySummaryIdOrderByIdAsc(summary.getId());
             SkillFormulaCalculator.FormulaResult recomputed = recalcHelper.computeForResponses(
-                    evaluatorView, scoringView, responses, savedVersion.getMaxEntrySkillWeightShare());
+                    evaluatorView,
+                    savedVersion.getQuestionWeightsJson(),
+                    responses,
+                    savedVersion.getMaxEntrySkillWeightShare());
 
             summary.updateScores(
                     savedVersion,
@@ -146,7 +157,8 @@ public class FormulaPresetService {
         requireOwnedConfig(configId);
 
         EvaluatorView evaluatorView = studioQueryService.evaluatorView(configId);
-        ScoringView scoringView = studioQueryService.scoringView(configId);
+        // A preview is a what-if for the NEXT version, so it uses the current studio weights.
+        Map<String, BigDecimal> previewWeights = buildQuestionWeightsMap(studioQueryService.scoringView(configId).questions());
         List<CandidateEvaluationSummaryEntity> summaries = summaryRepository.findLatestCompletedPerInvite(configId);
 
         List<EvaluationDtos.FormulaPreviewCandidate> candidates = new ArrayList<>(summaries.size());
@@ -155,7 +167,7 @@ public class FormulaPresetService {
             List<ResponseEvaluationEntity> responses = responseEvaluationRepository
                     .findBySummaryIdOrderByIdAsc(summary.getId());
             SkillFormulaCalculator.FormulaResult result = recalcHelper.computeForResponses(
-                    evaluatorView, scoringView, responses, SkillFormulaCalculator.DEFAULT_MAX_ENTRY_SHARE);
+                    evaluatorView, previewWeights, responses, SkillFormulaCalculator.DEFAULT_MAX_ENTRY_SHARE);
             candidates.add(new EvaluationDtos.FormulaPreviewCandidate(
                     summary.getInviteId(),
                     summary.getAttemptId(),

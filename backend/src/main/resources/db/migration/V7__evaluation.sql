@@ -28,9 +28,10 @@ CREATE TABLE evaluation_run (
     status                   VARCHAR(16) NOT NULL
                              CHECK (status IN ('QUEUED', 'RUNNING', 'COMPLETED', 'FAILED')),
     idempotency_key          VARCHAR(128) NOT NULL UNIQUE,
-    attempt_count            INT NOT NULL DEFAULT 1 CHECK (attempt_count >= 1),
+    attempt_count            INT NOT NULL DEFAULT 0 CHECK (attempt_count >= 0), -- Decision 2.24: LLM tries so far; QUEUED = 0.
     error_message            TEXT,
     started_at               TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- heartbeat: a stale RUNNING run is retried
     completed_at             TIMESTAMP WITH TIME ZONE,
     UNIQUE (attempt_id, formula_version_id)
 );

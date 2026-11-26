@@ -108,7 +108,7 @@ class AsyncEvaluationRunnerIntegrationTest extends PostgresContainerBase {
 
         try {
             // Call through the Spring proxy (not package-private directly) to exercise @Transactional proxy!
-            runner.executeEvaluation(new AttemptCompletedEvent(attemptId, configId, inviteId));
+            runner.executeRun(runner.enqueue(new AttemptCompletedEvent(attemptId, configId, inviteId)));
 
             CandidateEvaluationSummaryEntity summary = summaryRepository.findByAttemptId(attemptId).orElseThrow();
             assertThat(summary.getEvaluationStatus()).isEqualTo("COMPLETED");
@@ -170,7 +170,7 @@ class AsyncEvaluationRunnerIntegrationTest extends PostgresContainerBase {
                         "evaluator-judge-v1", verifiedRun1, TwoRunResponseJudge.ParsedRun.failed()));
 
         try {
-            runner.executeEvaluation(new AttemptCompletedEvent(attemptId, configId, inviteId));
+            runner.executeRun(runner.enqueue(new AttemptCompletedEvent(attemptId, configId, inviteId)));
 
             CandidateEvaluationSummaryEntity summary = summaryRepository.findByAttemptId(attemptId).orElseThrow();
             List<ResponseEvaluationEntity> responses = responseEvaluationRepository
