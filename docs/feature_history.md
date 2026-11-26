@@ -7,7 +7,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-26 — context-creation
 - **What:** Built the stateless `context` slice, the only place that builds LLM prompts. A rubric-blind `interviewer-v1` builder and a per-(entry, skill) `evaluator-judge-v1` builder (levels `0..4` in order, evidence-only JSON, timed-out partial answers kept). Candidate text goes through a zero-Stream sanitizer and a deterministic injection detector, then inside `<candidate_answer>` or `<transcript_entry>` tags. A flagged answer writes one `PROMPT_INJECTION_DETECTED` audit row with a SHA-256 and rule IDs, never raw text. Added the `PROFESSOR` preview endpoint `POST /api/v1/ranking/context/preview/interviewer`. Deleted `ContextCreationServicePlaceholder`.
 - **Why:** `assessment` and `evaluation` must not write their own prompts. One slice keeps the interviewer rubric-blind and treats candidate text as untrusted data.
-- **PR/MR:** pending
+- **PR/MR:** GitHub #24, GitLab !23
 - **Specs:** REQ-CC-09 (added to the main spec), REQ-CC-01..08 (implemented)   **Decisions:** applies 1.12, 1.18, 1.19, 1.21, 2.20, 2.24, 2.25
 
 ## 2026-11-25 — frontend-foundation

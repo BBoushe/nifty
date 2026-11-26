@@ -6,7 +6,7 @@
 - **Current:** All stories, the archive step, three review rounds, the mutation/invariant fix round and the look-alike bracket fix are done. Merged `origin/dev` (f547f1c). Human approved push and PR/MR.
 - **Next action:** Push and open the PR/MR via `node scripts/forge.mjs`; wait for CI and the human merge (never merge)
 - **Uncommitted changes:** none
-- **PR / MR:** not opened (human approves the push first)
+- **PR / MR:** GitHub #24 (https://github.com/BBoushe/nifty/pull/24), GitLab !23
 - **Open review findings:** none Blocking. Convention Candidates not applied: rename audit key `promptSha256` to `answerSha256`; name `inspectCandidateInput` in REQ-CC-04 text; `PromptContextBuilder.role()` unused in production.
 
 ## Tasks
