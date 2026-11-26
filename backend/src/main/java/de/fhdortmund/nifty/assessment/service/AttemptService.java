@@ -23,6 +23,7 @@ import de.fhdortmund.nifty.studio.service.view.InterviewerQuestion;
 import de.fhdortmund.nifty.studio.service.view.InterviewerView;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -107,7 +108,7 @@ class AttemptService {
         AttemptStateMachine.checkCanStart(started, view.maxAttempts());
         AttemptStatus status = AttemptStateMachine.initialStatus(view);
         AssessmentAttemptEntity attempt = attempts.save(new AssessmentAttemptEntity(who.inviteId(), who.configId(),
-                versionNumber(view.configVersion()), started + 1, status.name(), Instant.now()));
+                versionNumber(view.configVersion()), started + 1, status.name(), now()));
         if (status == AttemptStatus.BFI10) {
             return new ShowState(stateOf(attempt, view, List.of()));
         }
@@ -126,7 +127,7 @@ class AttemptService {
         List<LedgerEntry> ledger = ledgerOf(attemptId);
         LedgerEntry open = AttemptStateMachine.openQuestion(ledger)
                 .orElseThrow(() -> new DomainException(HttpStatus.CONFLICT, "No question is open right now."));
-        Instant now = Instant.now();
+        Instant now = now();
         AnswerTiming timing = AttemptStateMachine.timing(open.expiresAt(), now, grace);
         if (timing == AnswerTiming.TOO_LATE) {
             closeWithoutAnswer(attempt, view, ledger, open, now);
@@ -154,7 +155,7 @@ class AttemptService {
         if (open.isPresent() || !AttemptStatus.IN_PROGRESS.name().equals(attempt.getStatus())) {
             return outcomeOf(attempt, view, ledger); // someone else moved this attempt on already
         }
-        Instant now = Instant.now();
+        Instant now = now();
         if (text.isBlank()) {
             return advanceWithoutInterviewer(attempt, view, ledger, now);
         }
@@ -170,14 +171,14 @@ class AttemptService {
         }
         List<LedgerEntry> ledger = ledgerOf(attemptId);
         Optional<LedgerEntry> open = AttemptStateMachine.openQuestion(ledger);
-        Instant now = Instant.now();
+        Instant now = now();
         if (open.isPresent() && AttemptStateMachine.timing(open.get().expiresAt(), now, grace) == AnswerTiming.TOO_LATE) {
             closeWithoutAnswer(attempt, studio.interviewerView(attempt.getConfigId()), ledger, open.get(), now);
         }
     }
 
     List<UUID> expiredAttemptIds() {
-        return attempts.findIdsWithQuestionExpiredBefore(Instant.now().minus(grace));
+        return attempts.findIdsWithQuestionExpiredBefore(now().minus(grace));
     }
 
     /**
@@ -192,14 +193,14 @@ class AttemptService {
         }
         List<LedgerEntry> ledger = ledgerOf(attemptId);
         Instant lastActivity = ledger.isEmpty() ? attempt.getStartedAt() : ledger.getLast().createdAt();
-        Instant now = Instant.now();
+        Instant now = now();
         if (AttemptStateMachine.openQuestion(ledger).isEmpty() && lastActivity.isBefore(now.minus(staleReply))) {
             advanceWithoutInterviewer(attempt, studio.interviewerView(attempt.getConfigId()), ledger, now);
         }
     }
 
     List<UUID> staleAttemptIds() {
-        return attempts.findIdsAwaitingInterviewerSince(Instant.now().minus(staleReply));
+        return attempts.findIdsAwaitingInterviewerSince(now().minus(staleReply));
     }
 
     SessionStateResponse state(UUID attemptId, UUID inviteId) {
@@ -215,7 +216,7 @@ class AttemptService {
         int[] answers = Bfi10ScoringService.validate(items);
         requireStatus(attempt, AttemptStatus.BFI10);
         Bfi10Traits traits = Bfi10ScoringService.score(answers);
-        Instant now = Instant.now();
+        Instant now = now();
         bfiResponses.save(new BfiResponseEntity(attemptId, answers, traits.conscientiousness(), traits.agreeableness(),
                 traits.neuroticism(), traits.extraversion(), traits.openness(), now));
         complete(attempt, now);
@@ -224,7 +225,7 @@ class AttemptService {
     private TurnOutcome planNext(AssessmentAttemptEntity attempt, InterviewerView view, List<LedgerEntry> ledger,
             boolean followUpAllowed) {
         if (!(AttemptStateMachine.next(view, ledger, followUpAllowed) instanceof Ask step)) {
-            return finishInterview(attempt, view, Instant.now());
+            return finishInterview(attempt, view, now());
         }
         return new AwaitInterviewer(attempt.getId(), step, contextInput(attempt.getId(), view, ledger, step));
     }
@@ -325,7 +326,7 @@ class AttemptService {
         return new SessionStateResponse(attempt.getId(), AttemptStatus.valueOf(attempt.getStatus()),
                 attempt.getAttemptNo(), view.bfi10Enabled(),
                 interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0, expiresAt, messages,
-                Instant.now());
+                now());
     }
 
     private List<LedgerEntry> ledgerOf(UUID attemptId) {
@@ -353,6 +354,14 @@ class AttemptService {
         if (!expected.name().equals(attempt.getStatus())) {
             throw new DomainException(HttpStatus.CONFLICT, "This session is not at the " + expected + " step.");
         }
+    }
+
+    /**
+     * The server clock at PostgreSQL's microsecond precision. Linux clocks tick in nanoseconds, so an untruncated
+     * value sent over SSE would differ from the stored {@code expires_at} that a resume reads back.
+     */
+    static Instant now() {
+        return Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
     /** InterviewerView carries "v1"; the table stores 1. */

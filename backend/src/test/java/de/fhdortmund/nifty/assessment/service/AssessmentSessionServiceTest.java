@@ -21,6 +21,14 @@ import org.springframework.http.HttpStatus;
 class AssessmentSessionServiceTest {
 
     @Test
+    void serverTimestampsMatchTheMicrosecondPrecisionOfPostgres() {
+        // Linux clocks tick in nanoseconds (CI failed on 15:06:42.758528053Z vs stored 15:06:42.758528Z).
+        for (int i = 0; i < 1000; i++) {
+            assertThat(AttemptService.now().getNano() % 1000).isZero();
+        }
+    }
+
+    @Test
     void parallelStartThatLosesTheAttemptNumberRaceIs409NotA500() {
         AttemptService attempts = mock(AttemptService.class);
         AuthContextService auth = mock(AuthContextService.class);

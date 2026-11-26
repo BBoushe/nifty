@@ -14,7 +14,6 @@ import de.fhdortmund.nifty.context.service.ContextCreationService;
 import de.fhdortmund.nifty.context.service.dto.BuiltPromptContext;
 import de.fhdortmund.nifty.context.service.dto.PromptMessage;
 import de.fhdortmund.nifty.shared.exception.DomainException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -111,7 +110,7 @@ public class AssessmentSessionService {
                 sink.send("delta", new Delta(q.content()));
             }
             sink.send("question", new Question(asked.attemptId(), q.id(), q.origin(), q.expiresAt(),
-                    asked.questionsRemaining(), Instant.now()));
+                    asked.questionsRemaining(), AttemptService.now()));
         } else if (outcome instanceof Finished finished) {
             sink.send("done", new Done(finished.status()));
         }
