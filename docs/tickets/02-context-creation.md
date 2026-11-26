@@ -1,6 +1,6 @@
 # Ticket #2: `context` — Context Creation Service (Teammate A)
 
-- **OpenSpec Change:** [`openspec/changes/context-creation/`](../../openspec/changes/context-creation/)
+- **OpenSpec Change:** [`openspec/changes/archive/2026-11-26-context-creation/`](../../openspec/changes/archive/2026-11-26-context-creation/) (archived; the main spec is `openspec/specs/context-creation/spec.md`)
 - **Branch / Worktree:** `feat/context-creation` (`../nifty-context-creation`)
 - **Owned Folders:** `backend/src/main/java/de/fhdortmund/nifty/context/` (`web/`, `service/` only — stateless)
 - **Reserved Migration:** None (stateless slice; zero Flyway contention)

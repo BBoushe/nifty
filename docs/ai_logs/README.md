@@ -33,5 +33,6 @@ Name: `YYYY-MM-DD-<topic>.md`. Keep each file under 80 lines. Use these sections
 
 | Date | Log | Topic |
 |---|---|---|
+| 2026-11-26 | [2026-11-26-context-creation.md](2026-11-26-context-creation.md) | Context creation slice: prompt builders, injection defense, audit rule, preview endpoint |
 | 2026-11-25 | [2026-11-25-five-service-convergence.md](2026-11-25-five-service-convergence.md) | Five-service convergence, Decisions 1.18–1.21 & 2.21–2.25, OpenSpec packs & team tickets |
 | 2026-11-25 | [2026-11-25-architecture-handover.md](2026-11-25-architecture-handover.md) | Nov 24 feature list reconciliation, O1–O7 closed |
