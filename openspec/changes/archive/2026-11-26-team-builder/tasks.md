@@ -105,3 +105,11 @@
 - Contracts/Migrations added: `TeamProposalRepository.findByIdForUpdate` (`PESSIMISTIC_WRITE`, no schema change, V8 untouched); `GenerateTeamsRequest.MAX_SEED` and `@Min/@Max` on `seed`; `docs/api.md` notes (seed range, name-collision suffix, attempt-matched traits, uneven placement, `409` after a lock wait); REQ-TB-05 and REQ-TB-03 reworded in `openspec/specs/team-builder/spec.md`; archived `design.md` section "Review Fixes (Task 7)". API shape unchanged: two skills with one name now get the key suffix ` [<8 characters of skillId>]`.
 - Decisions: 1.20 (seed determinism independent of upstream order), 4.3 (traits only from the released attempt), 2.10 (REQ-TB-04 one audit row per publish)
 - Open Questions: none
+
+### Task 8 (Invariant and mutation testing, before merge)
+- Commits: `test(teams): add seeded invariant property tests from mutation run`
+- Verification: tests only, no production change. Mutation RED: 55 hand mutants of `TeamObjectiveCalculator`, `SimulatedAnnealingTeamOptimizer`, `TeamBuilderService` and the lock call, each run with `./mvnw -B -q test -Dtest='Team*,SimulatedAnnealing*'`; 43 killed by the existing tests, 9 more killed after the new tests, 3 survive (O1 `delta <= 0` vs `< 0` and O9 same-team swap guard are equivalent; O8 fixed annealing RNG has no observable requirement). GREEN: `./mvnw -B test -Dtest='TeamInvariantPropertyTest'` → exit 0 (22 run, about 18 s, seed `20261126`); production code equals a87f3a3 (`git diff --quiet -- backend/src/main` → 0).
+- Contracts/Migrations added: none. `TeamInvariantPropertyTest` covers placement and floor/ceil sizes, seed determinism and input-order independence, N/A masking (poison values never read, N/A never treated as 0), cost never above the starting deal, team relabelling, trait-weight scaling, BFI-10 trait term and 1..5 to 0..1 mapping, bounds, and an annealing hit rate above 90 percent on tiny worlds.
+- Decisions: 1.20, 4.3
+- Open Questions: Simulated Annealing is a heuristic; it misses the optimum in 1 of 300 tiny worlds (accepted, not a spec violation). The lock mutants are killed only by the timing-based `TeamPublishRaceTest`.
+
