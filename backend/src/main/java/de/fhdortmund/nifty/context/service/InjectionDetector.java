@@ -45,7 +45,9 @@ final class InjectionDetector {
                 + "|\\b(?:reveal|repeat|leak)\\s++the\\s++(?:prompt|instructions|rules)\\b"
                 + "|\\bwhat\\s++(?:is|are)\\s++your\\s++(?:(?:system|hidden|initial)\\s++){0,3}+"
                 + "(?:prompt|instructions|rubric)\\b"),
-        compile("<\\s*+/?+\\s*+(?:" + PromptSanitizer.RESERVED_TAGS + ")\\b|<\\|[a-z_]++\\|>|\\[/?inst\\]"),
+        // NFKC already folds full-width letters and "＜"; the look-alike brackets (‹, 〈, ⟨, ᐸ) survive NFKC.
+        compile("[" + PromptSanitizer.TAG_OPENERS + "]\\s*+/?+\\s*+(?:" + PromptSanitizer.RESERVED_TAGS + ")\\b"
+                + "|<\\|[a-z_]++\\|>|\\[/?inst\\]"),
     };
 
     private InjectionDetector() {

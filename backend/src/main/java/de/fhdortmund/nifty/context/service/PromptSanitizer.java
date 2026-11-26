@@ -13,18 +13,24 @@ import java.util.regex.Pattern;
  */
 final class PromptSanitizer {
 
-    // shortcut: one fixed ceiling for every answer, move it into config when the professor sets answer limits.
+    // Decision 2.26: equals the assessment API answer limit (REQ-AC-20), so the ledger never holds text the models
+    // cannot see. The cut stays as defence in depth. Change both together.
     static final int MAX_CHARS = 4000;
 
     // shortcut: fixed tag list. `user`, `human` and `tool` stay out so List<User> in a Java answer stays untouched.
     // A quote that spans an escaped tag fails word-for-word verification and is discarded (fail-safe).
     static final String RESERVED_TAGS =
             "candidate_answer|transcript_entry|system|assistant|instructions?|developer";
+    // Signs a model may read as "<": ASCII, full-width U+FF1C, small U+FE64, single angle quote U+2039,
+    // CJK angle bracket U+3008, angle brackets U+2329 and U+27E8, Canadian syllabics PA U+1438.
+    static final String TAG_OPENERS = "<＜﹤‹〈〈⟨ᐸ";
+    // Unicode-aware word end: since JDK 19, \b is ASCII-only and never ends a full-width word such as "ｓｙｓｔｅｍ".
+    private static final String WORD_END = "(?![\\p{L}\\p{N}_＿])";
     // Possessive quantifiers keep the scan linear: "<" + 100k spaces must not backtrack (review round 2).
-    // Full-width (U+FF1C) and small (U+FE64) less-than signs look like "<" to a model, so they are escaped too.
     // [\s\p{Z}] also covers NBSP, em space and other Unicode spaces that Java's ASCII \s misses.
     private static final Pattern RESERVED_TAG_START = Pattern.compile(
-            "[<＜﹤](?=[\\s\\p{Z}]*+/?+[\\s\\p{Z}]*+(?:" + RESERVED_TAGS + ")\\b|\\|)",
+            "[" + TAG_OPENERS + "](?=[\\s\\p{Z}]*+[/／]?+[\\s\\p{Z}]*+(?:" + widen(RESERVED_TAGS) + ")" + WORD_END
+                    + "|[|｜])",
             Pattern.CASE_INSENSITIVE);
 
     static final SanitizationReport CLEAN = new SanitizationReport(false, List.of(), false);
@@ -88,6 +94,24 @@ final class PromptSanitizer {
             live = RESERVED_TAG_START.matcher(text);
         }
         return text;
+    }
+
+    /** Lets each ASCII letter and "_" of a tag alternation also match its full-width form ("ｓｙｓｔｅｍ"). */
+    static String widen(String alternation) {
+        StringBuilder sb = new StringBuilder(alternation.length() * 6);
+        for (int i = 0; i < alternation.length(); i++) {
+            char c = alternation.charAt(i);
+            char lower = Character.toLowerCase(c);
+            if (lower >= 'a' && lower <= 'z') {
+                sb.append('[').append(lower).append(Character.toUpperCase(lower))
+                        .append((char) ('ａ' + (lower - 'a'))).append((char) ('Ａ' + (lower - 'a'))).append(']');
+            } else if (c == '_') {
+                sb.append("[_＿]");
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     static boolean isSpoofing(int cp) {

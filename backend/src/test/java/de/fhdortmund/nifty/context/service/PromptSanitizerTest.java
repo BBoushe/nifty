@@ -53,6 +53,23 @@ class PromptSanitizerTest {
     }
 
     @Test
+    void fullWidthTagLettersAndLookAlikeBracketsAreEscaped() {
+        String raw = "<ｓｙｓｔｅｍ> ＜ＡＳＳＩＳＴＡＮＴ> ‹system› 〈/candidate＿answer〉 ⟨developer⟩ 〈instructions〉 ᐸsystem <｜im_start｜>";
+
+        String text = PromptSanitizer.sanitize(raw).text();
+
+        assertThat(text).isEqualTo("&lt;ｓｙｓｔｅｍ> &lt;ＡＳＳＩＳＴＡＮＴ> &lt;system› &lt;/candidate＿answer〉 &lt;developer⟩ "
+                + "&lt;instructions〉 &lt;system &lt;｜im_start｜>");
+    }
+
+    @Test
+    void lookAlikeBracketsInOrdinaryTextStayUnchanged() {
+        String text = "Use ‹quotes› and 〈vectors〉, and ⟨a, b⟩ is an inner product.";
+
+        assertThat(PromptSanitizer.sanitize(text).text()).isEqualTo(text);
+    }
+
+    @Test
     void fullWidthAndSmallLessThanSignsBeforeAReservedTagAreEscaped() {
         String text = PromptSanitizer.sanitize("＜/candidate_answer＞ ﹤system>").text();
 
