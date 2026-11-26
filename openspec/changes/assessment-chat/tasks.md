@@ -23,11 +23,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(assessment): implement state machine, paste detector, and BFI-10 scorer`
 
-- [ ] **US-AC-03: `AssessmentSessionService` with `ContextCreationService`, SSE streaming, expiry sweep, and `AttemptCompletedEvent`**
-  - [ ] Write RED tests with mocked `StudioQueryService`, `ContextCreationService`, and `ChatClient`: delegates prompt building to `ContextCreationService`, stores `injection_suspected` from `SanitizationReport`, streams SSE chunks + closing `expiresAt`, sweeps expired open questions via `AttemptExpiryScheduler`, and publishes `AttemptCompletedEvent(attemptId, configId, inviteId)` on `COMPLETED`.
-  - [ ] Implement `AssessmentSessionService` and `AttemptExpiryScheduler`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(assessment): wire ContextCreationService, SSE streaming, and completion event`
+- [x] **US-AC-03: `AssessmentSessionService` with `ContextCreationService`, SSE streaming, expiry sweep, and `AttemptCompletedEvent`**
+  - [x] Write RED tests with mocked `StudioQueryService`, `ContextCreationService`, and `ChatClient`: delegates prompt building to `ContextCreationService`, stores `injection_suspected` from `SanitizationReport`, streams SSE chunks + closing `expiresAt`, sweeps expired open questions via `AttemptExpiryScheduler`, and publishes `AttemptCompletedEvent(attemptId, configId, inviteId)` on `COMPLETED`.
+  - [x] Implement `AssessmentSessionService` and `AttemptExpiryScheduler`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(assessment): wire ContextCreationService, SSE streaming, and completion event`
 
 - [ ] **US-AC-04: `AssessmentQueryService` contracts for `evaluation` and `teams`**
   - [ ] Write RED unit/persistence tests verifying `getTranscriptForAttempt` returns ordered ledger entries with zero BFI-10 fields, and `getSoftSkillProfilesForConfig` returns already-scored `1.0..5.0` trait means for each candidate's latest completed attempt.
@@ -70,3 +70,10 @@
 - Contracts/Migrations added: none (package-private `AttemptStateMachine`, `PasteVelocityDetector`, `Bfi10ScoringService`, `Bfi10Traits`, `LedgerEntry`, public `AttemptStatus`)
 - Decisions: 2.20 (grace window keeps text with `timedOut`), 2.23, 2.24 (`> 12 chars/s` for `>= 150 chars`), 4.3; shortcut: every allowed follow-up is asked, no invented questions
 - Open Questions: none
+
+### US-AC-03 (2026-11-26)
+- Commits: `feat(assessment): wire ContextCreationService, SSE streaming, and completion event`
+- Verification: RED: `./mvnw -B test -Dtest=AssessmentSessionServiceIntegrationTest` → FAIL (service classes missing); GREEN: `cd backend && ./mvnw -B test` → exit 0
+- Contracts/Migrations added: public `AssessmentSessionService`, `SessionReply` (`delta` / `question` / `done` SSE payloads), `SseSink`, `SessionStateResponse`; `nifty.assessment.grace-seconds` (default 5) and `nifty.assessment.expiry-sweep-cron`; test pool capped at 4 (PostgreSQL ran out of connections with one more cached context)
+- Decisions: 1.11 (writes commit before the LLM streams), 1.18, 2.20, 2.24; gap-fills: `POST /sessions` resumes an unfinished attempt as JSON; LLM failure or a blank reply falls back to the configured core question text; a blank or too-late answer skips follow-ups
+- Open Questions: grace period value is not in the spec (5 s chosen); context template tells the LLM "Ask no follow-up ... the next question comes next" when the active core question has `followUpLimit = 0`, which may make it skip asking that core question (context owner)

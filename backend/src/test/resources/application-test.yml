@@ -2,6 +2,11 @@ spring:
   main:
     banner-mode: off
   # The datasource comes from PostgresContainerBase (@ServiceConnection).
+  # Each cached test context keeps its own pool; 10 connections each exceed PostgreSQL's 100 after ~10 contexts.
+  datasource:
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
   jpa:
     hibernate:
       ddl-auto: validate
@@ -12,3 +17,8 @@ spring:
 logging:
   level:
     root: WARN
+
+# Tests call AttemptExpiryScheduler.sweep() directly; "-" turns the cron trigger off.
+nifty:
+  assessment:
+    expiry-sweep-cron: "-"
