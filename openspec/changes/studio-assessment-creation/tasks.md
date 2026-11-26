@@ -30,8 +30,8 @@
   - [ ] Commit: `feat(studio): implement pure configuration validators with SOFT_SKILLS exemption`
 
 - [ ] **US-ST-04: One-shot idempotent creation, `AuditService` (`CONFIG_CREATED`), and `StudioQueryServiceImpl`**
-  - [ ] Write RED tests for `201` create, `200` idempotent replay (single audit row), other-professor key collision (`400`), `400` `FieldValidationException` rollback (zero rows, zero audit), and `StudioQueryServiceImpl` `JOIN FETCH` queries matching all 4 fixtures.
-  - [ ] Implement `ConfigCreationService` and `StudioQueryServiceImpl` (`@Transactional(readOnly = true)` class default).
+  - [ ] Write RED tests for `201` create, `200` idempotent replay (single audit row), other-professor key collision (`400`), `400` `FieldValidationException` rollback (zero rows, zero audit), `StudioQueryServiceImpl.ownedBy(configId, professorId)` (true only for the owner; used by `invite-links`, REQ-AA-09), and `StudioQueryServiceImpl` `JOIN FETCH` queries matching all 4 fixtures.
+  - [ ] Add `boolean ownedBy(UUID configId, UUID professorId)` to `StudioQueryService` and its placeholder. Implement `ConfigCreationService` and `StudioQueryServiceImpl` (`@Transactional(readOnly = true)` class default). Delete `StudioQueryServicePlaceholder`.
   - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [ ] Commit: `feat(studio): implement idempotent assessment creation and StudioQueryServiceImpl`
 
