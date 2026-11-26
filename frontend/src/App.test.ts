@@ -65,10 +65,10 @@ describe('App header (REQ-NAV-01, 02, 03, 05)', () => {
     expect(fetchMe).toHaveBeenCalledTimes(1)
   })
 
-  it('shows Interview, Results and Sign out for a candidate', async () => {
+  it('shows Interview and Results, and no Sign out, for a candidate (Decision 2.36)', async () => {
     const { wrapper } = await mountApp({ role: 'CANDIDATE', professorId: null, configId: CONFIG })
 
-    expect(ids(wrapper)).toEqual(['nav-interview', 'nav-results', 'nav-sign-out'])
+    expect(ids(wrapper)).toEqual(['nav-interview', 'nav-results'])
     expect(wrapper.get('[data-testid="nav-interview"]').attributes('href')).toBe('/assessment')
     expect(wrapper.get('[data-testid="nav-results"]').attributes('href')).toBe(`/assessment/results/${CONFIG}`)
   })

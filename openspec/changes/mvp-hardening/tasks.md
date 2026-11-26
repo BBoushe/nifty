@@ -2,7 +2,7 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 10 done (Group C complete, committed, not pushed).
+- **Current:** Tasks 1 to 10 done (Group C complete, committed, not pushed). Candidate sign-out removed (Decision 2.36).
 - **Next action:** Group D, Task 11 (remove the invented-questions toggle). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
@@ -211,4 +211,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='ReleaseGateEvaluatorTest,AsyncEvaluationRunnerTest'` → FAIL (compile: `evaluateAttemptRelease` has no `hardSkillCount` and `softProfileComplete`); GREEN: `./mvnw -B test -Dtest='ReleaseGateEvaluatorTest,AsyncEvaluationRunnerTest,EvaluationSpecInvariantPropertyTest,EvaluationInvariantPropertyTest,EvaluationLifecycleIntegrationTest,AsyncEvaluationRunnerIntegrationTest,EvaluationRetrySchedulerIntegrationTest'` → exit 0 (52 run)
 - Contracts/Migrations added: none (`ReleaseGateEvaluator.evaluateAttemptRelease` gains two parameters; no endpoint change, so no `docs/api.md` change)
 - Decisions: 2.31 applied (`// Decision 2.31` in `ReleaseGateEvaluator`). Design differed from code: (1) `hardSkillCount` is `evaluatorView.skills().size()`, which the runner already loads; Studio skills are the hard skills (the BFI-10 traits are not Studio skills), so `StudioQueryService` needs no new method. (2) `softProfileComplete` uses the existing `AssessmentQueryService.getSoftSkillProfileForAttempt`: the assessment slice sets `softSkillScores` only when all five traits are scored, so a non-null map means complete. The lookup runs only when `hardSkillCount == 0`. (3) The gate changed its signature (no overload); the property tests pass 2 hard skills and no profile, which keeps their old behaviour. (4) The zero-hard-skills branch returns before the coverage check, because a soft-only assessment has no core questions and coverage is 0 by definition.
+- Open Questions: none
+
+### User request: no candidate sign-out (Decision 2.36)
+- Commits: (this commit) feat(frontend): hide sign-out for candidates
+- Verification: RED: n/a (one-line template guard; existing App header test updated); GREEN: `npx vitest run src/App.test.ts` → exit 0 (7 run); `npm run typecheck` → exit 0; `openspec validate mvp-hardening --type change --strict` → valid
+- Contracts/Migrations added: none. The delta spec modifies REQ-NAV-02 (no candidate "Sign out") and REQ-NAV-05 (professor only).
+- Decisions: 2.36 recorded (prompter change).
 - Open Questions: none

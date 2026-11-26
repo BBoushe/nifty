@@ -87,7 +87,8 @@ const activeClass = 'bg-slate-900 text-white hover:bg-slate-900'
         </div>
 
         <div class="flex items-center gap-3 text-xs">
-          <button v-if="auth.me" type="button" :class="linkClass" data-testid="nav-sign-out" @click="signOut">
+          <!-- Decision 2.36: candidates have no sign-out; the invite link is their only way in. -->
+          <button v-if="auth.me?.role === 'PROFESSOR'" type="button" :class="linkClass" data-testid="nav-sign-out" @click="signOut">
             Sign out
           </button>
           <span

@@ -35,3 +35,21 @@
 #### Scenario: Sign-out fails
 - **WHEN** `POST /api/v1/auth/logout` answers `500`
 - **THEN** the page shows "Sign-out failed. Try again." and does not navigate.
+
+## MODIFIED Requirements
+
+### Requirement: REQ-NAV-02 Candidate Header Links
+WHILE a `CANDIDATE` is signed in, THE SYSTEM SHALL show the header links "Interview" (`/assessment`) and "Results" (`/assessment/results/{configId}` of the candidate's invite) and no "Sign out" button (Decision 2.36).
+
+#### Scenario: Candidate sees candidate links
+- **WHEN** a candidate session for assessment `C` is active
+- **THEN** the header shows "Interview" and "Results" linking to `/assessment/results/C`
+- **AND** the header shows no professor link and no "Sign out" button
+
+### Requirement: REQ-NAV-05 Sign Out
+WHEN a signed-in professor selects "Sign out", THE SYSTEM SHALL end the session through `POST /api/v1/auth/logout` and show `/sign-in`.
+
+#### Scenario: Sign out ends the session
+- **WHEN** a professor selects "Sign out"
+- **THEN** the app calls the logout endpoint
+- **AND** the app shows `/sign-in` with the signed-out header

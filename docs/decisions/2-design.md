@@ -330,3 +330,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Add a read endpoint for attemptsLeft before start.
 - **Rationale / Justification:** The gap costs one click. A new endpoint adds API surface for a rare case.
 - **Affected Files / Pointers:** frontend/src/views/assessment/AssessmentChatView.vue, openspec/changes/mvp-hardening/tasks.md
+
+## 2.36 — No sign-out button for candidates
+- **Date:** 2026-11-27
+- **Triggered By:** prompter-change
+- **Context:** The candidate header showed a Sign out button. The candidate enters only through the invite link.
+- **Decision:** Show Sign out only to professors. Candidates get no sign-out button. REQ-NAV-02 and REQ-NAV-05 change.
+- **Alternatives Considered:** Keep Sign out for both roles.
+- **Rationale / Justification:** User request. A candidate who signs out by mistake can only return through the invite link.
+- **Affected Files / Pointers:** frontend/src/App.vue, openspec/changes/mvp-hardening/specs/app-navigation/spec.md
