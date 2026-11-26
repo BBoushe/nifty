@@ -681,7 +681,7 @@ class AssessmentSpecInvariantPropertyTest {
             when(entries.findByAttemptIdOrderBySeqAsc(any())).thenAnswer(inv -> new ArrayList<>(ledger));
             when(context.inspectCandidateInput(any(), any())).thenAnswer(
                     inv -> new SanitizationReport(nextInjection, List.of(), false));
-            this.service = new AttemptService(attempts, entries, bfi, studio, context, events, GRACE_SECONDS, 240);
+            this.service = new AttemptService(attempts, entries, bfi, studio, context, events, GRACE_SECONDS, 240, 1800);
         }
 
         TurnOutcome startAtBfi() {

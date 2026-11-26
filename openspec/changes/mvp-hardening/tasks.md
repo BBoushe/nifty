@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 12 done (committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group D, Task 13 (expire and evaluate). Not started.
+- **Current:** Tasks 1 to 13 done (Group D complete, committed, not pushed). Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group E, Task 14 (re-invite and concurrent creates). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -83,9 +83,9 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] RED. (1) `PromptTemplatesTest`: core question 1 with `followUpLimit = 0` gives a prompt that contains "Ask this question now" and not "the next question comes next". (2) `AssessmentSessionServiceTest`: `buildInterviewerContext` throws → the configured question is sent in the same call, and `recordInterviewerReply` gets an empty text. (3) A context test asserts that the stream executor is a `ThreadPoolTaskExecutor` with max 32 and queue 100. (4) A rejected task gives `503` ProblemDetail.
   - [x] GREEN per design §4. Commit `fix(assessment): ask the core question first, fall back at once, bound stream threads`.
 
-- [ ] **Task 13: Expire and evaluate (REQ-AC-21, Decision 2.33)**
-  - [ ] RED in `AttemptExpirySchedulerTest`. (1) An attempt in the BFI-10 step past its deadline becomes `COMPLETED` with no profile, and `AttemptCompletedEvent` is published. (2) A SOFT_SKILLS-only attempt that expires before the BFI-10 form also completes, and stays `pending` through Task 10.
-  - [ ] GREEN. Add `// Decision 2.33`. Commit `fix(assessment): complete expired attempts without BFI-10`.
+- [x] **Task 13: Expire and evaluate (REQ-AC-21, Decision 2.33)**
+  - [x] RED in `AttemptExpirySchedulerTest`. (1) An attempt in the BFI-10 step past its deadline becomes `COMPLETED` with no profile, and `AttemptCompletedEvent` is published. (2) A SOFT_SKILLS-only attempt that expires before the BFI-10 form also completes, and stays `pending` through Task 10.
+  - [x] GREEN. Add `// Decision 2.33`. Commit `fix(assessment): complete expired attempts without BFI-10`.
 
 ## Group E — Auth, invites, Studio backend
 
@@ -232,4 +232,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='PromptTemplatesTest,AssessmentSessionServiceTest'` → FAIL (prompt still said "the next question comes next"; `buildInterviewerContext` threw out of `streamInterviewer`: `IllegalStateException: boom`); the executor, 503 and capacity tests failed to compile (no pool constructor argument); GREEN: `./mvnw -B test -Dtest='AssessmentSessionServiceTest,StreamExecutorConfigTest,GlobalExceptionHandlerTest,PromptTemplatesTest,InterviewerContextBuilderTest,ContextInvariantPropertyTest,AssessmentSessionServiceIntegrationTest,AssessmentSessionControllerTest,ArchitectureTest'` → exit 0 (91 run)
 - Contracts/Migrations added: `docs/api.md` (503 on start and answer, §4.1 pool bounds and the fallback log line); `nifty.assessment.stream.*` in `application.yml`; no migration
 - Decisions: 2.29 applied. Design differed from code: (1) Boot's MVC async executor was off, because `EvaluationAsyncConfig` already defines an `Executor` bean, so streams ran on an unbounded `SimpleAsyncTaskExecutor`. `StreamExecutorConfig` now defines `streamExecutor` and a `WebMvcConfigurer` that sets it (`StreamExecutorConfigTest` checks the MVC adapter uses it). (2) A `TaskRejectedException` alone would store the answer before the 503, but REQ-AC-24 says the ledger stays unchanged. `AssessmentSessionService.requireStreamCapacity()` therefore refuses first (503 `DomainException`); the `TaskRejectedException` handler in `GlobalExceptionHandler` is the safety net for the check-then-submit race (marked `shortcut:`). (3) The new "Ask this question now" line shows when no follow-ups are left, which is the only case with `followUpLimit = 0`; limits above 0 keep their wording. The WARN log now carries the exception class name, not its message.
+- Open Questions: none
+
+### Task 13: Expire and evaluate
+- Commits: (this commit) fix(assessment): complete expired attempts without BFI-10
+- Verification: RED: `./mvnw -B test -Dtest='AttemptExpirySchedulerTest'` → FAIL (2 tests: both attempts stayed `BFI10`, no event); GREEN: `./mvnw -B test -Dtest='AttemptExpirySchedulerTest,AssessmentSessionServiceIntegrationTest,AssessmentSpecInvariantPropertyTest,AssessmentInvariantPropertyTest,ArchitectureTest'` → exit 0 (54 run)
+- Contracts/Migrations added: `docs/api.md` (BFI-10 row: expiry completes the attempt, later submit gets 409); property `nifty.assessment.bfi10-window-seconds` (default 1800, set in `@Value`, like the other assessment timings); no migration
+- Decisions: 2.33 applied (`// Decision 2.33` in `AttemptExpiryScheduler`; the rule lives in `AttemptService.completeWithoutBfi10`, which reuses `complete()` and so publishes `AttemptCompletedEvent` inside the transaction, with listeners after commit). Design differed from code: no BFI-10 deadline exists (no column, no config), so "past its deadline" is a fixed window since the step opened (last ledger row, or `started_at` for a SOFT_SKILLS-only attempt), marked `shortcut:`. The repository query `findIdsAwaitingInterviewerSince` became `findIdsIdleSince(status, cutoff)`, shared by the IN_PROGRESS recovery and the BFI10 sweep (same shape). The test that the SOFT_SKILLS-only result stays `pending` is Task 10's `ReleaseGateEvaluatorTest` (no hard skills and no profile → pending); this test asserts completion and the event, which feed that gate.
 - Open Questions: none
