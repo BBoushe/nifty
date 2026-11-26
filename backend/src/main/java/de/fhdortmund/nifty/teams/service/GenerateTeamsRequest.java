@@ -3,6 +3,7 @@ package de.fhdortmund.nifty.teams.service;
 import de.fhdortmund.nifty.studio.service.view.GroupingMode;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.Map;
 
@@ -16,8 +17,11 @@ public record GenerateTeamsRequest(
         GroupingMode groupingMode,
         @DecimalMin("0.0") @DecimalMax("1.0") Double alpha,
         @DecimalMin("0.0") @DecimalMax("1.0") Double combinedHardWeight,
-        Long seed,
+        @Min(-MAX_SEED) @Max(MAX_SEED) Long seed,
         Map<String, Double> traitWeights) {
+
+    /** {@code Number.MAX_SAFE_INTEGER}: a larger seed would not survive the JSON number round trip in JavaScript. */
+    public static final long MAX_SEED = 9_007_199_254_740_991L;
 
     public static GenerateTeamsRequest defaults() {
         return new GenerateTeamsRequest(null, null, null, null, null, null);

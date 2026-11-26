@@ -10,7 +10,7 @@ Form balanced, complementary, and defensible student teams. A seeded pure-Java S
 ## Requirements
 
 ### Requirement: REQ-TB-03 Live Deterministic Drag-and-Drop Recalculation
-**WHEN** a professor drags a candidate to another team (`POST /api/v1/ranking/teams/{proposalId}/recalculate`) **THE SYSTEM SHALL** recalculate inter-team imbalance, intra-team diversity, the skill means and the trait means of every team in Java immediately, without invoking an LLM.
+**WHEN** a professor drags a candidate to another team (`POST /api/v1/ranking/teams/{proposalId}/recalculate`) **THE SYSTEM SHALL** recalculate inter-team imbalance, intra-team diversity, the skill means and the trait means of every team in Java immediately, without invoking an LLM. The request holds the complete placement of every candidate of the proposal. The team sizes may differ from the optimizer result.
 
 #### Scenario: Manual team adjustment updates balance indicators
 - **WHEN** a candidate is moved from Team A to Team B in the Team Builder UI
@@ -24,7 +24,7 @@ Form balanced, complementary, and defensible student teams. A seeded pure-Java S
 - **THEN** the proposal stays `DRAFT` until the professor explicitly publishes it.
 
 ### Requirement: REQ-TB-05 Configured Team Size
-**THE SYSTEM SHALL** form `G = ceil(N / teamSize)` teams from the team size in the assessment configuration, unless the professor sets another team count for the run. **THE SYSTEM SHALL** place every candidate in exactly one team and give every team `floor(N / G)` or `ceil(N / G)` members (Decisions 1.20, 2.23).
+**THE SYSTEM SHALL** form `G = ceil(N / teamSize)` teams from the team size in the assessment configuration, unless the professor sets another team count for the run. **THE SYSTEM SHALL** place every candidate in exactly one team. **WHEN** the optimizer forms the teams, **THE SYSTEM SHALL** give every team `floor(N / G)` or `ceil(N / G)` members (Decisions 1.20, 2.23). A manual recalculation (REQ-TB-03) accepts any complete placement, including uneven or empty teams.
 
 #### Scenario: 22 candidates, team size 5
 - **WHEN** the professor runs the optimizer for 22 candidates with team size 5

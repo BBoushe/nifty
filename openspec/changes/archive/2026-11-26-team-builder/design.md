@@ -20,3 +20,11 @@
 - **Never double-invert BFI-10:** `AssessmentQueryService` delivers already reverse-scored `1.0..5.0` trait means (`conscientiousness`, `agreeableness`, `neuroticism`, `extraversion`, `openness`).
 - **Explicit `N/A` handling:** For each hard skill dimension `h`, compute cohort mean, team mean, and pairwise diversity strictly over members with `status == SCORED` (`score != null`). If a team has `0` scored members for skill `h`, skip `h` in that team's imbalance term and report `naCount` in `TeamDiagnosticsDto`. Never coerce `N/A` to `0` or `1` and never reject a candidate for having `N/A` skills!
 - **Hotspot performance:** Pre-convert student profiles to primitive `double[][]` + `boolean[][]` (`hasScore`) arrays before running Simulated Annealing so 2-opt iterations allocate zero objects.
+
+## Review Fixes (Task 7)
+- Recalculate and publish load the proposal with a `PESSIMISTIC_WRITE` row lock, so two publishes write one audit row and a recalculate cannot move members of a `PUBLISHED` proposal.
+- Generated seeds lie within `±(2^53 - 1)`. A request seed outside that range gets `400`.
+- Hard-skill columns are sorted by `skillId`, so the order of the upstream skill list cannot change the teams for one seed. Skills with one name get a short `skillId` suffix in the response maps.
+- A soft profile counts only when its `attemptId` equals the released hard-skill `attemptId`. Otherwise its traits are `N/A`.
+- Only generate and recalculate write `cost_metrics`. Reads and publish do not.
+- The floor/ceil team sizes (REQ-TB-05) describe the optimizer result. Recalculate (REQ-TB-03) accepts any complete placement, including uneven or empty teams.

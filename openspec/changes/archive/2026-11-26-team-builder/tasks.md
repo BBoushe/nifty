@@ -3,11 +3,11 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-01..06 done; change archived (`openspec/changes/archive/2026-11-26-team-builder/`)
-- **Next action:** push and open PR/MR after human approval, then cold review
+- **Current:** US-TB-01..06 done, change archived, Task 7 (review fixes) committed
+- **Next action:** orchestrator pushes, then a short re-review
 - **Uncommitted changes:** none
-- **PR / MR:** —
-- **Open review findings:** —
+- **PR / MR:** PR #27 / MR !26 (pushed by the orchestrator)
+- **Open review findings:** none open; the six non-blocking items are fixed in Task 7
 
 ## Tasks
 
@@ -97,4 +97,11 @@
 - Verification: RED: `cd frontend && npx vitest run src/views/teams` → FAIL (TeamBuilderView.vue absent, import unresolved); GREEN: `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (86 tests, 6 new)
 - Contracts/Migrations added: `frontend/src/api/teams.ts`, `frontend/src/views/teams/{TeamBuilderView,TeamCard}.vue`, route `/ranking/teams/:configId`; migrations none. No link to the page exists yet in `views/studio/` (not owned by this change).
 - Decisions: 1.20, 4.3 (zero client-side maths, traits shown to the professor only)
+- Open Questions: none
+
+### Task 7 (Review fixes)
+- Commits: <sha-task-7> fix(teams): lock publish, safe seeds, stable columns and attempt-matched traits
+- Verification: RED: `cd backend && ./mvnw -B test -Dtest='TeamBuilderServiceTest,TeamBuilderControllerTest,TeamPublishRaceTest'` → FAIL (7 new tests: two publishes wrote two audit calls, out-of-range generated seed, `null` assignment element answered 200, skill column order followed upstream, same-name skills collided, mismatched-attempt traits were used, `cost_metrics` rewritten by list/publish); GREEN: `cd backend && ./mvnw -B test` → exit 0 (236 run), `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (86 run), `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (43 run), `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` → exit 0
+- Contracts/Migrations added: `TeamProposalRepository.findByIdForUpdate` (`PESSIMISTIC_WRITE`, no schema change, V8 untouched); `GenerateTeamsRequest.MAX_SEED` and `@Min/@Max` on `seed`; `docs/api.md` notes (seed range, name-collision suffix, attempt-matched traits, uneven placement, `409` after a lock wait); REQ-TB-05 and REQ-TB-03 reworded in `openspec/specs/team-builder/spec.md`; archived `design.md` section "Review Fixes (Task 7)". API shape unchanged: two skills with one name now get the key suffix ` [<8 characters of skillId>]`.
+- Decisions: 1.20 (seed determinism independent of upstream order), 4.3 (traits only from the released attempt), 2.10 (REQ-TB-04 one audit row per publish)
 - Open Questions: none

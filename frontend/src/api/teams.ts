@@ -26,7 +26,7 @@ export interface TeamProposal {
   groupingMode: 'HARD_SKILLS' | 'SOFT_SKILLS' | 'COMBINED'
   alpha: number
   combinedHardWeight: number
-  seed: number
+  seed: number // within ±Number.MAX_SAFE_INTEGER, so the JSON number is exact (backend guarantees it)
   createdAt: string
   publishedAt: string | null
   diagnostics: { imbalance: number; diversity: number; cost: number; naCount: number }

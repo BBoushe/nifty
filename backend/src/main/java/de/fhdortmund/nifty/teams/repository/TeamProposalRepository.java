@@ -3,6 +3,8 @@ package de.fhdortmund.nifty.teams.repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -14,6 +16,11 @@ public interface TeamProposalRepository extends Repository<TeamProposalEntity, U
     TeamProposalEntity save(TeamProposalEntity proposal);
 
     Optional<TeamProposalEntity> findById(UUID id);
+
+    /** Row lock for recalculate and publish: one writer at a time decides on the DRAFT status (REQ-TB-04). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM TeamProposalEntity p WHERE p.id = :id")
+    Optional<TeamProposalEntity> findByIdForUpdate(@Param("id") UUID id);
 
     List<TeamProposalEntity> findByConfigIdOrderByCreatedAtDesc(UUID configId);
 

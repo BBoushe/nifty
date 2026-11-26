@@ -82,6 +82,10 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
     @MockitoBean
     private InviteService inviteService;
 
+    private static final Map<String, Double> TRAITS = Map.of("conscientiousness", 3.0, "agreeableness", 3.0,
+            "neuroticism", 4.0, "extraversion", 2.0, "openness", 3.0);
+    private static final long MAX_SAFE_SEED = 9_007_199_254_740_991L;
+
     private final UUID configId = UUID.randomUUID();
     private final UUID gitSkill = UUID.randomUUID();
     private final UUID dockerSkill = UUID.randomUUID();
@@ -229,9 +233,8 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
         List<CandidateHardSkillProfile> released = release(6);
         evaluationReturns(released, List.of());
         List<StudentSoftSkillProfile> soft = new ArrayList<>();
-        for (UUID invite : invites) {
-            soft.add(new StudentSoftSkillProfile(invite, UUID.randomUUID(), Map.of("conscientiousness", 3.0,
-                    "agreeableness", 3.0, "neuroticism", 4.0, "extraversion", 2.0, "openness", 3.0)));
+        for (CandidateHardSkillProfile profile : released) {
+            soft.add(new StudentSoftSkillProfile(profile.inviteId(), profile.attemptId(), TRAITS));
         }
         when(assessment.getSoftSkillProfilesForConfig(configId)).thenReturn(soft);
 
@@ -333,5 +336,117 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
         assertThat(listed.get(0).teams().stream().flatMap(t -> t.members().stream())
                 .filter(m -> m.inviteId().equals(invites.get(0))).findFirst().orElseThrow().candidateRef())
                 .isEqualTo("cand_001");
+    }
+
+    private String costMetrics(UUID proposalId) {
+        entityManager.flush();
+        return jdbc.queryForObject("SELECT cost_metrics::text FROM team_proposal WHERE id = ?", String.class, proposalId);
+    }
+
+    private static List<CandidateHardSkillProfile> withSkills(List<CandidateHardSkillProfile> profiles,
+            java.util.function.BiFunction<Integer, List<SkillScoreView>, List<SkillScoreView>> change) {
+        List<CandidateHardSkillProfile> result = new ArrayList<>();
+        for (int i = 0; i < profiles.size(); i++) {
+            CandidateHardSkillProfile p = profiles.get(i);
+            result.add(new CandidateHardSkillProfile(p.inviteId(), p.attemptId(), p.releaseStatus(), p.fitScore(),
+                    p.coverage(), change.apply(i, p.skillScores())));
+        }
+        return result;
+    }
+
+    @Test
+    void generatedSeedFitsTheJavaScriptSafeIntegerRange() {
+        evaluationReturns(release(4), List.of());
+        for (int i = 0; i < 30; i++) {
+            long seed = service.generate(configId, GenerateTeamsRequest.defaults()).seed();
+            assertThat(Math.abs(seed)).isLessThanOrEqualTo(MAX_SAFE_SEED);
+        }
+    }
+
+    @Test
+    void skillColumnsAreSortedSoUpstreamOrderCannotChangeTheTeams() {
+        List<CandidateHardSkillProfile> profiles = release(10);
+        evaluationReturns(profiles, List.of());
+        GenerateTeamsRequest request = new GenerateTeamsRequest(3, null, null, null, 5L, null);
+        TeamProposalResponse first = service.generate(configId, request);
+
+        evaluationReturns(withSkills(profiles, (i, skills) -> {
+            List<SkillScoreView> reversed = new ArrayList<>(skills);
+            java.util.Collections.reverse(reversed);
+            return reversed;
+        }), List.of());
+        TeamProposalResponse second = service.generate(configId, request);
+
+        assertThat(new ArrayList<>(second.teams().get(0).skillAverages().keySet()))
+                .isEqualTo(new ArrayList<>(first.teams().get(0).skillAverages().keySet()));
+        assertThat(second.teams()).usingRecursiveComparison().isEqualTo(first.teams());
+        assertThat(second.diagnostics()).isEqualTo(first.diagnostics());
+    }
+
+    @Test
+    void twoSkillsWithTheSameNameKeepSeparateEntries() {
+        UUID other = UUID.randomUUID();
+        evaluationReturns(withSkills(release(4), (i, skills) -> List.of(scored(gitSkill, "git", i),
+                scored(other, "git", 4 - i))), List.of());
+
+        TeamProposalResponse response = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 1L, null));
+
+        TeamProposalResponse.TeamCard card = response.teams().get(0);
+        assertThat(card.skillAverages()).hasSize(2);
+        assertThat(card.skillNaCounts()).hasSize(2);
+        assertThat(card.members().get(0).skillScores()).hasSize(2);
+        assertThat(card.skillAverages().keySet()).allMatch(key -> key.startsWith("git"));
+    }
+
+    @Test
+    void traitsOfAnAttemptOtherThanTheReleasedOneAreNotUsed() {
+        when(studio.teamView(configId)).thenReturn(view(GroupingMode.COMBINED, true));
+        List<CandidateHardSkillProfile> released = release(4);
+        evaluationReturns(released, List.of());
+        List<StudentSoftSkillProfile> soft = new ArrayList<>();
+        soft.add(new StudentSoftSkillProfile(released.get(0).inviteId(), released.get(0).attemptId(), TRAITS));
+        for (int i = 1; i < 4; i++) {
+            soft.add(new StudentSoftSkillProfile(released.get(i).inviteId(), UUID.randomUUID(), TRAITS));
+        }
+        when(assessment.getSoftSkillProfilesForConfig(configId)).thenReturn(soft);
+
+        TeamProposalResponse response = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 3L, null));
+
+        for (TeamProposalResponse.TeamCard card : response.teams()) {
+            for (TeamProposalResponse.TeamMember member : card.members()) {
+                if (member.inviteId().equals(released.get(0).inviteId())) {
+                    assertThat(member.traits()).containsEntry("neuroticism", 4.0);
+                } else {
+                    assertThat(member.traits()).isEmpty();
+                }
+            }
+        }
+    }
+
+    @Test
+    void onlyGenerateAndRecalculateWriteCostMetrics() {
+        List<CandidateHardSkillProfile> profiles = release(6);
+        evaluationReturns(profiles, List.of());
+        TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 9L, null));
+        String stored = costMetrics(draft.proposalId());
+        List<Assignment> placement = new ArrayList<>();
+        for (TeamProposalResponse.TeamCard team : draft.teams()) {
+            for (TeamProposalResponse.TeamMember member : team.members()) {
+                placement.add(new Assignment(member.inviteId(), team.teamNo()));
+            }
+        }
+        // The released scores change after generation: reads must show them but must not store them.
+        evaluationReturns(withSkills(profiles, (i, skills) -> List.of(scored(gitSkill, "git", (i * i) % 5),
+                scored(dockerSkill, "docker", (i + 2) % 5))), List.of());
+
+        service.list(configId);
+        assertThat(costMetrics(draft.proposalId())).isEqualTo(stored);
+
+        service.recalculate(draft.proposalId(), new RecalculateTeamsRequest(placement));
+        String afterRecalculate = costMetrics(draft.proposalId());
+        assertThat(afterRecalculate).isNotEqualTo(stored);
+
+        service.publish(draft.proposalId());
+        assertThat(costMetrics(draft.proposalId())).isEqualTo(afterRecalculate);
     }
 }

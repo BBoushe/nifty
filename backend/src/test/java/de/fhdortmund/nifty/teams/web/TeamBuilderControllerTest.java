@@ -166,4 +166,26 @@ class TeamBuilderControllerTest {
         mockMvc.perform(get(listUrl)).andExpect(status().isUnauthorized());
         verify(service, never()).list(any());
     }
+
+    @Test
+    void nullAssignmentElementAndSeedsBeyondTheJavaScriptSafeRangeReturn400() throws Exception {
+        mockMvc.perform(post(recalculateUrl).with(user("prof").roles("PROFESSOR")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"assignments\":[null]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        for (String seed : new String[] {"9007199254740992", "-9007199254740992"}) {
+            mockMvc.perform(post(generateUrl).with(user("prof").roles("PROFESSOR")).with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"seed\":" + seed + "}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].field").value("seed"));
+        }
+        verifyNoInteractions(service);
+
+        when(service.generate(eq(configId), any())).thenReturn(sample("DRAFT"));
+        for (String seed : new String[] {"9007199254740991", "-9007199254740991"}) {
+            mockMvc.perform(post(generateUrl).with(user("prof").roles("PROFESSOR")).with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"seed\":" + seed + "}"))
+                    .andExpect(status().isCreated());
+        }
+    }
 }

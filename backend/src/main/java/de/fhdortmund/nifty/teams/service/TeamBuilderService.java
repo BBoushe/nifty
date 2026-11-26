@@ -37,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.http.HttpStatus;
@@ -91,7 +92,7 @@ public class TeamBuilderService {
         int numTeams = request.numTeams() != null ? request.numTeams()
                 : Math.max(1, (int) Math.ceil((double) inviteIds.size() / upstream.view.teamSize()));
         double[] weights = validate(request, upstream.view, mode, numTeams, inviteIds.size());
-        long seed = request.seed() != null ? request.seed() : ThreadLocalRandom.current().nextLong();
+        long seed = request.seed() != null ? request.seed() : randomSeed();
 
         Cohort cohort = Cohort.of(inviteIds, upstream);
         Params params = new Params(mode, upstream.view.bfi10Enabled(), hardWeight, alpha, weights);
@@ -101,7 +102,8 @@ public class TeamBuilderService {
 
         TeamDiagnostics diagnostics = calculator.diagnostics(teamOf);
         TeamProposalEntity proposal = proposals.save(new TeamProposalEntity(configId, numTeams, mode.name(),
-                unit(alpha), unit(hardWeight), seed, metrics(diagnostics, weights), professorId.toString()));
+                unit(alpha), unit(hardWeight), seed, metrics(diagnostics.imbalance(), diagnostics.diversity(), diagnostics.cost(),
+                weights), professorId.toString()));
         List<TeamMemberEntity> rows = new ArrayList<>(inviteIds.size());
         for (int i = 0; i < inviteIds.size(); i++) {
             rows.add(new TeamMemberEntity(proposal.getId(), teamOf[i] + 1, inviteIds.get(i)));
@@ -123,7 +125,11 @@ public class TeamBuilderService {
         for (TeamMemberEntity row : rows) {
             row.moveTo(teamNos.get(row.getInviteId()));
         }
-        return respond(proposal, rows, loadUpstream(proposal.getConfigId()));
+        TeamProposalResponse response = respond(proposal, rows, loadUpstream(proposal.getConfigId()));
+        // Only generate and recalculate store cost_metrics; reads and publish leave the stored snapshot alone.
+        TeamProposalResponse.Diagnostics d = response.diagnostics();
+        proposal.updateCostMetrics(metrics(d.imbalance(), d.diversity(), d.cost(), weightsOf(proposal.getCostMetrics())));
+        return response;
     }
 
     @Transactional
@@ -236,8 +242,9 @@ public class TeamBuilderService {
         return professorId;
     }
 
+    /** Loads the proposal under a row lock, so a publish and a recalculate or a second publish run one after the other. */
     private TeamProposalEntity requireOwnedProposal(UUID proposalId) {
-        TeamProposalEntity proposal = proposals.findById(proposalId)
+        TeamProposalEntity proposal = proposals.findByIdForUpdate(proposalId)
                 .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, PROPOSAL_NOT_FOUND));
         if (!studio.ownedBy(proposal.getConfigId(), authContext.currentProfessorId())) {
             throw new DomainException(HttpStatus.NOT_FOUND, PROPOSAL_NOT_FOUND);
@@ -261,7 +268,11 @@ public class TeamBuilderService {
         Map<UUID, StudentSoftSkillProfile> soft = new HashMap<>();
         if (view.bfi10Enabled()) { // Decision 4.3: BFI-10 means arrive reverse-scored; they are only read here.
             for (StudentSoftSkillProfile profile : assessment.getSoftSkillProfilesForConfig(configId)) {
-                soft.put(profile.inviteId(), profile);
+                // Traits count only for the attempt whose hard scores were released; otherwise they are N/A.
+                CandidateHardSkillProfile hard = released.get(profile.inviteId());
+                if (hard != null && hard.attemptId() != null && hard.attemptId().equals(profile.attemptId())) {
+                    soft.put(profile.inviteId(), profile);
+                }
             }
         }
         Map<UUID, String> refs = new HashMap<>();
@@ -292,7 +303,6 @@ public class TeamBuilderService {
                 teams, new Params(mode, upstream.view.bfi10Enabled(), proposal.getCombinedHardWeight().doubleValue(),
                 proposal.getAlpha().doubleValue(), weights));
         TeamDiagnostics diagnostics = calculator.diagnostics(teamOf);
-        proposal.updateCostMetrics(metrics(diagnostics, weights));
 
         int naTotal = 0;
         List<TeamProposalResponse.TeamCard> cards = new ArrayList<>(teams);
@@ -360,16 +370,22 @@ public class TeamBuilderService {
         return Math.round(value * 10_000.0) / 10_000.0;
     }
 
+    /** The seed is shown in JSON, so it stays within JavaScript's safe integer range. */
+    private static long randomSeed() {
+        long max = GenerateTeamsRequest.MAX_SEED;
+        return ThreadLocalRandom.current().nextLong(-max, max + 1);
+    }
+
     private static BigDecimal unit(double value) {
         return BigDecimal.valueOf(value).setScale(4, RoundingMode.HALF_UP);
     }
 
     // The run-time trait weights are not a column of V8, so they travel in cost_metrics (Decision 1.20).
-    private static Map<String, Double> metrics(TeamDiagnostics diagnostics, double[] weights) {
+    private static Map<String, Double> metrics(double imbalance, double diversity, double cost, double[] weights) {
         Map<String, Double> metrics = new LinkedHashMap<>();
-        metrics.put("imbalance", diagnostics.imbalance());
-        metrics.put("diversity", diagnostics.diversity());
-        metrics.put("cost", diagnostics.cost());
+        metrics.put("imbalance", imbalance);
+        metrics.put("diversity", diversity);
+        metrics.put("cost", cost);
         for (int t = 0; t < weights.length; t++) {
             metrics.put(WEIGHT_PREFIX + TeamObjectiveCalculator.TRAITS[t], weights[t]);
         }
@@ -410,18 +426,27 @@ public class TeamBuilderService {
 
         static Cohort of(List<UUID> inviteIds, Upstream upstream) {
             Cohort cohort = new Cohort(inviteIds);
-            Map<UUID, Integer> columns = new HashMap<>();
+            // Columns sorted by skillId: the order of the upstream skill list must not change the teams for one seed.
+            Map<UUID, String> skills = new TreeMap<>();
             for (UUID inviteId : inviteIds) {
                 CandidateHardSkillProfile profile = upstream.released.get(inviteId);
                 if (profile == null) {
                     continue; // lost its release since the proposal was made: all N/A, never rejected
                 }
                 for (SkillScoreView skill : profile.skillScores()) {
-                    if (!columns.containsKey(skill.skillId())) {
-                        columns.put(skill.skillId(), cohort.skillNames.size());
-                        cohort.skillNames.add(skill.skillName());
-                    }
+                    skills.putIfAbsent(skill.skillId(), skill.skillName());
                 }
+            }
+            Map<UUID, Integer> columns = new HashMap<>();
+            Map<String, Integer> nameCount = new HashMap<>();
+            for (String name : skills.values()) {
+                nameCount.merge(name, 1, Integer::sum);
+            }
+            for (Map.Entry<UUID, String> skill : skills.entrySet()) {
+                columns.put(skill.getKey(), cohort.skillNames.size());
+                // Two skills with one name keep separate map entries: the key gets a short skillId suffix.
+                String name = skill.getValue();
+                cohort.skillNames.add(nameCount.get(name) > 1 ? name + " [" + skill.getKey().toString().substring(0, 8) + "]" : name);
             }
             cohort.hardCount = cohort.skillNames.size();
             int dims = cohort.hardCount + TeamObjectiveCalculator.TRAITS.length;
