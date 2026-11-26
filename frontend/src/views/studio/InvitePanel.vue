@@ -4,7 +4,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ApiProblem } from '@/api/client'
 import {
   type CreatedInvite,
@@ -22,6 +22,18 @@ const singleRef = ref('')
 const latestCreated = ref<CreatedInvite[]>([])
 const actionError = ref<string | null>(null)
 const copiedId = ref<string | null>(null)
+const revokingId = ref<string | null>(null)
+
+watch(
+  () => props.configId,
+  () => {
+    singleRef.value = ''
+    latestCreated.value = []
+    actionError.value = null
+    copiedId.value = null
+    revokingId.value = null
+  },
+)
 
 const queryKey = computed(() => ['studio', 'invites', props.configId])
 
@@ -50,13 +62,19 @@ const createMutation = useMutation({
 })
 
 const revokeMutation = useMutation({
-  mutationFn: (inviteId: string) => revokeInvite(props.configId, inviteId),
+  mutationFn: (inviteId: string) => {
+    revokingId.value = inviteId
+    return revokeInvite(props.configId, inviteId)
+  },
   onSuccess: async () => {
     actionError.value = null
     await queryClient.invalidateQueries({ queryKey: queryKey.value })
   },
   onError: (err) => {
     actionError.value = err instanceof Error ? err.message : 'Could not revoke invite.'
+  },
+  onSettled: () => {
+    revokingId.value = null
   },
 })
 
@@ -90,8 +108,13 @@ async function onCsvSelected(event: Event) {
 
 async function copyLink(invite: CreatedInvite) {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    await navigator.clipboard.writeText(invite.link)
-    copiedId.value = invite.inviteId
+    try {
+      await navigator.clipboard.writeText(invite.link)
+      copiedId.value = invite.inviteId
+      actionError.value = null
+    } catch {
+      actionError.value = 'Could not copy link to clipboard.'
+    }
   }
 }
 
@@ -117,7 +140,7 @@ function downloadLinksCsv() {
       </p>
     </div>
 
-    <div class="flex flex-wrap items-end gap-3">
+    <form class="flex flex-wrap items-end gap-3" @submit.prevent="onAddSingle">
       <div class="flex min-w-60 flex-1 flex-col gap-1">
         <label for="invite-single-input" class="text-xs font-medium text-slate-700">
           Candidate reference
@@ -131,11 +154,11 @@ function downloadLinksCsv() {
         />
       </div>
       <Button
+        type="submit"
         label="Create invite"
         size="small"
         :loading="createMutation.isPending.value"
         data-testid="invite-single-submit"
-        @click="onAddSingle"
       />
       <label
         class="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
@@ -149,7 +172,7 @@ function downloadLinksCsv() {
           @change="onCsvSelected"
         >
       </label>
-    </div>
+    </form>
 
     <Message v-if="actionError" severity="error">
       {{ actionError }}
@@ -218,7 +241,7 @@ function downloadLinksCsv() {
             severity="danger"
             text
             size="small"
-            :loading="revokeMutation.isPending.value"
+            :loading="revokingId === inv.inviteId"
             :data-testid="`revoke-invite-${inv.inviteId}`"
             @click="revokeMutation.mutate(inv.inviteId)"
           />

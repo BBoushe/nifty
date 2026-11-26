@@ -46,7 +46,9 @@ class RevokedInviteFilter extends OncePerRequestFilter {
             return false;
         }
         String uri = request.getRequestURI();
-        return uri.startsWith("/api/v1/auth/invite/") || "/api/v1/auth/logout".equals(uri);
+        return uri.startsWith("/api/v1/auth/invite/")
+                || "/api/v1/auth/login".equals(uri)
+                || "/api/v1/auth/logout".equals(uri);
     }
 
     @Override

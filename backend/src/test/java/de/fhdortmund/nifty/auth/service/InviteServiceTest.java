@@ -124,4 +124,53 @@ class InviteServiceTest extends PostgresContainerBase {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM invite WHERE config_id = ?", Long.class, foreignConfigId))
                 .isZero();
     }
+
+    @Test
+    void rejectsEmptyOverMaxBlankAndOverlongCandidateRefsWith400() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+
+        assertThatThrownBy(() -> inviteService.createInvites(configId, List.of()))
+                .isInstanceOf(FieldValidationException.class);
+
+        java.util.ArrayList<String> tooMany = new java.util.ArrayList<>(501);
+        for (int i = 0; i < 501; i++) {
+            tooMany.add("cand_" + i);
+        }
+        assertThatThrownBy(() -> inviteService.createInvites(configId, tooMany))
+                .isInstanceOf(FieldValidationException.class);
+
+        assertThatThrownBy(() -> inviteService.createInvites(configId, List.of("   ")))
+                .isInstanceOf(FieldValidationException.class);
+
+        assertThatThrownBy(() -> inviteService.createInvites(configId, List.of("a".repeat(257))))
+                .isInstanceOf(FieldValidationException.class);
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM invite WHERE config_id = ?", Long.class, configId))
+                .isZero();
+    }
+
+    @Test
+    void rejectsCrossConfigInviteRevocationWith404() {
+        UUID professorId = UUID.randomUUID();
+        UUID configA = UUID.randomUUID();
+        UUID configB = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configA, professorId)).thenReturn(true);
+        when(studioQueryService.ownedBy(configB, professorId)).thenReturn(true);
+
+        CreatedInvite inviteA = inviteService.createInvites(configA, List.of("alice_cross")).get(0);
+
+        assertThatThrownBy(() -> inviteService.revokeInvite(configB, inviteA.inviteId()))
+                .isInstanceOf(DomainException.class)
+                .extracting(e -> ((DomainException) e).getStatus())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+
+        assertThat(inviteService.listInvites(configA))
+                .singleElement()
+                .extracting(InviteSummary::revoked)
+                .isEqualTo(false);
+    }
 }

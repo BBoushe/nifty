@@ -144,6 +144,51 @@ class InviteRevocationAndPurgeTest extends PostgresContainerBase {
                 .isEqualTo(1L);
     }
 
+    @Test
+    void professorCanStillSignInWhenHoldingRevokedCandidateSessionAndInviteSignInRequiresCsrf() throws Exception {
+        MockHttpSession professorSession = signInProfessor();
+        UUID configId = createConfig(professorSession);
+
+        String createResp = mockMvc.perform(post("/api/v1/ranking/studio/configs/" + configId + "/invites")
+                        .session(professorSession)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"candidateRefs\":[\"cand_relogin\"]}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode created = json.readTree(createResp).get(0);
+        UUID inviteId = UUID.fromString(created.get("inviteId").asText());
+        String link = created.get("link").asText();
+        String token = link.substring(link.lastIndexOf('/') + 1);
+
+        // Missing CSRF token on invite sign-in must be rejected with 403.
+        mockMvc.perform(post("/api/v1/auth/invite/" + token))
+                .andExpect(status().isForbidden());
+
+        MockHttpSession candidateSession = (MockHttpSession) mockMvc.perform(
+                        post("/api/v1/auth/invite/" + token).with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession(false);
+        assertThat(candidateSession).isNotNull();
+
+        mockMvc.perform(delete("/api/v1/ranking/studio/configs/" + configId + "/invites/" + inviteId)
+                        .session(professorSession)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        // Even with a revoked candidate session cookie, POST /api/v1/auth/login must succeed for a professor.
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .session(candidateSession)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(LOGIN_BODY))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/auth/me").session(candidateSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("PROFESSOR"));
+    }
+
     private MockHttpSession signInProfessor() throws Exception {
         MockHttpSession session = (MockHttpSession) mockMvc.perform(post("/api/v1/auth/login")
                         .with(csrf())

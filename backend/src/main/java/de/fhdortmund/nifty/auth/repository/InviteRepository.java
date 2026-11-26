@@ -1,5 +1,6 @@
 package de.fhdortmund.nifty.auth.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,7 +20,8 @@ public interface InviteRepository extends Repository<InviteEntity, UUID> {
 
     List<InviteEntity> findByConfigIdOrderByCreatedAtDesc(UUID configId);
 
-    boolean existsByConfigIdAndCandidateRef(UUID configId, String candidateRef);
+    @Query("SELECT i.candidateRef FROM InviteEntity i WHERE i.configId = :configId AND i.candidateRef IN :refs")
+    List<String> findExistingCandidateRefs(@Param("configId") UUID configId, @Param("refs") Collection<String> refs);
 
     boolean existsByIdAndRevokedFalse(UUID id);
 

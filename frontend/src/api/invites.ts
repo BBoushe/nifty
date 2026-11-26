@@ -34,26 +34,57 @@ export function revokeInvite(configId: string, inviteId: string): Promise<void> 
   })
 }
 
+/** Extracts the first RFC-4180 CSV field from a single line, handling quoted commas and `""` escapes. */
+function extractFirstCsvCell(line: string): string {
+  const trimmed = line.trimStart()
+  if (!trimmed.startsWith('"')) {
+    const commaIdx = trimmed.indexOf(',')
+    return (commaIdx === -1 ? trimmed : trimmed.slice(0, commaIdx)).trim()
+  }
+  let out = ''
+  for (let i = 1; i < trimmed.length; i++) {
+    const ch = trimmed[i]
+    if (ch === '"') {
+      if (trimmed[i + 1] === '"') {
+        out += '"'
+        i++
+      } else {
+        break
+      }
+    } else {
+      out += ch
+    }
+  }
+  return out.trim()
+}
+
 /** Parses a one-column CSV (`candidate_ref` header optional) into trimmed non-blank candidate refs. */
 export function parseCandidateCsv(text: string): string[] {
   const cleaned = text.replace(/^\uFEFF/, '')
   const lines = cleaned.split(/\r?\n/)
   const refs: string[] = []
+  let checkedHeader = false
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i].trim()
     if (!raw) continue
-    // Take first CSV column and strip optional double quotes.
-    const commaIdx = raw.indexOf(',')
-    const firstCol = (commaIdx === -1 ? raw : raw.slice(0, commaIdx)).trim().replace(/^"(.*)"$/, '$1').trim()
+    const firstCol = extractFirstCsvCell(raw)
     if (!firstCol) continue
-    const lower = firstCol.toLowerCase()
-    if (i === 0 && (lower === 'candidate_ref' || lower === 'candidateref')) continue
+    if (!checkedHeader) {
+      checkedHeader = true
+      const lower = firstCol.toLowerCase()
+      if (lower === 'candidate_ref' || lower === 'candidateref') continue
+    }
     refs.push(firstCol)
   }
   return refs
 }
 
-const escapeCsvCell = (value: string): string => `"${value.replaceAll('"', '""')}"`
+const FORMULA_PREFIX = /^[=+\-@\t\r]/
+
+const escapeCsvCell = (value: string): string => {
+  const safe = FORMULA_PREFIX.test(value) ? `'${value}` : value
+  return `"${safe.replaceAll('"', '""')}"`
+}
 
 /** Formats generated invite links as a downloadable CSV (`candidate_ref,link`). */
 export function formatInvitesCsv(invites: CreatedInvite[]): string {

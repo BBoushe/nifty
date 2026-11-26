@@ -116,6 +116,7 @@ public class InviteService {
         }
 
         List<String> trimmed = new ArrayList<>(candidateRefs.size());
+        List<Integer> originalIndices = new ArrayList<>(candidateRefs.size());
         Set<String> seen = new HashSet<>(candidateRefs.size());
         for (int i = 0; i < candidateRefs.size(); i++) {
             String raw = candidateRefs.get(i);
@@ -133,12 +134,22 @@ public class InviteService {
                 errors.add(new FieldErrorDetail(field, "duplicate candidateRef: " + clean, "DUPLICATE_CANDIDATE_REF"));
                 continue;
             }
-            if (inviteRepository.existsByConfigIdAndCandidateRef(configId, clean)) {
-                errors.add(new FieldErrorDetail(field, "candidateRef already invited: " + clean,
-                        "DUPLICATE_CANDIDATE_REF"));
-                continue;
-            }
             trimmed.add(clean);
+            originalIndices.add(i);
+        }
+
+        if (!trimmed.isEmpty()) {
+            Set<String> existing = new HashSet<>(inviteRepository.findExistingCandidateRefs(configId, trimmed));
+            if (!existing.isEmpty()) {
+                for (int i = 0; i < trimmed.size(); i++) {
+                    String clean = trimmed.get(i);
+                    if (existing.contains(clean)) {
+                        String field = "candidateRefs[" + originalIndices.get(i) + "]";
+                        errors.add(new FieldErrorDetail(field, "candidateRef already invited: " + clean,
+                                "DUPLICATE_CANDIDATE_REF"));
+                    }
+                }
+            }
         }
 
         if (!errors.isEmpty()) {
