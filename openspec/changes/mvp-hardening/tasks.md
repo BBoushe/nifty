@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 8 done (committed, not pushed).
-- **Next action:** Group C, Task 9 (snapshot weights and lock order).
+- **Current:** Tasks 1 to 9 done (committed, not pushed).
+- **Next action:** Group C, Task 10 (soft-only auto-release).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -62,10 +62,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] GREEN per design §3. The new assessment read method lives in `AssessmentQueryService` and its implementation, with no cross-slice repository access. Add the audit action. Update `docs/api.md`. The Evidence dialog shows "Re-run evaluation" for `FAILED`, with a frontend test.
   - [x] Commit `fix(evaluation): fail stale final tries, recover missed runs, add professor re-run`.
 
-- [ ] **Task 9: Snapshot weights and lock order (REQ-FE-07, REQ-SM-14)**
-  - [ ] RED: (1) the first scoring creates formula version 1 and uses its stored weights. Change the live weights in the test stub, and the score must not change. (2) Mockito `verify(summaryRepo).findByAttemptIdForUpdate(id)` is called before any response-evaluation write, for approve, override and the cleanup listener. Use `InOrder`.
-  - [ ] Optional race test (Testcontainers, like `EvaluationReleaseRaceTest`): an approve and a release at the same time both finish, neither with a `500`.
-  - [ ] GREEN per design §3. Commit `fix(evaluation): score with the stored formula version and lock the summary first`.
+- [x] **Task 9: Snapshot weights and lock order (REQ-FE-07, REQ-SM-14)**
+  - [x] RED: (1) the first scoring creates formula version 1 and uses its stored weights. Change the live weights in the test stub, and the score must not change. (2) Mockito `verify(summaryRepo).findByAttemptIdForUpdate(id)` is called before any response-evaluation write, for approve, override and the cleanup listener. Use `InOrder`.
+  - [x] Optional race test (Testcontainers, like `EvaluationReleaseRaceTest`): an approve and a release at the same time both finish, neither with a `500`. (Skipped: not cheap; the lock order is covered by the `InOrder` tests and the real-DB lifecycle tests.)
+  - [x] GREEN per design §3. Commit `fix(evaluation): score with the stored formula version and lock the summary first`.
 
 - [ ] **Task 10: Soft-only auto-release (REQ-SM-13, Decision 2.31)**
   - [ ] RED in `ReleaseGateEvaluatorTest`: zero hard skills with a complete profile → `AUTO_RELEASED`; zero hard skills without a profile → `PENDING`; 3 hard skills with no evidence → `PENDING`.
@@ -197,4 +197,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='EvaluationRetrySchedulerTest,EvaluationReviewServiceTest,RankingEvaluationControllerTest,AssessmentQueryServiceImplTest'` → FAIL (compile: no `findStaleFinalTryIds`, `completedAttemptsSince`, `retryEvaluation`, `RetryEvaluationResponse`); `npx vitest run src/views/ranking/RankingLive.test.ts` → FAIL (1 of 14: no Re-run button); GREEN: `./mvnw -B test -Dtest='EvaluationRetrySchedulerTest,EvaluationReviewServiceTest,RankingEvaluationControllerTest,AssessmentQueryServiceImplTest,AsyncEvaluationRunnerTest,EvaluationRetrySchedulerIntegrationTest,ArchitectureTest,AssessmentSpecInvariantPropertyTest'` → exit 0 (64 run); `npx vitest run src/views/ranking` + `npm run typecheck && npm run lint` → exit 0 (30 run)
 - Contracts/Migrations added: `docs/api.md` (`POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry`, `RetryEvaluationResponse`); `AssessmentQueryService.completedAttemptsSince(Instant)`; no migration
 - Decisions: no new ID. Design differed from code: (1) The new assessment method is `completedAttemptsSince(Instant since)` and returns `AttemptCompletedEvent` (attempt, config, invite ids), not `completedAttemptIdsWithoutEvaluation`. The assessment slice cannot see which attempts have a run, and `enqueue` already skips known attempts, so evaluation re-submits every attempt completed in the last 7 days (`shortcut:` constant `RECOVERY_WINDOW`, one lookup each per pass). (2) The two scheduler steps live in `AsyncEvaluationRunner` (`failStaleFinalTries`, `recoverMissedRuns`), which already owns `maxAttempts`, `staleAfter` and `enqueue`; `EvaluationRetryScheduler.retryPass` calls both before it dispatches. (3) The re-run sets the run to `QUEUED` and does not dispatch at once; the scheduler (1 min) picks it up. (4) `EVALUATION_RETRIED` is a plain audit action string (no enum exists), entity `ATTEMPT`, old `FAILED`, new `QUEUED`. (5) The `shortcut:` note in `EvaluationEventListener` about the lost event is replaced by a pointer to the recovery.
+- Open Questions: none
+
+### Task 9: Snapshot weights and lock order
+- Commits: (this commit) fix(evaluation): score with the stored formula version and lock the summary first
+- Verification: RED: `./mvnw -B test -Dtest='AsyncEvaluationRunnerTest,EvaluationCleanupListenerTest,EvaluationReviewServiceTest'` → FAIL (3 tests: score 2.00 from the live weights instead of 1.33; approve and override wrote before any summary lock; the purge never locked); GREEN: `./mvnw -B test -Dtest='AsyncEvaluationRunnerTest,EvaluationCleanupListenerTest,EvaluationReviewServiceTest,EvaluationLifecycleIntegrationTest,EvaluationReleaseRaceTest,EvaluationSchemaAndCleanupTest,AsyncEvaluationRunnerIntegrationTest,FormulaPresetServiceTest,ArchitectureTest'` → exit 0 (59 run)
+- Contracts/Migrations added: `docs/api.md` (approve, override: lock order and stored weights); repository methods `ResponseEvaluationRepository.findAttemptIdById`, `CandidateEvaluationSummaryRepository.findByConfigIdForUpdate`; no migration
+- Decisions: no new ID. Design differed from code: (1) Formula version 1 was already created at enqueue (`ensureFormulaVersion`); the real gap was that `executeRun` read weights from the live `ScoringView`. It now reads them, and each pair's `questionWeight`, from `formulaVersion.getQuestionWeightsJson()`. A question missing from the snapshot falls back to the live weight, like `FormulaRecalculationHelper` does. (2) Approve and override resolve the attempt through a scalar `findAttemptIdById`, lock the summary with `findByAttemptIdForUpdate`, and only then load the response, so no stale response is in the session before the lock. The ownership check moved after the lock (a foreign professor still gets `404`). (3) The purge locks all summary rows of the configuration with one `findByConfigIdForUpdate` (ordered by id), the config-level form of the attempt lock, because the purge has a config ID and no attempt ID. (4) The optional Testcontainers race test is skipped. (5) The runner's own completion write keeps `findById`; nothing else writes an attempt's rows before it completes.
 - Open Questions: none

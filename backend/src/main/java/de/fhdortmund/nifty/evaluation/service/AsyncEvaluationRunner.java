@@ -216,6 +216,8 @@ public class AsyncEvaluationRunner {
             Map<UUID, EvaluatorSkill> skillsById = indexSkills(evaluatorView.skills());
             Map<UUID, ScoringQuestion> scoringByQuestion = indexScoringQuestions(scoringView.questions());
             Map<UUID, EvaluatorQuestion> evalByQuestion = indexEvaluatorQuestions(evaluatorView.questions());
+            // REQ-FE-07: weights come from the stored formula version, never from the live Studio view.
+            Map<UUID, BigDecimal> storedWeights = parseStoredWeights(formulaVersion.getQuestionWeightsJson());
 
             List<EvaluatedPair> evaluatedPairs = new ArrayList<>();
             Set<UUID> answeredCoreQuestionIds = new HashSet<>();
@@ -260,12 +262,14 @@ public class AsyncEvaluationRunner {
                     if (templateVersion == null && twoRun.templateVersion() != null) {
                         templateVersion = twoRun.templateVersion();
                     }
-                    evaluatedPairs.add(buildEvaluatedPair(entry, scoringQ, skillId, substantive, answerLength, twoRun));
+                    BigDecimal weight = storedWeights.getOrDefault(entry.coreQuestionId(), scoringQ.weight());
+                    evaluatedPairs.add(buildEvaluatedPair(
+                            entry, scoringQ, weight, skillId, substantive, answerLength, twoRun));
                 }
             }
 
             List<UUID> configuredSkillIds = extractSkillIds(evaluatorView.skills());
-            List<SkillFormulaCalculator.QuestionWeight> questionWeights = extractQuestionWeights(scoringView.questions());
+            List<SkillFormulaCalculator.QuestionWeight> questionWeights = toQuestionWeights(storedWeights);
             List<SkillFormulaCalculator.ScoredEntryInput> formulaInputs = toFormulaInputs(evaluatedPairs);
 
             SkillFormulaCalculator.FormulaResult formulaResult = formulaCalculator.calculate(
@@ -438,6 +442,7 @@ public class AsyncEvaluationRunner {
     private EvaluatedPair buildEvaluatedPair(
             TranscriptEntryView entry,
             ScoringQuestion scoringQ,
+            BigDecimal weight,
             UUID skillId,
             boolean substantive,
             int answerLength,
@@ -482,7 +487,7 @@ public class AsyncEvaluationRunner {
                 entry.coreQuestionId(),
                 skillId,
                 origin,
-                scoringQ.weight(),
+                weight,
                 r1.level(),
                 r2.level(),
                 r1.verbatimQuote(),
@@ -605,13 +610,20 @@ public class AsyncEvaluationRunner {
         return ids;
     }
 
-    private static List<SkillFormulaCalculator.QuestionWeight> extractQuestionWeights(List<ScoringQuestion> questions) {
-        List<SkillFormulaCalculator.QuestionWeight> weights = new ArrayList<>(questions.size());
-        for (int i = 0; i < questions.size(); i++) {
-            ScoringQuestion q = questions.get(i);
-            weights.add(new SkillFormulaCalculator.QuestionWeight(q.coreQuestionId(), q.weight()));
+    private static Map<UUID, BigDecimal> parseStoredWeights(Map<String, BigDecimal> stored) {
+        Map<UUID, BigDecimal> weights = new HashMap<>(stored.size());
+        for (Map.Entry<String, BigDecimal> entry : stored.entrySet()) {
+            weights.put(UUID.fromString(entry.getKey()), entry.getValue());
         }
         return weights;
+    }
+
+    private static List<SkillFormulaCalculator.QuestionWeight> toQuestionWeights(Map<UUID, BigDecimal> weights) {
+        List<SkillFormulaCalculator.QuestionWeight> list = new ArrayList<>(weights.size());
+        for (Map.Entry<UUID, BigDecimal> entry : weights.entrySet()) {
+            list.add(new SkillFormulaCalculator.QuestionWeight(entry.getKey(), entry.getValue()));
+        }
+        return list;
     }
 
     private static List<SkillFormulaCalculator.ScoredEntryInput> toFormulaInputs(List<EvaluatedPair> pairs) {

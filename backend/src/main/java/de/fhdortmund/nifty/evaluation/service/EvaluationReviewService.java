@@ -197,12 +197,8 @@ public class EvaluationReviewService {
     @Transactional
     public EvaluationDtos.ApproveEvaluationResponse approveEvaluation(UUID responseEvalId) {
         UUID professorId = authContextService.currentProfessorId();
-        ResponseEvaluationEntity target = responseEvaluationRepository.findWithSummaryById(responseEvalId)
-                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        ResponseEvaluationEntity target = lockSummaryAndLoadResponse(responseEvalId, professorId);
         CandidateEvaluationSummaryEntity summary = target.getSummary();
-        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
-            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
-        }
 
         // Decision 2.10: an audited professor override must survive; approve would silently replace it.
         if (target.getOverriddenBy() != null) {
@@ -265,12 +261,8 @@ public class EvaluationReviewService {
         validateOverrideRequest(request);
 
         UUID professorId = authContextService.currentProfessorId();
-        ResponseEvaluationEntity target = responseEvaluationRepository.findWithSummaryById(responseEvalId)
-                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        ResponseEvaluationEntity target = lockSummaryAndLoadResponse(responseEvalId, professorId);
         CandidateEvaluationSummaryEntity summary = target.getSummary();
-        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
-            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
-        }
 
         String oldValue = target.getEffectiveLevel() == null
                 ? "N/A"
@@ -504,6 +496,23 @@ public class EvaluationReviewService {
                 transcript.startedAt(),
                 List.copyOf(entries),
                 List.copyOf(evidence));
+    }
+
+    /**
+     * REQ-SM-14: one lock order for every write of an attempt. The summary row is locked first, then the response is
+     * loaded fresh (a scalar read finds the attempt, so no stale response sits in the session before the lock).
+     * Release and the purge use the same order, so approve, override, release and purge never deadlock.
+     */
+    private ResponseEvaluationEntity lockSummaryAndLoadResponse(UUID responseEvalId, UUID professorId) {
+        UUID attemptId = responseEvaluationRepository.findAttemptIdById(responseEvalId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        CandidateEvaluationSummaryEntity summary = summaryRepository.findByAttemptIdForUpdate(attemptId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
+            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
+        }
+        return responseEvaluationRepository.findWithSummaryById(responseEvalId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
     }
 
     UUID requireOwnedConfig(UUID configId) {

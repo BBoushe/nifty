@@ -18,6 +18,11 @@ public interface CandidateEvaluationSummaryRepository extends JpaRepository<Cand
     @Query("SELECT s FROM CandidateEvaluationSummaryEntity s WHERE s.attemptId = :attemptId")
     Optional<CandidateEvaluationSummaryEntity> findByAttemptIdForUpdate(UUID attemptId);
 
+    /** Row locks for the purge, in id order so two writers never lock the same rows in opposite order (REQ-SM-14). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM CandidateEvaluationSummaryEntity s WHERE s.configId = :configId ORDER BY s.id")
+    List<CandidateEvaluationSummaryEntity> findByConfigIdForUpdate(UUID configId);
+
     Optional<CandidateEvaluationSummaryEntity> findTopByConfigIdAndInviteIdOrderByAttemptNoDescCreatedAtDesc(
             UUID configId, UUID inviteId);
 

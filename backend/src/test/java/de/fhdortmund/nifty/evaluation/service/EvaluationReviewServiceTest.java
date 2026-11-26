@@ -167,7 +167,7 @@ class EvaluationReviewServiceTest {
                 4, 4, "invented verified quote", "invented verified quote", true, "invented verified quote", "ok",
                 4, new BigDecimal("0.9000"), null, "auto_released", 4);
 
-        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(unverified));
+        stubResponse(responseId, unverified);
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(unverified, invented));
 
         EvaluationDtos.OverrideEvaluationResponse res = service.overrideEvaluation(
@@ -209,7 +209,7 @@ class EvaluationReviewServiceTest {
         ResponseEvaluationEntity f1 = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
         ResponseEvaluationEntity f2 = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
 
-        when(responseEvaluationRepository.findWithSummaryById(resp1Id)).thenReturn(Optional.of(f1));
+        stubResponse(resp1Id, f1);
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(f1, f2));
 
         EvaluationDtos.ApproveEvaluationResponse approved = service.approveEvaluation(resp1Id);
@@ -244,7 +244,7 @@ class EvaluationReviewServiceTest {
                 2, 3, "exact verified quote", "exact verified quote", true, "exact verified quote", "borderline",
                 2, new BigDecimal("0.5500"), "JUDGE_DISAGREEMENT", "flagged", 2);
 
-        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(response));
+        stubResponse(responseId, response);
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(response));
         when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
                 configId,
@@ -354,7 +354,7 @@ class EvaluationReviewServiceTest {
                 null, null, "hallucinated quote", null, false, null, null,
                 null, new BigDecimal("0.2000"), "UNVERIFIED_QUOTE", "flagged", null);
 
-        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(flaggedNa));
+        stubResponse(responseId, flaggedNa);
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(flaggedNa));
 
         EvaluationDtos.ApproveEvaluationResponse approved = service.approveEvaluation(responseId);
@@ -700,7 +700,7 @@ class EvaluationReviewServiceTest {
                 run, summary, UUID.randomUUID(), q1, UUID.randomUUID(), "core", BigDecimal.ONE,
                 null, null, "x", null, false, null, null, null, new BigDecimal("0.2000"), "UNVERIFIED_QUOTE", "flagged", null);
         overridden.overrideLevel(3, professorId, "Follow-up showed mastery", java.time.Instant.now());
-        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(overridden));
+        stubResponse(responseId, overridden);
 
         assertThatThrownBy(() -> service.approveEvaluation(responseId))
                 .isInstanceOf(DomainException.class)
@@ -740,7 +740,7 @@ class EvaluationReviewServiceTest {
         ResponseEvaluationEntity r1 = verifiedResponse(run, summary, q1, skillId, 4, "approved");
         ResponseEvaluationEntity r2 = verifiedResponse(run, summary, q2, skillId, 4, "approved");
         ResponseEvaluationEntity r3 = verifiedResponse(run, summary, q3, skillId, 2, "flagged");
-        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(r3));
+        stubResponse(responseId, r3);
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(r1, r2, r3));
 
         EvaluationDtos.OverrideEvaluationResponse result = service.overrideEvaluation(
@@ -748,6 +748,74 @@ class EvaluationReviewServiceTest {
 
         // Snapshot weights 1,1,1 -> (4 + 4 + 0) / 3 = 2.67. Live weight 10 would cap q3 and give 2.00.
         assertThat(result.updatedFitScore()).isEqualByComparingTo("2.67");
+    }
+
+    // REQ-SM-14: approve and override resolve the attempt first, lock its summary row, and only then load the response.
+    private void stubResponse(UUID responseId, ResponseEvaluationEntity response) {
+        CandidateEvaluationSummaryEntity summary = response.getSummary();
+        when(responseEvaluationRepository.findAttemptIdById(responseId)).thenReturn(Optional.of(summary.getAttemptId()));
+        when(summaryRepository.findByAttemptIdForUpdate(summary.getAttemptId())).thenReturn(Optional.of(summary));
+        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(response));
+    }
+
+    @Test
+    void approveAndOverrideLockTheSummaryRowBeforeAnyResponseWrite() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId, List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)), List.of()));
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(q1.toString(), BigDecimal.ONE), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-order");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("2.00"), BigDecimal.ONE, 2, "flagged", null);
+        ResponseEvaluationEntity toApprove = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
+        ResponseEvaluationEntity toOverride = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
+        UUID approveId = UUID.randomUUID();
+        UUID overrideId = UUID.randomUUID();
+        stubResponse(approveId, toApprove);
+        stubResponse(overrideId, toOverride);
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(toApprove, toOverride));
+
+        service.approveEvaluation(approveId);
+        service.overrideEvaluation(overrideId, new EvaluationDtos.OverrideEvaluationRequest(3, "Checked by hand"));
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(summaryRepository, responseEvaluationRepository);
+        order.verify(summaryRepository).findByAttemptIdForUpdate(attemptId);
+        order.verify(responseEvaluationRepository).save(toApprove);
+        order.verify(summaryRepository).findByAttemptIdForUpdate(attemptId);
+        order.verify(responseEvaluationRepository).save(toOverride);
+    }
+
+    @Test
+    void approveOfAnotherProfessorsResponseIsNotFound() {
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(UUID.randomUUID());
+        when(studioQueryService.ownedBy(any(), any())).thenReturn(false);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(q1.toString(), BigDecimal.ONE), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-foreign-r");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("2.00"), BigDecimal.ONE, 1, "flagged", null);
+        ResponseEvaluationEntity response = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
+        UUID responseId = UUID.randomUUID();
+        stubResponse(responseId, response);
+
+        assertThatThrownBy(() -> service.approveEvaluation(responseId))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).getStatus())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        verify(responseEvaluationRepository, never()).save(any());
     }
 
     private static ResponseEvaluationEntity verifiedResponse(

@@ -14,6 +14,10 @@ public interface ResponseEvaluationRepository extends JpaRepository<ResponseEval
 
     List<ResponseEvaluationEntity> findBySummaryIdIn(Collection<UUID> summaryIds);
 
+    /** Scalar read: resolves the attempt without loading the response, so the summary lock comes first (REQ-SM-14). */
+    @Query("SELECT r.summary.attemptId FROM ResponseEvaluationEntity r WHERE r.id = :id")
+    Optional<UUID> findAttemptIdById(UUID id);
+
     @Query("SELECT r FROM ResponseEvaluationEntity r JOIN FETCH r.summary WHERE r.id = :id")
     Optional<ResponseEvaluationEntity> findWithSummaryById(UUID id);
 

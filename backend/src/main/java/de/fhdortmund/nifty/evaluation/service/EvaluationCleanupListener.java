@@ -43,6 +43,8 @@ public class EvaluationCleanupListener {
     @Transactional(propagation = Propagation.MANDATORY)
     public void onAssessmentDeleted(AssessmentDeletedEvent event) {
         UUID configId = event.configId();
+        // Decision 2.10 / REQ-SM-14: lock the summary rows first, the order approve, override and release use.
+        summaryRepository.findByConfigIdForUpdate(configId);
         skillScoreRepository.deleteByConfigId(configId);
         responseEvaluationRepository.deleteByConfigId(configId);
         summaryRepository.deleteByConfigId(configId);
