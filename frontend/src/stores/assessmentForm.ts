@@ -9,7 +9,6 @@ export interface DraftSettings {
   vision: string
   minCoveragePercent: number
   maxAttempts: number
-  inventedQuestions: boolean
   bfi10Enabled: boolean
   teamSize: number
   groupingMode: GroupingMode
@@ -69,7 +68,6 @@ const defaultSettings = (): DraftSettings => ({
   vision: '',
   minCoveragePercent: 60,
   maxAttempts: 1,
-  inventedQuestions: false,
   bfi10Enabled: false,
   teamSize: 4,
   groupingMode: 'HARD_SKILLS',
@@ -222,7 +220,6 @@ export const useAssessmentFormStore = defineStore('assessmentForm', () => {
         vision: settings.vision,
         minCoverage: roundRatio(settings.minCoveragePercent),
         maxAttempts: settings.maxAttempts,
-        inventedQuestions: settings.inventedQuestions,
         bfi10Enabled: settings.bfi10Enabled,
         teamSize: settings.teamSize,
         groupingMode: settings.groupingMode,

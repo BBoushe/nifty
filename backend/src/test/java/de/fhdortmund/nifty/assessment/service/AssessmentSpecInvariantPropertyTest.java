@@ -574,7 +574,7 @@ class AssessmentSpecInvariantPropertyTest {
             questions.add(new InterviewerQuestion(UUID.randomUUID(), i, "Question " + i, 30, 180, rnd.nextInt(4),
                     List.of(UUID.randomUUID()), List.of("Skill " + i)));
         }
-        return new InterviewerView(UUID.randomUUID(), "v1", "Vision", maxAttempts, false, bfi, mode, questions);
+        return new InterviewerView(UUID.randomUUID(), "v1", "Vision", maxAttempts, bfi, mode, questions);
     }
 
     private static AssessmentAttemptEntity attemptEntity(UUID invite, UUID config, int attemptNo, String status) {

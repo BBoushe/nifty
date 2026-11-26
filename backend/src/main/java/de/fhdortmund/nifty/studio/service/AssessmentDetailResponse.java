@@ -15,7 +15,6 @@ public record AssessmentDetailResponse(
         String vision,
         BigDecimal minCoverage,
         int maxAttempts,
-        boolean inventedQuestions,
         boolean bfi10Enabled,
         int teamSize,
         GroupingMode groupingMode,

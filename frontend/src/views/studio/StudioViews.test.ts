@@ -78,6 +78,15 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     expect(wrapper.findAll('[data-testid^="trait-weight-"]')).toHaveLength(5)
   })
 
+  it('SettingsSection has no invented-questions control and the payload omits it (Decision 2.32)', () => {
+    const { pinia } = createTestPlugins()
+    const wrapper = mount(SettingsSection, { global: { plugins: [pinia, PrimeVue] } })
+    const store = useAssessmentFormStore()
+
+    expect(wrapper.text().toLowerCase()).not.toContain('invented')
+    expect('inventedQuestions' in store.toApiPayload().settings).toBe(false)
+  })
+
   it('SettingsSection warns that SOFT_SKILLS and COMBINED need BFI-10 (Decision 2.27)', async () => {
     const { pinia } = createTestPlugins()
     const wrapper = mount(SettingsSection, { global: { plugins: [pinia, PrimeVue] } })
@@ -240,7 +249,6 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
             vision: 'Check consensus understanding',
             minCoverage: 0.7,
             maxAttempts: 2,
-            inventedQuestions: false,
             bfi10Enabled: true,
             teamSize: 4,
             groupingMode: 'COMBINED',
@@ -310,7 +318,6 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
           vision: 'Vision',
           minCoverage: 0.5,
           maxAttempts: 1,
-          inventedQuestions: false,
           bfi10Enabled: false,
           teamSize: 4,
           groupingMode: 'HARD_SKILLS',
@@ -383,7 +390,7 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
   it('AssessmentDetailView scrolls #invites into view on the studio-invites route only (REQ-NAV-12)', async () => {
     const id = '77777777-7777-7777-7777-777777777777'
     const detail = {
-      configId: id, title: 'Scroll', vision: 'V', minCoverage: 0.5, maxAttempts: 1, inventedQuestions: false,
+      configId: id, title: 'Scroll', vision: 'V', minCoverage: 0.5, maxAttempts: 1,
       bfi10Enabled: false, teamSize: 4, groupingMode: 'HARD_SKILLS', softPreset: 'ENGINEERING_DEFAULT',
       combinedHardWeight: 0.5, alpha: 0.5, constraintWeights: {}, status: 'PUBLISHED', version: 1,
       createdAt: '2026-11-26T08:00:00Z', skills: [], questions: [],

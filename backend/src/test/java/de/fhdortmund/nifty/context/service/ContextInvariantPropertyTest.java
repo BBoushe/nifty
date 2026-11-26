@@ -100,7 +100,7 @@ class ContextInvariantPropertyTest {
         CoreQuestionPromptView q = new CoreQuestionPromptView(UUID.randomUUID(), benign(rnd, 8), benignList(rnd),
                 rnd.nextInt(8) - 2, rnd.nextInt(8) - 2);
         return new InterviewerContextInput(UUID.randomUUID(), "v" + rnd.nextInt(50), vision, benignList(rnd), q,
-                rnd.nextInt(10) - 1, rnd.nextBoolean(), turns);
+                rnd.nextInt(10) - 1, turns);
     }
 
     private static List<DialogueTurnView> turns(Random rnd, boolean benignOnly) {
@@ -245,7 +245,7 @@ class ContextInvariantPropertyTest {
             InterviewerContextInput in = interviewerInput(rnd, benign(rnd, 10), turns(rnd, false));
             InterviewerContextInput none = new InterviewerContextInput(in.attemptId(), in.configVersion(),
                     in.vision(), in.targetSkillNames(), in.activeQuestion(), in.coreQuestionsRemaining(),
-                    in.inventedQuestionsEnabled(), List.of());
+                    List.of());
             assertThat(builder.build(in).systemPrompt()).as("round %d", r).isEqualTo(builder.build(none).systemPrompt());
         }
     }
@@ -554,7 +554,7 @@ class ContextInvariantPropertyTest {
             int used = limit + 1 + rnd.nextInt(5);
             CoreQuestionPromptView q = new CoreQuestionPromptView(UUID.randomUUID(), "q", List.of("s"), limit, used);
             String system = new InterviewerContextBuilder().build(new InterviewerContextInput(UUID.randomUUID(), "v",
-                    "vision", List.of("s"), q, 1, false, List.of())).systemPrompt();
+                    "vision", List.of("s"), q, 1, List.of())).systemPrompt();
             assertThat(system).contains("Follow-ups left for this question: 0").contains("Ask no follow-up")
                     .doesNotContain("at most -").doesNotContain("left for this question: -");
         }

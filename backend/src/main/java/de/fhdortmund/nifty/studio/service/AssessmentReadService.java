@@ -109,7 +109,6 @@ public class AssessmentReadService {
                 config.getVision(),
                 config.getMinCoverage(),
                 config.getMaxAttempts(),
-                config.isInventedQuestions(),
                 config.isBfi10Enabled(),
                 config.getTeamSize(),
                 GroupingMode.valueOf(config.getGroupingMode()),

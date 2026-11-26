@@ -38,9 +38,8 @@ public final class PromptTemplates {
         sb.append("Core questions left after this one: ").append(in.coreQuestionsRemaining()).append("\n\n");
         sb.append("Rules:\n");
         sb.append("- Stay on the active question and its skills. Never leave these topics.\n");
-        sb.append(in.inventedQuestionsEnabled()
-                ? "- You may invent new questions, but only about the target skills.\n"
-                : "- Do not invent new questions. Ask only the active question and follow-ups about it.\n");
+        // Decision 2.32: no invented-questions setting exists, so the prompt always forbids them.
+        sb.append("- Do not invent new questions. Ask only the active question and follow-ups about it.\n");
         sb.append(followUpsLeft == 0
                 ? "- Ask no follow-up. Thank the student and say that the next question comes next.\n"
                 : "- You may ask at most " + followUpsLeft + " more follow-up question(s) on this topic.\n");

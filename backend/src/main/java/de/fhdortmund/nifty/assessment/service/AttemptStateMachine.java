@@ -64,8 +64,7 @@ final class AttemptStateMachine {
     /**
      * REQ-AC-01 / REQ-AC-02: core questions in position order, then up to {@code followUpLimit} follow-ups each.
      * {@code followUpAllowed} is false after a blank or timed-out answer, so the interview moves on.
-     * shortcut: always asks every allowed follow-up and never an invented question; let the interviewer end a topic
-     * early or invent questions when the team wants that.
+     * shortcut: always asks every allowed follow-up; let the interviewer end a topic early when the team wants that.
      */
     static NextStep next(InterviewerView view, List<LedgerEntry> ledger, boolean followUpAllowed) {
         List<InterviewerQuestion> questions = view.questions();

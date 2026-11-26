@@ -142,10 +142,6 @@ public class AssessmentConfigEntity {
         return maxAttempts;
     }
 
-    public boolean isInventedQuestions() {
-        return inventedQuestions;
-    }
-
     public boolean isBfi10Enabled() {
         return bfi10Enabled;
     }

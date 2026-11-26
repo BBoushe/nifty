@@ -136,10 +136,8 @@ const deleteMutation = useMutation({
           <dd class="font-semibold text-slate-900">{{ data.teamSize }} · {{ data.groupingMode }}</dd>
         </div>
         <div>
-          <dt class="text-slate-500">BFI-10 / Invented questions</dt>
-          <dd class="font-semibold text-slate-900">
-            {{ data.bfi10Enabled ? 'On' : 'Off' }} / {{ data.inventedQuestions ? 'On' : 'Off' }}
-          </dd>
+          <dt class="text-slate-500">BFI-10</dt>
+          <dd class="font-semibold text-slate-900">{{ data.bfi10Enabled ? 'On' : 'Off' }}</dd>
         </div>
       </dl>
 

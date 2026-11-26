@@ -100,6 +100,23 @@ class StudioConfigControllerTest {
     }
 
     @Test
+    void postAcceptsAndIgnoresTheRemovedInventedQuestionsField() throws Exception {
+        UUID key = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        when(creationService.create(eq(key), any())).thenReturn(new CreatedAssessment(configId, true));
+        when(readService.getForCurrentProfessor(configId)).thenReturn(sampleDetail(configId));
+
+        mockMvc.perform(post(BASE)
+                        .with(user("prof").roles("PROFESSOR"))
+                        .with(csrf())
+                        .header("Idempotency-Key", key.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"settings\":{\"title\":\"SE\",\"inventedQuestions\":true},"
+                                + "\"skills\":[],\"questions\":[]}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void postWithInvalidOrMissingIdempotencyKeyOrFieldErrorsReturns400ProblemDetail() throws Exception {
         mockMvc.perform(post(BASE)
                         .with(user("prof").roles("PROFESSOR"))
@@ -205,7 +222,6 @@ class StudioConfigControllerTest {
                 "Evaluate backend craft",
                 new BigDecimal("0.6000"),
                 1,
-                false,
                 false,
                 4,
                 GroupingMode.HARD_SKILLS,

@@ -48,7 +48,7 @@ class AssessmentInvariantPropertyTest {
         Random rnd = new Random(SEED);
         for (int round = 0; round < ROUNDS; round++) {
             List<InterviewerQuestion> questions = randomQuestions(rnd);
-            InterviewerView view = new InterviewerView(UUID.randomUUID(), "v1", "Vision", 1, false, false,
+            InterviewerView view = new InterviewerView(UUID.randomUUID(), "v1", "Vision", 1, false,
                     GroupingMode.HARD_SKILLS, questions);
             List<LedgerEntry> ledger = new ArrayList<>();
             List<UUID> coreAsked = new ArrayList<>();

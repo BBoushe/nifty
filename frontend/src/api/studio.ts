@@ -8,7 +8,6 @@ export interface SettingsInputPayload {
   vision: string
   minCoverage: number
   maxAttempts: number
-  inventedQuestions: boolean
   bfi10Enabled: boolean
   teamSize: number
   groupingMode: GroupingMode
@@ -78,7 +77,6 @@ export interface AssessmentDetail {
   vision: string
   minCoverage: number
   maxAttempts: number
-  inventedQuestions: boolean
   bfi10Enabled: boolean
   teamSize: number
   groupingMode: GroupingMode

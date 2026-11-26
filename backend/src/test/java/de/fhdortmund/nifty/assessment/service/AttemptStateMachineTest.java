@@ -171,7 +171,7 @@ class AttemptStateMachineTest {
     }
 
     private static InterviewerView view(GroupingMode mode, boolean bfi10, List<InterviewerQuestion> questions) {
-        return new InterviewerView(UUID.randomUUID(), "v1", "Vision", 2, false, bfi10, mode, questions);
+        return new InterviewerView(UUID.randomUUID(), "v1", "Vision", 2, bfi10, mode, questions);
     }
 
     private static void ask(List<LedgerEntry> ledger, InterviewerQuestion q, EntryOrigin origin) {

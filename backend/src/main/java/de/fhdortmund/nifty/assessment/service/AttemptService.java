@@ -310,7 +310,7 @@ class AttemptService {
         }
         return new InterviewerContextInput(attemptId, view.configVersion(), view.vision(), List.copyOf(skillNames),
                 new CoreQuestionPromptView(q.coreQuestionId(), q.text(), q.targetSkillNames(), q.followUpLimit(), used),
-                remaining, view.inventedQuestionsEnabled(), turns);
+                remaining, turns);
     }
 
     private SessionStateResponse stateOf(AssessmentAttemptEntity attempt, InterviewerView view,

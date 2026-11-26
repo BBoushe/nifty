@@ -11,7 +11,6 @@ public record SettingsInput(
         String vision,
         BigDecimal minCoverage,
         Integer maxAttempts,
-        Boolean inventedQuestions,
         Boolean bfi10Enabled,
         Integer teamSize,
         GroupingMode groupingMode,

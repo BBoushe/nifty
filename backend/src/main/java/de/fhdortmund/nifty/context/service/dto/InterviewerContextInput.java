@@ -11,7 +11,6 @@ public record InterviewerContextInput(
         List<String> targetSkillNames,
         CoreQuestionPromptView activeQuestion,
         int coreQuestionsRemaining,
-        boolean inventedQuestionsEnabled,
         List<DialogueTurnView> priorTurns
 ) {
 }

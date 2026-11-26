@@ -204,7 +204,6 @@ class ConfigCreationAndQueryIntegrationTest extends PostgresContainerBase {
                 new BigDecimal("0.6000"),
                 2,
                 true,
-                true,
                 4,
                 GroupingMode.COMBINED,
                 SoftPreset.ENGINEERING_DEFAULT,

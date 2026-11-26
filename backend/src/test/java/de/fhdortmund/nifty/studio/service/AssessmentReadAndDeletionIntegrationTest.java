@@ -144,7 +144,6 @@ class AssessmentReadAndDeletionIntegrationTest extends PostgresContainerBase {
                 new BigDecimal("0.5000"),
                 1,
                 false,
-                false,
                 4,
                 GroupingMode.HARD_SKILLS,
                 SoftPreset.ENGINEERING_DEFAULT,

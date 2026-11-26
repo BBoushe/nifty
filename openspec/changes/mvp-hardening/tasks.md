@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 10 done (Group C complete, committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group D, Task 11 (remove the invented-questions toggle). Not started.
+- **Current:** Tasks 1 to 11 done (committed, not pushed). Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group D, Task 12 (prompt wording, prompt failure, bounded streams). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -74,10 +74,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group D — Assessment and context backend
 
-- [ ] **Task 11: Remove the invented-questions toggle (REQ-AC-02, REQ-IS-05, REQ-CC-02, Decision 2.32)**
-  - [ ] RED: (1) `PromptTemplatesTest`: the interviewer prompt always forbids invented questions, whatever the stored value. (2) The Studio form test: no invented-questions control. (3) The create API accepts and ignores an old `inventedQuestions` field.
-  - [ ] GREEN per design §4. Keep the DB column. Remove the `shortcut:` comment in `AttemptStateMachine` that names invented questions. Follow-up behaviour stays unchanged: existing follow-up tests stay green.
-  - [ ] Commit `refactor: remove the invented-questions toggle`.
+- [x] **Task 11: Remove the invented-questions toggle (REQ-AC-02, REQ-IS-05, REQ-CC-02, Decision 2.32)**
+  - [x] RED: (1) `PromptTemplatesTest`: the interviewer prompt always forbids invented questions, whatever the stored value. (2) The Studio form test: no invented-questions control. (3) The create API accepts and ignores an old `inventedQuestions` field.
+  - [x] GREEN per design §4. Keep the DB column. Remove the `shortcut:` comment in `AttemptStateMachine` that names invented questions. Follow-up behaviour stays unchanged: existing follow-up tests stay green.
+  - [x] Commit `refactor: remove the invented-questions toggle`.
 
 - [ ] **Task 12: Prompt wording, prompt failure, bounded streams (REQ-CC-10, REQ-AC-23, REQ-AC-24)**
   - [ ] RED. (1) `PromptTemplatesTest`: core question 1 with `followUpLimit = 0` gives a prompt that contains "Ask this question now" and not "the next question comes next". (2) `AssessmentSessionServiceTest`: `buildInterviewerContext` throws → the configured question is sent in the same call, and `recordInterviewerReply` gets an empty text. (3) A context test asserts that the stream executor is a `ThreadPoolTaskExecutor` with max 32 and queue 100. (4) A rejected task gives `503` ProblemDetail.
@@ -218,4 +218,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: n/a (one-line template guard; existing App header test updated); GREEN: `npx vitest run src/App.test.ts` → exit 0 (7 run); `npm run typecheck` → exit 0; `openspec validate mvp-hardening --type change --strict` → valid
 - Contracts/Migrations added: none. The delta spec modifies REQ-NAV-02 (no candidate "Sign out") and REQ-NAV-05 (professor only).
 - Decisions: 2.36 recorded (prompter change).
+- Open Questions: none
+
+### Task 11: Remove the invented-questions toggle
+- Commits: (this commit) refactor: remove the invented-questions toggle
+- Verification: RED: `./mvnw -B test -Dtest='PromptTemplatesTest'` → FAIL (compile: `InterviewerContextInput` still requires the flag); `npx vitest run src/views/studio/StudioViews.test.ts` → FAIL (form still shows "Allow interviewer-invented questions"); GREEN: `./mvnw -B test -Dtest='PromptTemplatesTest,InterviewerContextBuilderTest,StudioConfigControllerTest,ContextInvariantPropertyTest,AttemptStateMachineTest,ContextControllerTest,ContextCreationServiceImplTest,ConfigValidatorTest,ConfigCreationAndQueryIntegrationTest,AssessmentReadAndDeletionIntegrationTest,AssessmentSessionServiceIntegrationTest,AssessmentInvariantPropertyTest,AssessmentSpecInvariantPropertyTest,InviteRevocationAndPurgeTest'` → exit 0 (124 run); `npx vitest run src/views/studio` → exit 0 (19 run); typecheck and lint → exit 0
+- Contracts/Migrations added: `docs/api.md` (preview request loses `inventedQuestionsEnabled`; create ignores an old `inventedQuestions`; detail response has no such field); no migration (column `invented_questions` stays, new rows store `false`)
+- Decisions: 2.32 applied (`// Decision 2.32` in `PromptTemplates` and `ConfigCreationService`). Design differed from code: the field also lived in `InterviewerView`, `InterviewerPreviewRequest`, `AssessmentDetailResponse` and the Studio detail page. All lose it (a dead "Invented questions: Off" row would mislead). The `AttemptStateMachine` shortcut keeps its follow-up part and loses the invented part. Jackson ignores unknown JSON fields, so no extra code serves old clients (test added). `AssessmentConfigEntity` keeps its constructor parameter, and `isInventedQuestions()` is removed (no reader).
 - Open Questions: none

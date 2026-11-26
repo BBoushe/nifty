@@ -34,7 +34,7 @@ class ContextCreationServiceImplTest {
 
     private static InterviewerContextInput interviewerInput(String candidateText) {
         CoreQuestionPromptView question = new CoreQuestionPromptView(UUID.randomUUID(), "Q?", List.of("A"), 2, 0);
-        return new InterviewerContextInput(ATTEMPT, "v1", "vision", List.of("A"), question, 1, false,
+        return new InterviewerContextInput(ATTEMPT, "v1", "vision", List.of("A"), question, 1,
                 List.of(new DialogueTurnView(2, "candidate", "core", candidateText)));
     }
 

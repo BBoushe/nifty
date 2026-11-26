@@ -84,7 +84,7 @@ public class ConfigCreationService {
                 s.vision().trim(),
                 s.minCoverage(),
                 s.maxAttempts(),
-                Boolean.TRUE.equals(s.inventedQuestions()),
+                false, // Decision 2.32: column kept, setting removed
                 Boolean.TRUE.equals(s.bfi10Enabled()),
                 s.teamSize(),
                 s.groupingMode().name(),

@@ -480,7 +480,7 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
     }
 
     private InterviewerView view(GroupingMode mode, boolean bfi10, List<InterviewerQuestion> questions, int maxAttempts) {
-        return new InterviewerView(configId, "v1", "Vision", maxAttempts, false, bfi10, mode, questions);
+        return new InterviewerView(configId, "v1", "Vision", maxAttempts, bfi10, mode, questions);
     }
 
     @TestConfiguration
