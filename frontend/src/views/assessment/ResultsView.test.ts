@@ -23,7 +23,8 @@ async function mountResults(configId: string) {
   await router.isReady()
 
   const wrapper = mount(ResultsView, {
-    global: { plugins: [pinia, router, PrimeVue, [VueQueryPlugin, { queryClient }]] },
+    // Teleport is stubbed so the test can query the Dialog content.
+    global: { stubs: { teleport: true }, plugins: [pinia, router, PrimeVue, [VueQueryPlugin, { queryClient }]] },
   })
   await flushPromises()
   return wrapper
@@ -144,7 +145,19 @@ describe('Candidate ResultsView (US-EV-06, REQ-CR-01..06)', () => {
     expect(wrapper.text()).toContain('75%')
     expect(wrapper.text()).toContain('WEIGHTED_MEAN')
     expect(wrapper.text()).toContain('write unit tests before refactoring')
-    expect(wrapper.text()).toContain('How do you ensure code safety?')
+    // REQ-CR-07: the conversation is behind a button, not inline.
+    expect(wrapper.text()).not.toContain('How do you ensure code safety?')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="open-conversation-btn"]').trigger('click')
+    await flushPromises()
+    const dialog = wrapper.get('[role="dialog"]')
+    expect(dialog.text()).toContain('How do you ensure code safety?')
+    expect(dialog.text()).toContain('I write unit tests before refactoring.')
+    expect(dialog.text()).toContain('Core question 1')
+    // The candidate never sees professor markers.
+    expect(dialog.find('[data-testid="marker-timed-out-e1"]').exists()).toBe(false)
+    expect(dialog.find('[data-testid="summary-flagged"]').exists()).toBe(false)
 
     // N/A skill rendered with hatch, and listed under notAssessed rather than weak
     const naBadge = wrapper.get('[data-testid="result-skill-s3"]')

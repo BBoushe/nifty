@@ -21,7 +21,7 @@ const props = defineProps<{
   focusEntryId?: string
   highlight?: Record<string, string[]>
   loading?: boolean
-  error?: string | null
+  error?: boolean
 }>()
 const visible = defineModel<boolean>('visible', { default: false })
 

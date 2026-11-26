@@ -110,7 +110,7 @@ describe('TranscriptDialog (REQ-SM-10, REQ-CR-07)', () => {
 
   it('shows loading, error and empty states', async () => {
     expect((await mountDialog({ loading: true, turns: [] })).text()).toContain('Loading conversation')
-    expect((await mountDialog({ error: 'boom', turns: [] })).text()).toContain('Could not load the conversation')
+    expect((await mountDialog({ error: true, turns: [] })).text()).toContain('Could not load the conversation')
     expect((await mountDialog({ turns: [] })).text()).toContain('No conversation entries recorded')
   })
 })

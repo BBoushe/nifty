@@ -13,7 +13,7 @@ import {
 } from '@/api/evaluation'
 import { listAssessments } from '@/api/studio'
 import CohortGapsPanel from './CohortGapsPanel.vue'
-import EvidenceDrawer from './EvidenceDrawer.vue'
+import EvidenceDialog from './EvidenceDialog.vue'
 import SkillsMatrixPanel from './SkillsMatrixPanel.vue'
 
 const route = useRoute()
@@ -144,11 +144,11 @@ const hasSelection = computed(() => Boolean(selectedConfigId.value))
         @select-attempt="(id) => (selectedAttemptId = id)"
       />
 
-      <EvidenceDrawer
+      <EvidenceDialog
         v-if="activeTab === 'matrix'"
         :attempt-id="selectedAttemptId"
-        :visible="Boolean(selectedAttemptId)"
-        @close="selectedAttemptId = null"
+        :visible="selectedAttemptId !== null"
+        @update:visible="(open) => !open && (selectedAttemptId = null)"
       />
 
       <CohortGapsPanel v-if="activeTab === 'gaps'" :config-id="selectedConfigId" />

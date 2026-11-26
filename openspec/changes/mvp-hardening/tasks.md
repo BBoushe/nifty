@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Task 1 done (TranscriptDialog and transcript.ts committed).
-- **Next action:** Task 2 (Evidence dialog and ResultsView "Open conversation").
+- **Current:** Tasks 1 and 2 done (Group A complete, committed, not pushed).
+- **Next action:** Task 3 (Group B, live status and Release state; needs the backend `evaluationStatus` and `candidateRef` fields first).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -20,12 +20,12 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] Verify: `npx vitest run src/components` → pass.
   - [x] Commit `feat(frontend): add readable transcript dialog`.
 
-- [ ] **Task 2: Evidence review in a modal (REQ-SM-09, REQ-SM-10)**
-  - [ ] RED in `RankingViews.test.ts`. (1) Inspect opens a dialog (`role="dialog"`) and the matrix stays mounted. (2) Close or Esc closes it. (3) "View transcript" opens `TranscriptDialog` with markers. (4) "Show in transcript" passes `focusEntryId` and the highlighted quote. (5) The inline ledger section is gone from the evidence view.
-  - [ ] GREEN: `git mv EvidenceDrawer.vue EvidenceDialog.vue`, wrap it in `Dialog` per design §1, update `RankingView.vue` and the existing tests that mention the drawer.
-  - [ ] Candidate: `ResultsView.vue` replaces the inline conversation list with "Open conversation" and the dialog (`showMarkers = false`). Add a test in `ResultsView.test.ts`.
-  - [ ] Verify: `npx vitest run src/views/ranking src/views/assessment` → pass.
-  - [ ] Commit `feat(frontend): open evidence review and transcript as modals`.
+- [x] **Task 2: Evidence review in a modal (REQ-SM-09, REQ-SM-10)**
+  - [x] RED in `RankingViews.test.ts`. (1) Inspect opens a dialog (`role="dialog"`) and the matrix stays mounted. (2) Close or Esc closes it. (3) "View transcript" opens `TranscriptDialog` with markers. (4) "Show in transcript" passes `focusEntryId` and the highlighted quote. (5) The inline ledger section is gone from the evidence view.
+  - [x] GREEN: `git mv EvidenceDrawer.vue EvidenceDialog.vue`, wrap it in `Dialog` per design §1, update `RankingView.vue` and the existing tests that mention the drawer.
+  - [x] Candidate: `ResultsView.vue` replaces the inline conversation list with "Open conversation" and the dialog (`showMarkers = false`). Add a test in `ResultsView.test.ts`.
+  - [x] Verify: `npx vitest run src/views/ranking src/views/assessment` → pass.
+  - [x] Commit `feat(frontend): open evidence review and transcript as modals`.
 
 ## Group B — Frontend fixes
 
@@ -148,4 +148,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `npx vitest run src/components` → FAIL (`./transcript` and `./TranscriptDialog.vue` did not exist); GREEN: `npx vitest run src/components` → exit 0 (27 tests, 3 files)
 - Contracts/Migrations added: none (new `frontend/src/components/transcript.ts`, `TranscriptDialog.vue`)
 - Decisions: none new. Design choices: styling uses only the existing Tailwind tokens (`bg-surface-sunken`, `bg-green-soft`, `bg-brand-yellow-soft`, `text-ink*`), so it follows the tokens if dark mode is added (the app has `darkModeSelector: false` today). Extra helpers `formatClock`, `originLabels`, `splitHighlights` live in `transcript.ts` for unit tests. Extra optional props `loading` and `error` give the dialog the loading/error states that frontend rule 2 needs.
+- Open Questions: none
+
+### Task 2: Evidence review in a modal
+- Commits: (this commit) feat(frontend): open evidence review and transcript as modals
+- Verification: RED: `npx vitest run src/views/ranking src/views/assessment` → FAIL (`./EvidenceDialog.vue` did not exist; ResultsView still showed the inline log); GREEN: `npx vitest run src/views/ranking src/views/assessment src/components` → exit 0; full `npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (132 tests)
+- Contracts/Migrations added: none (frontend only; `EvidenceDrawer.vue` renamed to `EvidenceDialog.vue`, no API change)
+- Decisions: no new ID. Where design differed from code: (1) The drilldown API has no `candidateRef` yet, so the dialog header shows the short invite id through one `candidateName` computed, with a `shortcut:` note; Tasks 3 and 4 switch it. (2) PrimeVue binds Esc on the document for every open Dialog, so the evidence dialog sets `:close-on-escape="!transcriptOpen"`; one Esc closes only the top dialog. (3) "View transcript" and "Show in transcript" both pass every verified quote as `highlight`; only "Show in transcript" sets `focusEntryId`. (4) The Release Status tile was dropped because the header now carries that tag. (5) Release gating is unchanged (Task 3 owns `evaluationStatus`).
 - Open Questions: none
