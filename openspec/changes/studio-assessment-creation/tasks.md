@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** US-ST-02 done
-- **Next action:** US-ST-03
+- **Current:** US-ST-03 done
+- **Next action:** US-ST-04
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -23,11 +23,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(studio): add V3 studio schema, entities, repositories, and immutability triggers`
 
-- [ ] **US-ST-03: Pure validators (`SettingsRules`, `SkillRules`, `QuestionRules`, `ConfigValidator`)**
-  - [ ] Write RED pure-JVM unit tests covering every error code (`REQUIRED`, `OUT_OF_RANGE`, `BAD_WEIGHTS`, `RUBRIC_INCOMPLETE`, `DUPLICATE_SKILL`, `TIME_RANGE`, `NO_SKILL`, `UNUSED_SKILL`, `ORDER_GAP`, `EMPTY_CONFIG`) AND the `SOFT_SKILLS` + `bfi10Enabled = true` zero-question exemption (Decision 2.23).
-  - [ ] Implement zero-Stream pure validators collecting all errors at once.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(studio): implement pure configuration validators with SOFT_SKILLS exemption`
+- [x] **US-ST-03: Pure validators (`SettingsRules`, `SkillRules`, `QuestionRules`, `ConfigValidator`)**
+  - [x] Write RED pure-JVM unit tests covering every error code (`REQUIRED`, `OUT_OF_RANGE`, `BAD_WEIGHTS`, `RUBRIC_INCOMPLETE`, `DUPLICATE_SKILL`, `TIME_RANGE`, `NO_SKILL`, `UNUSED_SKILL`, `ORDER_GAP`, `EMPTY_CONFIG`) AND the `SOFT_SKILLS` + `bfi10Enabled = true` zero-question exemption (Decision 2.23).
+  - [x] Implement zero-Stream pure validators collecting all errors at once.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(studio): implement pure configuration validators with SOFT_SKILLS exemption`
 
 - [ ] **US-ST-04: One-shot idempotent creation, `AuditService` (`CONFIG_CREATED`), and `StudioQueryServiceImpl`**
   - [ ] Write RED tests for `201` create, `200` idempotent replay (single audit row), other-professor key collision (`400`), `400` `FieldValidationException` rollback (zero rows, zero audit), `StudioQueryServiceImpl.ownedBy(configId, professorId)` (true only for the owner; used by `invite-links`, REQ-AA-09), and `StudioQueryServiceImpl` `JOIN FETCH` queries matching all 4 fixtures.
@@ -70,4 +70,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=StudioSchemaAndTriggerTest` → FAIL (compile: entities and repositories missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (34 run, 0 failed, incl. `StudioSchemaAndTriggerTest` and `ArchitectureTest`)
 - Contracts/Migrations added: `V3__studio.sql` (`assessment_config`, `skill`, `core_question`, `core_question_skill`, `studio_block_mutation()` trigger), `@Immutable` entities and `Repository` interfaces in `studio/repository/`
 - Decisions: applies 1.10, 1.19, 2.21, 2.22, 4.4
+- Open Questions: none
+
+### US-ST-03 (REQ-IS-05, REQ-IS-06, REQ-IS-11)
+- Commits: `feat(studio): implement pure configuration validators with SOFT_SKILLS exemption`
+- Verification: RED: `./mvnw -B test -Dtest=ConfigValidatorTest` → FAIL (compile: validator & input records missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (42 run, 0 failed)
+- Contracts/Migrations added: `CreateAssessmentRequest`, `SettingsInput`, `SkillInput`, `QuestionInput`, `ConfigValidator`, `SettingsRules`, `SkillRules`, `QuestionRules` (zero Streams)
+- Decisions: applies 1.19, 2.22, 2.23
 - Open Questions: none
