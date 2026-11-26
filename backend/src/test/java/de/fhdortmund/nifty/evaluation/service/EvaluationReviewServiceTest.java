@@ -112,6 +112,14 @@ class EvaluationReviewServiceTest {
 
         when(summaryRepository.findLatestCompletedPerInvite(configId)).thenReturn(List.of(summary));
         when(responseEvaluationRepository.findBySummaryIdIn(any())).thenReturn(List.of(pending, flagged));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(pending, flagged));
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId,
+                List.of(new EvaluatorSkill(skillId, "Spring Boot", RUBRIC)),
+                List.of(new EvaluatorQuestion(q1, "Explain transactions.", List.of(skillId)))));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.5000"),
+                List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.6000"), List.of(skillId)))));
 
         EvaluationDtos.BulkApproveResponse res = service.bulkApprove(
                 new EvaluationDtos.BulkApproveRequest(configId, null));
@@ -120,6 +128,7 @@ class EvaluationReviewServiceTest {
         assertThat(res.skippedFlaggedCount()).isEqualTo(1);
         assertThat(pending.getReviewStatus()).isEqualTo("approved");
         assertThat(flagged.getReviewStatus()).isEqualTo("flagged");
+        verify(skillScoreRepository).saveAll(any());
     }
 
     @Test
@@ -224,5 +233,167 @@ class EvaluationReviewServiceTest {
                 .isInstanceOf(DomainException.class)
                 .extracting(ex -> ((DomainException) ex).getStatus())
                 .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void approveIndividualFlaggedNaResponseUnblocksReleaseWithoutFabricatingScore() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID responseId = UUID.randomUUID();
+
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId,
+                List.of(new EvaluatorSkill(skillId, "Docker", RUBRIC)),
+                List.of(new EvaluatorQuestion(q1, "Explain multi-stage builds.", List.of(skillId)))));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.0000"),
+                List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.6000"), List.of(skillId)))));
+
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(q1.toString(), new BigDecimal("1.00")), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-na");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                null, BigDecimal.ZERO, 1, "flagged", null);
+        ResponseEvaluationEntity flaggedNa = new ResponseEvaluationEntity(
+                run, summary, UUID.randomUUID(), q1, skillId, "core", new BigDecimal("1.00"),
+                null, null, "hallucinated quote", null, false, null, null,
+                null, new BigDecimal("0.2000"), "UNVERIFIED_QUOTE", "flagged", null);
+
+        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(flaggedNa));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(flaggedNa));
+
+        EvaluationDtos.ApproveEvaluationResponse approved = service.approveEvaluation(responseId);
+
+        assertThat(approved.reviewStatus()).isEqualTo(ReleaseStatus.APPROVED);
+        assertThat(approved.effectiveLevel()).isNull();
+        assertThat(approved.remainingFlaggedCount()).isZero();
+        assertThat(flaggedNa.getEffectiveLevel()).isNull();
+        assertThat(summary.getFlaggedCount()).isZero();
+        verify(auditService).record(
+                eq(professorId.toString()),
+                eq(AuditActorRole.PROFESSOR),
+                eq("RESPONSE_EVALUATION"),
+                eq(responseId),
+                eq("SCORE_APPROVED"),
+                eq("flagged"),
+                eq("approved"),
+                eq(null));
+    }
+
+    @Test
+    void exportTranscriptOmitsUnverifiedQuoteAndNeverLeaksRun1Quote() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID entryId = UUID.randomUUID();
+
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId,
+                List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)),
+                List.of(new EvaluatorQuestion(q1, "Explain indexes.", List.of(skillId)))));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.5000"),
+                List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.6000"), List.of(skillId)))));
+
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-tr");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                null, BigDecimal.ZERO, 1, "flagged", null);
+        ResponseEvaluationEntity unverified = new ResponseEvaluationEntity(
+                run, summary, entryId, q1, skillId, "core", new BigDecimal("1.00"),
+                2, 2, "FABRICATED_HALLUCINATED_QUOTE", "FABRICATED_HALLUCINATED_QUOTE",
+                false, null, "bad", null, new BigDecimal("0.3000"), "UNVERIFIED_QUOTE", "flagged", null);
+
+        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(unverified));
+        when(assessmentQueryService.getTranscriptForAttempt(attemptId)).thenReturn(
+                new de.fhdortmund.nifty.assessment.service.ImmutableTranscriptView(
+                        attemptId, configId, summary.getInviteId(), "v1", 1,
+                        java.time.Instant.now().minusSeconds(60), java.time.Instant.now(),
+                        List.of(new de.fhdortmund.nifty.assessment.service.TranscriptEntryView(
+                                entryId, 1, q1, de.fhdortmund.nifty.assessment.service.EntryOrigin.CORE,
+                                "Explain indexes.", "No idea really.", List.of(skillId),
+                                java.time.Instant.now().minusSeconds(60), java.time.Instant.now(),
+                                java.time.Instant.now(), 20, false, true, false))));
+
+        EvaluationDtos.TranscriptExportResponse export = service.exportTranscript(attemptId);
+
+        assertThat(export.format()).isEqualTo("assessment-transcript/v1");
+        assertThat(export.entries()).hasSize(1);
+        assertThat(export.entries().getFirst().answer().pasteSuspected()).isTrue();
+        assertThat(export.evidence()).hasSize(1);
+        assertThat(export.evidence().getFirst().quoteVerified()).isFalse();
+        assertThat(export.evidence().getFirst().quote()).isNull();
+    }
+
+    @Test
+    void getMatrixDrilldownAndReleaseHappyPathsWorkForOwnedConfig() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId,
+                List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)),
+                List.of(new EvaluatorQuestion(q1, "Explain indexes.", List.of(skillId)))));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.7000"),
+                List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.6000"), List.of(skillId)))));
+
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-ok");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("3.00"), BigDecimal.ONE, 0, "pending", null);
+        ResponseEvaluationEntity pending = new ResponseEvaluationEntity(
+                run, summary, UUID.randomUUID(), q1, skillId, "core", new BigDecimal("1.00"),
+                3, 3, "index quote", "index quote", true, "index quote", "solid",
+                3, new BigDecimal("0.9200"), null, "pending", 3);
+
+        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(formula));
+        when(summaryRepository.findLatestCompletedPerInvite(configId)).thenReturn(List.of(summary));
+        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(pending));
+        when(skillScoreRepository.findBySummaryIdIn(any())).thenReturn(List.of());
+        when(skillScoreRepository.findBySummaryId(any())).thenReturn(List.of());
+
+        EvaluationDtos.MatrixResponse matrix = service.getMatrix(configId);
+        assertThat(matrix.skills()).hasSize(1);
+        assertThat(matrix.rows()).hasSize(1);
+
+        EvaluationDtos.AttemptEvaluationDrilldownResponse drilldown = service.getAttemptDrilldown(attemptId);
+        assertThat(drilldown.responses()).hasSize(1);
+        assertThat(drilldown.responses().getFirst().skillName()).isEqualTo("SQL");
+
+        EvaluationDtos.ReleaseAttemptResponse released = service.releaseAttempt(attemptId);
+        assertThat(released.releaseStatus()).isEqualTo(ReleaseStatus.APPROVED);
+        assertThat(summary.getReleaseStatus()).isEqualTo("approved");
+        assertThat(pending.getReviewStatus()).isEqualTo("approved");
+        verify(auditService).record(
+                eq(professorId.toString()),
+                eq(AuditActorRole.PROFESSOR),
+                eq("ATTEMPT"),
+                eq(attemptId),
+                eq("ATTEMPT_RELEASED"),
+                eq("pending"),
+                eq("approved"),
+                eq(null));
     }
 }

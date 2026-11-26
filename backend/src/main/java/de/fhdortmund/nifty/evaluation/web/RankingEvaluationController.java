@@ -47,6 +47,11 @@ class RankingEvaluationController {
         return reviewService.bulkApprove(request);
     }
 
+    @PostMapping("/evaluations/{responseEvalId}/approve")
+    EvaluationDtos.ApproveEvaluationResponse approveEvaluation(@PathVariable UUID responseEvalId) {
+        return reviewService.approveEvaluation(responseEvalId);
+    }
+
     @PostMapping("/evaluations/{responseEvalId}/override")
     EvaluationDtos.OverrideEvaluationResponse overrideEvaluation(
             @PathVariable UUID responseEvalId,

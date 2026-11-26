@@ -153,6 +153,60 @@ class SkillFormulaCalculatorTest {
         assertThat(allNa.coverage()).isEqualByComparingTo("0.0000");
     }
 
+    @Test
+    void inventedHalfMultiplierIsObservableWhenUncappedAndMetadataAndReviewStatusesPropagate() {
+        UUID skillA = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID q2 = UUID.randomUUID();
+
+        // 3 entries with core w=2 (lvl 4), core w=2 (lvl 4), invented w=2 -> eff w=1 (lvl 0)
+        // Shares: 2/5=0.40, 2/5=0.40, 1/5=0.20 (none exceed 0.50 cap) -> score = 0.4*4 + 0.4*4 + 0.2*0 = 3.20
+        SkillFormulaCalculator.FormulaResult res = calculator.calculate(
+                List.of(skillA),
+                List.of(
+                        new SkillFormulaCalculator.QuestionWeight(q1, new BigDecimal("2.00")),
+                        new SkillFormulaCalculator.QuestionWeight(q2, new BigDecimal("2.00"))),
+                List.of(
+                        new SkillFormulaCalculator.ScoredEntryInput(UUID.randomUUID(), q1, skillA, EntryOrigin.CORE,
+                                new BigDecimal("2.00"), 4, new BigDecimal("0.8000"), true, false, "approved"),
+                        new SkillFormulaCalculator.ScoredEntryInput(UUID.randomUUID(), q2, skillA, EntryOrigin.CORE,
+                                new BigDecimal("2.00"), 4, new BigDecimal("1.0000"), true, false, "overridden"),
+                        new SkillFormulaCalculator.ScoredEntryInput(UUID.randomUUID(), q2, skillA, EntryOrigin.INVENTED,
+                                new BigDecimal("2.00"), 0, new BigDecimal("0.6000"), true, false, "auto_released")),
+                Set.of(q1, q2),
+                new BigDecimal("0.5000"));
+
+        SkillFormulaCalculator.CalculatedSkillScore sc = res.skillScores().getFirst();
+        assertThat(sc.score()).isEqualByComparingTo("3.20");
+        assertThat(sc.avgConfidence()).isEqualByComparingTo("0.8000");
+        assertThat(sc.verifiedEvidenceCount()).isEqualTo(3);
+        assertThat(sc.reviewStatus()).isEqualTo("overridden");
+
+        // Uniform guard when n * maxShare < 1.0 (e.g. 2 entries with cap 0.40 -> uniform 0.50, 0.50)
+        double[] uniform = SkillFormulaCalculator.computeCappedShares(new double[] {3.0, 1.0}, 0.40);
+        assertThat(uniform[0]).isEqualTo(0.5);
+        assertThat(uniform[1]).isEqualTo(0.5);
+
+        // Priority: flagged > pending > overridden > approved > auto_released
+        SkillFormulaCalculator.FormulaResult approvedOnly = calculator.calculate(
+                List.of(skillA),
+                List.of(new SkillFormulaCalculator.QuestionWeight(q1, new BigDecimal("1.00"))),
+                List.of(new SkillFormulaCalculator.ScoredEntryInput(UUID.randomUUID(), q1, skillA, EntryOrigin.CORE,
+                        new BigDecimal("1.00"), 3, new BigDecimal("0.9000"), true, false, "approved")),
+                Set.of(q1),
+                new BigDecimal("0.5000"));
+        assertThat(approvedOnly.skillScores().getFirst().reviewStatus()).isEqualTo("approved");
+
+        SkillFormulaCalculator.FormulaResult autoOnly = calculator.calculate(
+                List.of(skillA),
+                List.of(new SkillFormulaCalculator.QuestionWeight(q1, new BigDecimal("1.00"))),
+                List.of(new SkillFormulaCalculator.ScoredEntryInput(UUID.randomUUID(), q1, skillA, EntryOrigin.CORE,
+                        new BigDecimal("1.00"), 3, new BigDecimal("0.9000"), true, false, "auto_released")),
+                Set.of(q1),
+                new BigDecimal("0.5000"));
+        assertThat(autoOnly.skillScores().getFirst().reviewStatus()).isEqualTo("auto_released");
+    }
+
     private static SkillFormulaCalculator.ScoredEntryInput scored(
             UUID coreQuestionId, UUID skillId, EntryOrigin origin, String weight, int level) {
         return new SkillFormulaCalculator.ScoredEntryInput(

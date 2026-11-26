@@ -203,6 +203,7 @@ public class EvaluationReviewService {
         int approvedCount = 0;
         int skippedFlaggedCount = 0;
         List<ResponseEvaluationEntity> modified = new ArrayList<>();
+        Set<UUID> affectedSummaryIds = new HashSet<>();
 
         for (int i = 0; i < responses.size(); i++) {
             ResponseEvaluationEntity r = responses.get(i);
@@ -217,13 +218,92 @@ public class EvaluationReviewService {
             if (ReleaseStatus.PENDING.literal().equals(r.getReviewStatus())) {
                 r.approve(now);
                 modified.add(r);
+                affectedSummaryIds.add(r.getSummary().getId());
                 approvedCount++;
             }
         }
         if (!modified.isEmpty()) {
             responseEvaluationRepository.saveAll(modified);
+            EvaluatorView evaluatorView = studioQueryService.evaluatorView(request.configId());
+            ScoringView scoringView = studioQueryService.scoringView(request.configId());
+            for (int i = 0; i < summaries.size(); i++) {
+                CandidateEvaluationSummaryEntity summary = summaries.get(i);
+                if (!affectedSummaryIds.contains(summary.getId())) {
+                    continue;
+                }
+                List<ResponseEvaluationEntity> summaryResponses = responseEvaluationRepository
+                        .findBySummaryIdOrderByIdAsc(summary.getId());
+                FormulaVersionEntity fv = summary.getFormulaVersion();
+                SkillFormulaCalculator.FormulaResult recalculated = recalcHelper.computeForResponses(
+                        evaluatorView, scoringView, summaryResponses, fv.getMaxEntrySkillWeightShare());
+                recalcHelper.replaceSkillScores(summary, fv, recalculated, null);
+            }
         }
         return new EvaluationDtos.BulkApproveResponse(approvedCount, skippedFlaggedCount);
+    }
+
+    /**
+     * REQ-SM-06 / AGENTS.md §2 #2: individual professor approval for a single flagged or pending
+     * evaluation without fabricating a 0..4 override (keeps effectiveLevel or N/A intact).
+     */
+    @Transactional
+    public EvaluationDtos.ApproveEvaluationResponse approveEvaluation(UUID responseEvalId) {
+        UUID professorId = authContextService.currentProfessorId();
+        ResponseEvaluationEntity target = responseEvaluationRepository.findWithSummaryById(responseEvalId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        CandidateEvaluationSummaryEntity summary = target.getSummary();
+        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
+            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
+        }
+
+        String oldStatus = target.getReviewStatus();
+        Instant now = Instant.now();
+        target.approve(now);
+        responseEvaluationRepository.save(target);
+
+        auditService.record(
+                professorId.toString(),
+                AuditActorRole.PROFESSOR,
+                "RESPONSE_EVALUATION",
+                responseEvalId,
+                "SCORE_APPROVED",
+                oldStatus,
+                ReleaseStatus.APPROVED.literal(),
+                null);
+
+        EvaluatorView evaluatorView = studioQueryService.evaluatorView(summary.getConfigId());
+        ScoringView scoringView = studioQueryService.scoringView(summary.getConfigId());
+        List<ResponseEvaluationEntity> allResponses = responseEvaluationRepository
+                .findBySummaryIdOrderByIdAsc(summary.getId());
+        int remainingFlagged = countFlagged(allResponses);
+
+        String nextSummaryStatus = FormulaRecalculationHelper.isReleased(summary.getReleaseStatus())
+                ? summary.getReleaseStatus()
+                : (remainingFlagged > 0 ? ReleaseStatus.FLAGGED.literal() : ReleaseStatus.PENDING.literal());
+        FormulaVersionEntity fv = summary.getFormulaVersion();
+        SkillFormulaCalculator.FormulaResult recalculated = recalcHelper.computeForResponses(
+                evaluatorView, scoringView, allResponses, fv.getMaxEntrySkillWeightShare());
+
+        summary.updateScores(
+                fv,
+                recalculated.fitScore(),
+                recalculated.coverage(),
+                remainingFlagged,
+                nextSummaryStatus,
+                summary.getReleasedAt());
+        summaryRepository.save(summary);
+        String preserveStatus = FormulaRecalculationHelper.isReleased(summary.getReleaseStatus())
+                ? summary.getReleaseStatus()
+                : null;
+        recalcHelper.replaceSkillScores(summary, fv, recalculated, preserveStatus);
+
+        return new EvaluationDtos.ApproveEvaluationResponse(
+                responseEvalId,
+                summary.getAttemptId(),
+                target.getEffectiveLevel(),
+                ReleaseStatus.APPROVED,
+                now,
+                remainingFlagged);
     }
 
     @Transactional
@@ -271,7 +351,8 @@ public class EvaluationReviewService {
                 evaluatorView, scoringView, allResponses, formulaVersion.getMaxEntrySkillWeightShare());
 
         int remainingFlagged = countFlagged(allResponses);
-        String nextSummaryStatus = FormulaRecalculationHelper.isReleased(summary.getReleaseStatus())
+        boolean wasReleased = FormulaRecalculationHelper.isReleased(summary.getReleaseStatus());
+        String nextSummaryStatus = wasReleased
                 ? ReleaseStatus.OVERRIDDEN.literal()
                 : (remainingFlagged > 0 ? ReleaseStatus.FLAGGED.literal() : ReleaseStatus.PENDING.literal());
 
@@ -283,7 +364,11 @@ public class EvaluationReviewService {
                 nextSummaryStatus,
                 summary.getReleasedAt());
         summaryRepository.save(summary);
-        recalcHelper.replaceSkillScores(summary, formulaVersion, recalculated, null);
+        recalcHelper.replaceSkillScores(
+                summary,
+                formulaVersion,
+                recalculated,
+                wasReleased ? ReleaseStatus.OVERRIDDEN.literal() : null);
 
         return new EvaluationDtos.OverrideEvaluationResponse(
                 responseEvalId,
@@ -409,7 +494,8 @@ public class EvaluationReviewService {
                     r.getEntryId(),
                     r.getSkillId(),
                     skillNames.getOrDefault(r.getSkillId(), r.getSkillId().toString()),
-                    r.isQuoteVerified() ? r.getVerifiedQuote() : r.getRun1Quote(),
+                    // REQ-EP-01: never emit an unverified quote into exported transcript evidence.
+                    r.isQuoteVerified() ? r.getVerifiedQuote() : null,
                     r.isQuoteVerified(),
                     r.getEffectiveLevel(),
                     List.copyOf(judgeRuns),

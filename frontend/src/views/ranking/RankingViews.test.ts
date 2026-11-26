@@ -171,6 +171,18 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
           }),
         )
       }
+      if (url.includes('/evaluations/re-1/approve') && init?.method === 'POST') {
+        return Promise.resolve(
+          jsonResponse({
+            responseEvaluationId: 're-1',
+            attemptId,
+            effectiveLevel: 2,
+            reviewStatus: 'approved',
+            reviewedAt: '2026-11-26T12:00:00Z',
+            remainingFlaggedCount: 0,
+          }),
+        )
+      }
       if (url.includes('/evaluations/re-1/override') && init?.method === 'POST') {
         return Promise.resolve(
           jsonResponse({
@@ -202,6 +214,14 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     expect(wrapper.text()).toContain('JUDGE_DISAGREEMENT')
     expect(wrapper.get('[data-testid="release-attempt-btn"]').attributes('disabled')).toBeDefined()
 
+    // Professor can approve a flagged item as-is without fabricating an override
+    await wrapper.get('[data-testid="approve-eval-re-1"]').trigger('click')
+    await flushPromises()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/ranking/evaluations/re-1/approve'),
+      expect.objectContaining({ method: 'POST' }),
+    )
+
     await wrapper.get('[data-testid="override-level-re-1"]').setValue('3')
     await wrapper.get('[data-testid="override-reason-re-1"]').setValue('Demonstrated practical mastery')
     await wrapper.get('[data-testid="override-submit-re-1"]').trigger('click')
@@ -232,6 +252,16 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
               meanScore: 2.25,
               levelDistribution: [0, 1, 1, 2, 0],
             },
+            {
+              skillId: 's2',
+              skillName: 'Kubernetes',
+              totalCandidates: 5,
+              scoredCount: 0,
+              naCount: 5,
+              naShare: 1.0,
+              meanScore: null,
+              levelDistribution: [0, 0, 0, 0, 0],
+            },
           ],
         }),
       ),
@@ -244,9 +274,14 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     })
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="chart"]').exists()).toBe(true)
+    const chart = wrapper.get('[data-testid="chart"]')
+    const option = JSON.parse(chart.attributes('data-option') ?? '{}')
+    // AGENTS.md §2 #2: all-N/A skill (meanScore === null) MUST stay null, NEVER plotted as 0!
+    expect(option.series[0].data).toEqual([2.25, null])
     expect(wrapper.text()).toContain('SQL')
     expect(wrapper.text()).toContain('2.25')
     expect(wrapper.text()).toContain('20%')
+    expect(wrapper.text()).toContain('Kubernetes')
+    expect(wrapper.text()).toContain('N/A')
   })
 })

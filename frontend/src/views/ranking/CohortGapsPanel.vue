@@ -30,7 +30,8 @@ const barOption = computed(() => {
       {
         name: 'SQL Mean Score',
         type: 'bar',
-        data: skills.map((s) => s.meanScore ?? 0),
+        // AGENTS.md §2 #2: keep all-N/A skills as null (missing bar), never coerce to 0.
+        data: skills.map((s) => s.meanScore),
         itemStyle: { color: '#0c831f', borderRadius: [4, 4, 0, 0] },
       },
     ],

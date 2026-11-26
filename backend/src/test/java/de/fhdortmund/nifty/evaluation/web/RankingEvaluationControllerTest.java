@@ -57,6 +57,9 @@ class RankingEvaluationControllerTest {
                 attemptId, configId, UUID.randomUUID(), 1, new BigDecimal("3.00"), BigDecimal.ONE,
                 new BigDecimal("0.7000"), ReleaseStatus.AUTO_RELEASED, 0, Instant.now(), List.of(), List.of()));
         when(reviewService.bulkApprove(any())).thenReturn(new EvaluationDtos.BulkApproveResponse(2, 1));
+        when(reviewService.approveEvaluation(responseEvalId)).thenReturn(
+                new EvaluationDtos.ApproveEvaluationResponse(
+                        responseEvalId, attemptId, null, ReleaseStatus.APPROVED, Instant.now(), 0));
         when(reviewService.overrideEvaluation(eq(responseEvalId), any())).thenReturn(
                 new EvaluationDtos.OverrideEvaluationResponse(
                         responseEvalId, attemptId, 2, 3, ReleaseStatus.OVERRIDDEN, "Verified", Instant.now(),
@@ -84,6 +87,12 @@ class RankingEvaluationControllerTest {
                         .content("{\"configId\":\"" + configId + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.skippedFlaggedCount").value(1));
+
+        mockMvc.perform(post("/api/v1/ranking/evaluations/{id}/approve", responseEvalId)
+                        .with(user("p").roles("PROFESSOR"))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewStatus").value("approved"));
 
         mockMvc.perform(post("/api/v1/ranking/evaluations/{id}/override", responseEvalId)
                         .with(user("p").roles("PROFESSOR"))

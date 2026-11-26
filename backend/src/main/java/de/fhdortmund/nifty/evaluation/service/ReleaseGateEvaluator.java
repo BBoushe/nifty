@@ -29,6 +29,30 @@ public class ReleaseGateEvaluator {
             boolean pasteSuspected,
             boolean injectionSuspected,
             boolean parseFailed) {
+        return evaluateResponseFlags(
+                substantiveAnswer,
+                quoteVerified,
+                quoteVerified,
+                run1Level,
+                run2Level,
+                calculatedConfidence,
+                questionConfidenceThreshold,
+                pasteSuspected,
+                injectionSuspected,
+                parseFailed);
+    }
+
+    public FlagEvaluation evaluateResponseFlags(
+            boolean substantiveAnswer,
+            boolean quoteVerified,
+            boolean allQuotesVerified,
+            Integer run1Level,
+            Integer run2Level,
+            BigDecimal calculatedConfidence,
+            BigDecimal questionConfidenceThreshold,
+            boolean pasteSuspected,
+            boolean injectionSuspected,
+            boolean parseFailed) {
 
         List<String> reasons = new ArrayList<>();
 
@@ -41,7 +65,7 @@ public class ReleaseGateEvaluator {
         if (parseFailed) {
             reasons.add("JUDGE_PARSE_FAILED");
         }
-        if (substantiveAnswer && !quoteVerified) {
+        if (substantiveAnswer && (!quoteVerified || !allQuotesVerified)) {
             reasons.add("UNVERIFIED_QUOTE");
         }
         if (run1Level != null && run2Level != null && Math.abs(run1Level - run2Level) >= 1) {

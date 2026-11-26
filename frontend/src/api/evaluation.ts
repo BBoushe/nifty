@@ -86,6 +86,15 @@ export interface BulkApproveResponse {
   skippedFlaggedCount: number
 }
 
+export interface ApproveEvaluationResponse {
+  responseEvaluationId: string
+  attemptId: string
+  effectiveLevel: number | null
+  reviewStatus: ReleaseStatus
+  reviewedAt: string
+  remainingFlaggedCount: number
+}
+
 export interface OverrideEvaluationResponse {
   responseEvaluationId: string
   attemptId: string
@@ -230,6 +239,13 @@ export function bulkApproveEvaluations(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ configId, responseEvaluationIds }),
   })
+}
+
+export function approveEvaluation(responseEvalId: string): Promise<ApproveEvaluationResponse> {
+  return apiFetch<ApproveEvaluationResponse>(
+    `${RANKING_BASE}/evaluations/${encodeURIComponent(responseEvalId)}/approve`,
+    { method: 'POST' },
+  )
 }
 
 export function overrideEvaluation(

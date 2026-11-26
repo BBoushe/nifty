@@ -3,11 +3,11 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** Archived (`2026-11-26-evaluation-service`), all backend (234), frontend (85), OpenSpec (11), and harness (43) checks passing; awaiting human approval to push and open PR/MR
-- **Next action:** Ask human for approval to run `node scripts/forge.mjs push` and `node scripts/forge.mjs pr`
+- **Current:** Archived (`2026-11-26-evaluation-service`), cold review findings (5 blocking + 4 convention candidates) fixed, invariance property tests (`EvaluationInvariantPropertyTest`) and PITest mutation hardening verified (249 backend tests, 85 frontend tests, 43 harness tests, 11 OpenSpec validations, 94% line / 80% mutation test strength)
+- **Next action:** Push branch and open PR/MR via `node scripts/forge.mjs` once human confirms
 - **Uncommitted changes:** none
 - **PR / MR:** pending
-- **Open review findings:** —
+- **Open review findings:** none (all 5 blocking and 4 convention candidates resolved)
 
 ## Tasks
 
@@ -110,4 +110,11 @@
 - Verification: `RED: npx vitest run src/views/ranking/RankingViews.test.ts src/views/assessment/ResultsView.test.ts → FAIL (Failed to resolve import ./ResultsView.vue and ./SkillsMatrixPanel.vue); GREEN: cd frontend && npm run typecheck && npm run lint && npm run test && npm run build → exit 0 (85 tests)`
 - Contracts/Migrations added: `frontend/src/api/evaluation.ts`, `frontend/src/views/ranking/{RankingView,SkillsMatrixPanel,EvidenceDrawer,CohortGapsPanel}.vue`, `frontend/src/views/assessment/ResultsView.vue`, updated ranking/assessment `routes.ts`
 - Decisions: 1.14, 2.10, 2.15, 2.16, 4.3
+- Open Questions: none
+
+### Cold Review, Invariance & Mutation Hardening
+- Commits: `fix(evaluation): address cold review findings and add invariance and mutation tests`
+- Verification: `RED: ./mvnw -B test -Dtest=AsyncEvaluationRunnerIntegrationTest,EvaluationReviewServiceTest → FAIL (missing approveEvaluation + unverified quote/read-only TX findings) & npx vitest run src/views/ranking/RankingViews.test.ts → FAIL (expected [2.25, 0] to equal [2.25, null]); GREEN: cd backend && ./mvnw -B test → exit 0 (249 tests), cd frontend && npm run typecheck && npm run lint && npm run test && npm run build → exit 0 (85 tests), PITest 94% line / 80% test strength (MathMutator 97%, PrimitiveReturns 100%)`
+- Contracts/Migrations added: `POST /api/v1/ranking/evaluations/{responseEvalId}/approve` (synced in `docs/api.md`, `RankingEvaluationController`, `EvaluationReviewService`, `EvidenceDrawer.vue`), `EvaluationInvariantPropertyTest.java`, `AsyncEvaluationRunnerIntegrationTest.java`
+- Decisions: 2.10, 2.11, 2.16, 2.22, 2.24, 2.25
 - Open Questions: none

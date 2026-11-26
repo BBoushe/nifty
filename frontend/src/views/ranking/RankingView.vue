@@ -46,6 +46,12 @@ watch(
   { immediate: true },
 )
 
+watch(selectedConfigId, () => {
+  selectedAttemptId.value = null
+  previewData.value = null
+  formulaMessage.value = null
+})
+
 const applyFormulaMutation = useMutation({
   mutationFn: () => applyFormulaPreset(selectedConfigId.value, selectedPreset.value),
   onSuccess: (res) => {
@@ -119,6 +125,10 @@ const hasSelection = computed(() => Boolean(selectedConfigId.value))
     <div v-if="assessmentsQuery.isPending.value" class="text-sm text-ink-muted">
       Loading assessments...
     </div>
+
+    <Message v-else-if="assessmentsQuery.isError.value" severity="error" :closable="false">
+      Failed to load assessments.
+    </Message>
 
     <div v-else-if="!hasSelection" class="rounded-xl border border-slate-200 bg-surface p-6 text-sm text-ink-muted">
       Create an assessment in Studio to review evaluations and cohort gaps here.

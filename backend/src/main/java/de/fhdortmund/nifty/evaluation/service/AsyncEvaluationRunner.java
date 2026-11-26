@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -97,10 +98,12 @@ public class AsyncEvaluationRunner {
     }
 
     @Async(EvaluationAsyncConfig.EVALUATION_EXECUTOR)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void runAsync(AttemptCompletedEvent event) {
         executeEvaluation(event);
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void executeEvaluation(AttemptCompletedEvent event) {
         RunClaim claim = claimEvaluationRun(event);
         if (claim == null) {
@@ -270,11 +273,9 @@ public class AsyncEvaluationRunner {
     }
 
     private RunClaim claimEvaluationRun(AttemptCompletedEvent event) {
+        FormulaVersionEntity formula = ensureFormulaVersion(event.configId());
         try {
             return transactionTemplate.execute(tx -> {
-                FormulaVersionEntity formula = formulaVersionRepository
-                        .findTopByConfigIdOrderByVersionNumberDesc(event.configId())
-                        .orElseGet(() -> createDefaultFormulaVersion(event.configId()));
                 String idempotencyKey = event.attemptId() + ":" + formula.getId();
                 if (evaluationRunRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
                     return null;
@@ -286,6 +287,19 @@ public class AsyncEvaluationRunner {
         } catch (DataIntegrityViolationException ex) {
             // Concurrent duplicate AttemptCompletedEvent lost the unique idempotency_key race (REQ-EP-09).
             return null;
+        }
+    }
+
+    private FormulaVersionEntity ensureFormulaVersion(UUID configId) {
+        try {
+            return transactionTemplate.execute(tx -> formulaVersionRepository
+                    .findTopByConfigIdOrderByVersionNumberDesc(configId)
+                    .orElseGet(() -> createDefaultFormulaVersion(configId)));
+        } catch (DataIntegrityViolationException ex) {
+            // Two different attempts finished concurrently on a brand-new config; re-read winning v1.
+            return transactionTemplate.execute(tx -> formulaVersionRepository
+                    .findTopByConfigIdOrderByVersionNumberDesc(configId)
+                    .orElseThrow(() -> ex));
         }
     }
 
@@ -320,22 +334,25 @@ public class AsyncEvaluationRunner {
         boolean r2Verified = r2.valid() && quoteVerifier.isVerified(entry.answerText(), r2.verbatimQuote());
         int verifiedCount = (r1Verified ? 1 : 0) + (r2Verified ? 1 : 0);
         boolean quoteVerified = verifiedCount > 0;
+        boolean allQuotesVerified = r1Verified && r2Verified;
 
+        // REQ-EP-01: only verified runs may contribute quote, rationale, or level to scoring.
         String verifiedQuote = r1Verified ? r1.verbatimQuote() : (r2Verified ? r2.verbatimQuote() : null);
-        String rationale = r1.valid() ? r1.rationale() : (r2.valid() ? r2.rationale() : null);
-
-        Integer aiLevel = resolveAiLevel(r1, r2);
-        // REQ-EP-01: unverified quote is discarded before scoring -> effectiveLevel stays null (N/A).
+        String rationale = r1Verified ? r1.rationale() : (r2Verified ? r2.rationale() : null);
+        Integer aiLevel = resolveVerifiedAiLevel(r1, r1Verified, r2, r2Verified);
         Integer effectiveLevel = quoteVerified ? aiLevel : null;
 
         EntryOrigin origin = entry.origin() == null ? EntryOrigin.CORE : entry.origin();
+        int[] termCounts = countPromptedAndUnpromptedTerms(entry.questionText(), entry.answerText());
         BigDecimal confidence = confidenceCalculator.calculate(new ConfidenceCalculator.ConfidenceSignals(
-                verifiedCount, 2, r1.level(), r2.level(), origin, answerLength, 0, 0));
+                verifiedCount, 2, r1.level(), r2.level(), origin, answerLength, termCounts[0], termCounts[1]));
 
-        boolean parseFailed = !r1.valid() && !r2.valid();
+        // REQ-EP-08: any invalid/malformed judge run is recorded as a parse failure and flagged.
+        boolean parseFailed = !r1.valid() || !r2.valid();
         ReleaseGateEvaluator.FlagEvaluation flagEval = releaseGateEvaluator.evaluateResponseFlags(
                 substantive,
                 quoteVerified,
+                allQuotesVerified,
                 r1.level(),
                 r2.level(),
                 confidence,
@@ -363,17 +380,60 @@ public class AsyncEvaluationRunner {
                 flagEval);
     }
 
-    private static Integer resolveAiLevel(TwoRunResponseJudge.ParsedRun r1, TwoRunResponseJudge.ParsedRun r2) {
-        if (r1.valid() && r2.valid()) {
+    private static Integer resolveVerifiedAiLevel(
+            TwoRunResponseJudge.ParsedRun r1,
+            boolean r1Verified,
+            TwoRunResponseJudge.ParsedRun r2,
+            boolean r2Verified) {
+        if (r1Verified && r2Verified) {
             return Math.min(r1.level(), r2.level());
         }
-        if (r1.valid()) {
+        if (r1Verified) {
             return r1.level();
         }
-        if (r2.valid()) {
+        if (r2Verified) {
             return r2.level();
         }
         return null;
+    }
+
+    /** REQ-EP-03: deterministic prompted vs. unprompted term counts (>= 4-char tokens), zero Streams. */
+    static int[] countPromptedAndUnpromptedTerms(String questionText, String answerText) {
+        Set<String> questionTokens = extractContentTokens(questionText);
+        Set<String> answerTokens = extractContentTokens(answerText);
+        int prompted = 0;
+        int unprompted = 0;
+        for (String token : answerTokens) {
+            if (questionTokens.contains(token)) {
+                prompted++;
+            } else {
+                unprompted++;
+            }
+        }
+        return new int[] {prompted, unprompted};
+    }
+
+    private static Set<String> extractContentTokens(String text) {
+        Set<String> tokens = new HashSet<>();
+        if (text == null || text.isEmpty()) {
+            return tokens;
+        }
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (Character.isLetterOrDigit(ch)) {
+                current.append(Character.toLowerCase(ch));
+            } else if (current.length() > 0) {
+                if (current.length() >= 4) {
+                    tokens.add(current.toString());
+                }
+                current.setLength(0);
+            }
+        }
+        if (current.length() >= 4) {
+            tokens.add(current.toString());
+        }
+        return tokens;
     }
 
     private static List<UUID> resolveTargetSkills(TranscriptEntryView entry, EvaluatorQuestion evalQ) {

@@ -5,6 +5,7 @@ import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, reactive, ref } from 'vue'
 import {
+  approveEvaluation,
   formatRatioPercent,
   formatScore,
   getAttemptEvaluations,
@@ -41,6 +42,20 @@ const overrideMutation = useMutation({
   },
   onError: (err: Error) => {
     actionError.value = err.message || 'Override failed.'
+  },
+})
+
+const approveMutation = useMutation({
+  mutationFn: (responseEvalId: string) => approveEvaluation(responseEvalId),
+  onSuccess: () => {
+    actionError.value = null
+    actionSuccess.value = 'Evaluation approved as-is and recorded in audit log.'
+    queryClient.invalidateQueries({ queryKey: ['attempt-evaluations', props.attemptId] })
+    queryClient.invalidateQueries({ queryKey: ['evaluation-matrix'] })
+    emit('updated')
+  },
+  onError: (err: Error) => {
+    actionError.value = err.message || 'Approval failed.'
   },
 })
 
@@ -209,6 +224,15 @@ async function downloadTranscript() {
                 :data-testid="`override-reason-${item.responseEvaluationId}`"
               >
             </label>
+            <Button
+              v-if="item.reviewStatus === 'flagged' || item.reviewStatus === 'pending'"
+              label="Approve As-Is"
+              size="small"
+              severity="secondary"
+              :loading="approveMutation.isPending.value"
+              :data-testid="`approve-eval-${item.responseEvaluationId}`"
+              @click="approveMutation.mutate(item.responseEvaluationId)"
+            />
             <Button
               label="Save Override"
               size="small"

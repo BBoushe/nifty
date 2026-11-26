@@ -103,6 +103,16 @@ public final class EvaluationDtos {
     public record BulkApproveResponse(int approvedCount, int skippedFlaggedCount) {
     }
 
+    public record ApproveEvaluationResponse(
+            UUID responseEvaluationId,
+            UUID attemptId,
+            Integer effectiveLevel,
+            ReleaseStatus reviewStatus,
+            Instant reviewedAt,
+            int remainingFlaggedCount
+    ) {
+    }
+
     public record OverrideEvaluationRequest(Integer newLevel, String reason) {
     }
 
