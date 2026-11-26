@@ -7,7 +7,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-26 — invite-links
 - **What:** Added `V4__auth_invites.sql` (`invite` with 256-bit random tokens stored only as SHA-256 hex), `PROFESSOR`-only invite create/list/revoke endpoints scoped via `StudioQueryService.ownedBy`, public `POST /api/v1/auth/invite/{token}` starting a `CANDIDATE` session, `AuthContextServiceImpl.currentCandidate()`, `RevokedInviteFilter` ending revoked sessions on their next request (`401`), synchronous `AssessmentDeletedEvent` invite purge, and frontend `/invite/:token` landing page + Studio detail invite panel (single add, CSV import, copy/download links, revoke).
 - **Why:** Candidates sign in only through personal invite links, assessment/evaluation need `AuthContextService.currentCandidate()`, and revoking an invite or deleting an assessment must end access and purge invite rows immediately (Decisions 1.17, 1.23, 4.4).
-- **PR/MR:** pending
+- **PR/MR:** GitHub #26, GitLab !25
 - **Specs:** REQ-AA-08..09 (added to `auth-access`); REQ-AA-03..05 (implemented)   **Decisions:** applies 1.10, 1.14, 1.15, 1.17, 1.23, 4.4
 
 ## 2026-11-26 — studio-assessment-creation
