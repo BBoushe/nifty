@@ -17,11 +17,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(assessment): add V6 schema, immutable ledger trigger, and GDPR cleanup`
 
-- [ ] **US-AC-02: Pure `AttemptStateMachine`, `PasteVelocityDetector`, and `Bfi10ScoringService`**
-  - [ ] Write RED pure-JVM unit tests: core question order, `inventedQuestions = false`, `followUpLimit`, `SOFT_SKILLS`-only skip straight to `BFI10`, `maxAttempts` → `409`, `minTimeSec` + velocity (`> 12 chars/s` for `>= 150 chars`) → `pasteSuspected`, `expiresAt` grace window (`timedOut = true` with partial text kept per Decision 2.20), post-grace `409`, and BFI-10 boundary scoring (all 1s, all 5s, mixed 1R/3R/4R/5R/7R).
-  - [ ] Implement zero-Stream pure domain services.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(assessment): implement state machine, paste detector, and BFI-10 scorer`
+- [x] **US-AC-02: Pure `AttemptStateMachine`, `PasteVelocityDetector`, and `Bfi10ScoringService`**
+  - [x] Write RED pure-JVM unit tests: core question order, `inventedQuestions = false`, `followUpLimit`, `SOFT_SKILLS`-only skip straight to `BFI10`, `maxAttempts` → `409`, `minTimeSec` + velocity (`> 12 chars/s` for `>= 150 chars`) → `pasteSuspected`, `expiresAt` grace window (`timedOut = true` with partial text kept per Decision 2.20), post-grace `409`, and BFI-10 boundary scoring (all 1s, all 5s, mixed 1R/3R/4R/5R/7R).
+  - [x] Implement zero-Stream pure domain services.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(assessment): implement state machine, paste detector, and BFI-10 scorer`
 
 - [ ] **US-AC-03: `AssessmentSessionService` with `ContextCreationService`, SSE streaming, expiry sweep, and `AttemptCompletedEvent`**
   - [ ] Write RED tests with mocked `StudioQueryService`, `ContextCreationService`, and `ChatClient`: delegates prompt building to `ContextCreationService`, stores `injection_suspected` from `SanitizationReport`, streams SSE chunks + closing `expiresAt`, sweeps expired open questions via `AttemptExpiryScheduler`, and publishes `AttemptCompletedEvent(attemptId, configId, inviteId)` on `COMPLETED`.
@@ -62,4 +62,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=AssessmentLedgerSchemaTest` → FAIL (entities, repositories and listener missing); GREEN: `cd backend && ./mvnw -B test` → exit 0
 - Contracts/Migrations added: `V6__assessment.sql` (`assessment_attempt`, `conversation_entry` + append-only trigger, `bfi_response`), `AssessmentCleanupListener`
 - Decisions: 4.4 (purge through the FK cascade; the cascade fires the ledger trigger too, so an unflagged attempt delete fails)
+- Open Questions: none
+
+### US-AC-02 (2026-11-26)
+- Commits: `feat(assessment): implement state machine, paste detector, and BFI-10 scorer`
+- Verification: RED: `./mvnw -B test -Dtest='AttemptStateMachineTest,PasteVelocityDetectorTest,Bfi10ScoringServiceTest'` → FAIL (classes missing); GREEN: `cd backend && ./mvnw -B test` → exit 0
+- Contracts/Migrations added: none (package-private `AttemptStateMachine`, `PasteVelocityDetector`, `Bfi10ScoringService`, `Bfi10Traits`, `LedgerEntry`, public `AttemptStatus`)
+- Decisions: 2.20 (grace window keeps text with `timedOut`), 2.23, 2.24 (`> 12 chars/s` for `>= 150 chars`), 4.3; shortcut: every allowed follow-up is asked, no invented questions
 - Open Questions: none
