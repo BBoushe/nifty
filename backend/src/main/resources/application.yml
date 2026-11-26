@@ -51,6 +51,7 @@ nifty:
       provider: ${AI_EVALUATOR_PROVIDER:kiconnect-nrw}
       base-url: ${AI_EVALUATOR_BASE_URL:https://chat.kiconnect.nrw/api/v1}
       model: ${AI_EVALUATOR_MODEL:GPT-OSS-120B}
+      # Documentation only: nothing validates the model against this list; a wrong ID fails at run time with 404.
       allowed-models:
         - "GPT-OSS-120B"
         - "Qwen3.8 27B"

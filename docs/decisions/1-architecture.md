@@ -59,7 +59,7 @@ System architecture, stack pins, LLM infrastructure, persistence, and forge/CI t
 - **Date:** 2026-11-22
 - **Triggered By:** prompter-change
 - **Context:** Evidence extraction and constrained judging require an EU-hosted, GDPR-friendly, student-accessible OpenAI-compatible LLM endpoint, while keeping future Gemini/Claude/OpenAI portability via Spring AI 2.0.
-- **Decision:** Configure **ki:connect NRW / FH AI** (`https://chat.kiconnect.nrw/api/v1`, hosted in Aachen / NRW, free for students) via `KICONNECT_API_KEY` for the LLM evaluator (models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B`). Do **not** build an artificial offline stub gateway; mock/replay Spring AI `ChatClient` in tests.
+- **Decision:** Configure **ki:connect NRW / FH AI** (`https://chat.kiconnect.nrw/api/v1`, hosted in Aachen / NRW, free for students) via `KICONNECT_API_KEY` for the LLM evaluator (models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B`; the API IDs are `GPT-OSS-120B`, `Qwen3.8 27B`, `mistralai-mistral-small-4`, corrected 2026-11-26 by `local-run-fixes`). Do **not** build an artificial offline stub gateway; mock/replay Spring AI `ChatClient` in tests.
 - **Alternatives Considered:** Direct US-hosted OpenAI API; custom `FakeCloudProvider` offline demo stub.
 - **Rationale / Justification:** EU data residency in NRW, zero student cost, and native Spring AI 2.0 multi-provider portability without redundant wrapper layers.
 - **Affected Files / Pointers:** `.env.example`, `docker-compose.yml`, `backend/src/main/resources/application.yml`, `.agents/rules/backend-java.md`

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { after, describe, it } from 'node:test';
 
 import { evaluateAgentAction, isAllowedTestPath } from './guard-agent.mjs';
 import { evaluateBashCommand, evaluatePreCommit } from './guard-bash.mjs';
@@ -585,6 +585,7 @@ describe('guard-agent.mjs worktrees', () => {
   fs.mkdirSync(path.join(foreign, '.git'), { recursive: true });
   fs.mkdirSync(fake, { recursive: true });
   fs.writeFileSync(path.join(fake, '.git'), `gitdir: ${path.join(foreign, '.git', 'worktrees', 'x')}\n`);
+  after(() => fs.rmSync(base, { recursive: true, force: true }));
 
   it('allows test paths inside a worktree of the main checkout', () => {
     assert.equal(isAllowedTestPath(path.join(worktree, 'backend/src/test/java/AppTest.java'), main), true);

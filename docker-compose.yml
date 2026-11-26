@@ -37,7 +37,7 @@ services:
       NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD: ${NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD:-}
       NIFTY_SESSION_COOKIE_SECURE: ${NIFTY_SESSION_COOKIE_SECURE:-true}
       # Invite links point here; the Docker frontend runs on port 3000.
-      NIFTY_FRONTEND_BASE_URL: ${NIFTY_FRONTEND_BASE_URL:-http://localhost:3000}
+      NIFTY_FRONTEND_BASE_URL: ${NIFTY_FRONTEND_BASE_URL:-http://localhost:${FRONTEND_PORT:-3000}}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
 

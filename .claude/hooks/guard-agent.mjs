@@ -65,10 +65,14 @@ function worktreeRootFor(inputPath, repoRoot) {
   while (dir !== path.dirname(dir)) {
     const dotGit = path.join(dir, '.git');
     if (fs.existsSync(dotGit)) {
-      if (!fs.statSync(dotGit).isFile()) return repoRoot;
-      const match = /^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dotGit, 'utf8'));
-      const gitdir = match ? path.resolve(dir, match[1].trim()) : '';
-      return gitdir.startsWith(worktreesDir) ? dir : repoRoot;
+      try {
+        if (!fs.statSync(dotGit).isFile()) return repoRoot;
+        const match = /^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dotGit, 'utf8'));
+        const gitdir = match ? path.resolve(dir, match[1].trim()) : '';
+        return gitdir.startsWith(worktreesDir) ? dir : repoRoot;
+      } catch {
+        return repoRoot; // fail closed: an unreadable .git keeps the main checkout as the root
+      }
     }
     dir = path.dirname(dir);
   }

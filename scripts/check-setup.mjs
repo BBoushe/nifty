@@ -128,7 +128,7 @@ export function resolveForgeConfig(rootDir = process.cwd(), envOverride = proces
   const evaluatorModel =
     dotEnvParsed.safe.AI_EVALUATOR_MODEL ||
     exampleParsed.safe.AI_EVALUATOR_MODEL ||
-    'OpenAI GPT OSS 120B';
+    'GPT-OSS-120B';
 
   return {
     forge,
