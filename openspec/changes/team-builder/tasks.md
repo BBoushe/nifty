@@ -3,19 +3,19 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** Ready to start in parallel against mocked `StudioQueryService`, `EvaluationQueryService`, `AssessmentQueryService`, and `AuditService`
-- **Next action:** Start US-TB-01
-- **Uncommitted changes:** none
-- **PR / MR:** —
+- **Current:** US-TB-01 done, committed
+- **Next action:** US-TB-02 (TeamObjectiveCalculator)
+- **Uncommitted changes:** none (after the task commit)
+- **PR / MR:** — (orchestrator opens it)
 - **Open review findings:** —
 
 ## Tasks
 
-- [ ] **US-TB-01: Flyway `V8__teams.sql`, private repositories, and `TeamCleanupListener`**
-  - [ ] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) proving `V8` applies cleanly, unique `(proposal_id, invite_id)` prevents duplicate candidate assignment, and `AssessmentDeletedEvent` deletes all proposals and members for `configId`.
-  - [ ] Implement `V8__teams.sql`, entities/repositories in `teams/repository/`, and `TeamCleanupListener`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(teams): add V8 team proposal schema, repositories, and GDPR cleanup`
+- [x] **US-TB-01: Flyway `V8__teams.sql`, private repositories, and `TeamCleanupListener`**
+  - [x] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) proving `V8` applies cleanly, unique `(proposal_id, invite_id)` prevents duplicate candidate assignment, and `AssessmentDeletedEvent` deletes all proposals and members for `configId`.
+  - [x] Implement `V8__teams.sql`, entities/repositories in `teams/repository/`, and `TeamCleanupListener`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(teams): add V8 team proposal schema, repositories, and GDPR cleanup`
 
 - [ ] **US-TB-02: Pure zero-Stream `TeamObjectiveCalculator` with normalization and explicit `N/A` handling**
   - [ ] Write RED pure-JVM tests: hard-skill `[0, 4] -> [0, 1]`, BFI-10 `[1, 5] -> [0, 1]` without double-inversion, `ENGINEERING_DEFAULT` `[0.30, 0.25, 0.20, 0.15, 0.10]` weights, `HARD_SKILLS` / `SOFT_SKILLS` / `COMBINED` blending, trait means in the imbalance term only when BFI-10 is on and the mode is `SOFT_SKILLS` or `COMBINED` (REQ-TB-06), and candidates with `N/A` hard skills excluded per dimension (never rejected, never treated as `0`).
@@ -56,3 +56,10 @@
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log
+
+### US-TB-01 Flyway V8, repositories, TeamCleanupListener
+- Commits: <sha-us-tb-01> feat(teams): add V8 team proposal schema, repositories, and GDPR cleanup
+- Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamSchemaAndCleanupTest` → FAIL (compile error: teams entities/migration absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (193 run)
+- Contracts/Migrations added: `backend/src/main/resources/db/migration/V8__teams.sql`; entities and repositories in `teams/repository/`; `TeamCleanupListener`
+- Decisions: 4.4 (MANDATORY purge listener), 1.20
+- Open Questions: none
