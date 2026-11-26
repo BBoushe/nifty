@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/context-creation` (branch off `dev`)
 - **Worktree:** `../nifty-context-creation`
-- **Current:** All stories, the archive step and cold review round 1 (APPROVE, follow-ups applied) are done. Waiting for human approval to push.
-- **Next action:** Human approves, then `node scripts/forge.mjs push` and open the PR/MR via `node scripts/forge.mjs pr` (never merge)
+- **Current:** All stories, the archive step, review rounds 1–2 and the mutation/invariant fix round are done. Short review of the fix round next.
+- **Next action:** Short cold review of the fix-round commit, then ask the human to push and open the PR/MR via `node scripts/forge.mjs` (never merge)
 - **Uncommitted changes:** none
 - **PR / MR:** not opened (human approves the push first)
 - **Open review findings:** none Blocking. Convention Candidates not applied: rename audit key `promptSha256` to `answerSha256`; name `inspectCandidateInput` in REQ-CC-04 text; `PromptContextBuilder.role()` unused in production.
@@ -105,3 +105,11 @@
 - Contracts/Migrations added: none. Rubric guard also forbids `confidence|evaluat` field names. Design audit line aligned with the code. Ticket 02 links the archived path.
 - Decisions: 2.24 (tag characters are a spoofing vector)
 - Open Questions: none
+
+### Review round 2 + mutation/invariant fix round
+- Commits: `fix(context): linear injection rules, unicode folding and an escape-safe ceiling`
+- Verification: RED: `./mvnw -B test -Dtest='de.fhdortmund.nifty.context.**'` → 10 FAIL (ReDoS + StackOverflowError at 100k chars, unicode-space and invisible-char evasion, ceiling exceeded by `&lt;`, 9 false flags, full-width `＜` tag, U+034F inside a tag, lone surrogates); GREEN: `cd backend && ./mvnw -B test` → exit 0 (120 tests, 0 skipped; `ContextInvariantPropertyTest` 22/22 in ~9 s)
+- Mutation: hand mutants 65/65 killed with the two ported test files (PIT before them: 130/167). Ported from the tester: `ContextInvariantPropertyTest` (fixed seed 20261126) and `ContextPreviewResponseTest`.
+- Contracts/Migrations added: none. Detector folds unicode spaces, strips invisible code points and applies NFKC before matching; all quantifiers possessive or bounded. Sanitizer strips Cc/Cf/lone surrogates plus listed invisibles, escapes `<`/`＜`/`﹤` before the 4000 cut. Rules tightened against technical false flags. `docs/api.md` says the rubric leak check is a keyword check.
+- Decisions: 2.24 (defense in depth), 2.10 (false flags cost professor review)
+- Open Questions: homoglyph folding (Cyrillic "і") not done (shortcut comment). Answer size cap belongs at the assessment API (ticket 03).

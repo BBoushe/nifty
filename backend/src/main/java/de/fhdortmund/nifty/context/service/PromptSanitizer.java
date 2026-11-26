@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 /**
  * Decision 2.24, REQ-CC-03: turns untrusted candidate text into safe prompt data. It strips spoofing
- * characters, cuts the text at a ceiling and escapes reserved delimiter tags. Plain loops only (coding standard #3).
+ * characters, escapes reserved delimiter tags and cuts the result at a ceiling. Plain loops only (coding standard #3).
  * The ledger keeps the raw text; only the copy that goes into a prompt changes.
  */
 final class PromptSanitizer {
@@ -19,8 +19,10 @@ final class PromptSanitizer {
     // A quote that spans an escaped tag fails word-for-word verification and is discarded (fail-safe).
     static final String RESERVED_TAGS =
             "candidate_answer|transcript_entry|system|assistant|instructions?|developer";
+    // Possessive quantifiers keep the scan linear: "<" + 100k spaces must not backtrack (review round 2).
+    // Full-width (U+FF1C) and small (U+FE64) less-than signs look like "<" to a model, so they are escaped too.
     private static final Pattern RESERVED_TAG_START = Pattern.compile(
-            "<(?=\\s*/?\\s*(?:" + RESERVED_TAGS + ")\\b|\\|)", Pattern.CASE_INSENSITIVE);
+            "[<\uFF1C\uFE64](?=\\s*+/?+\\s*+(?:" + RESERVED_TAGS + ")\\b|\\|)", Pattern.CASE_INSENSITIVE);
 
     static final SanitizationReport CLEAN = new SanitizationReport(false, List.of(), false);
 
@@ -32,28 +34,26 @@ final class PromptSanitizer {
     }
 
     static Sanitized sanitize(String raw) {
-        String stripped = stripSpoofing(raw);
-        boolean truncated = stripped.length() > MAX_CHARS;
-        String text = truncated ? stripped.substring(0, cutIndex(stripped)) : stripped;
+        // Escape before the cut, so "&lt;" can never push the text over the ceiling. A cut never creates a tag.
+        String escaped = RESERVED_TAG_START.matcher(stripSpoofing(raw)).replaceAll("&lt;");
+        boolean truncated = escaped.length() > MAX_CHARS;
+        String text = truncated ? escaped.substring(0, cutIndex(escaped)) : escaped;
         // Injection rules run on the full raw text, so padding past the ceiling cannot hide an attack.
         List<String> ruleIds = InjectionDetector.detect(raw);
-        return new Sanitized(RESERVED_TAG_START.matcher(text).replaceAll("&lt;"),
-                new SanitizationReport(!ruleIds.isEmpty(), ruleIds, truncated));
+        return new Sanitized(text, new SanitizationReport(!ruleIds.isEmpty(), ruleIds, truncated));
     }
 
-    /** Removes control, bidi and zero-width characters. Keeps tab, CR and LF. */
+    /** Removes control, format (bidi, zero-width, tag), lone surrogate and other invisible characters. Keeps tab, CR, LF. */
     static String stripSpoofing(String raw) {
         if (raw == null) {
             return "";
         }
         StringBuilder out = new StringBuilder(raw.length());
-        for (int i = 0; i < raw.length(); i++) {
-            char c = raw.charAt(i);
-            // Unicode tag characters (U+E0000..E007F) are invisible and can hide instructions: drop the pair.
-            if (c == 0xDB40 && i + 1 < raw.length() && raw.charAt(i + 1) >= 0xDC00 && raw.charAt(i + 1) <= 0xDC7F) {
-                i++;
-            } else if (!isSpoofing(c)) {
-                out.append(c);
+        for (int i = 0; i < raw.length(); ) {
+            int cp = raw.codePointAt(i);
+            i += Character.charCount(cp);
+            if (!isSpoofing(cp)) {
+                out.appendCodePoint(cp);
             }
         }
         return out.toString();
@@ -76,12 +76,18 @@ final class PromptSanitizer {
         return Character.isHighSurrogate(text.charAt(MAX_CHARS - 1)) ? MAX_CHARS - 1 : MAX_CHARS;
     }
 
-    private static boolean isSpoofing(char c) {
-        if (c < 0x20) {
-            return c != '\n' && c != '\r' && c != '\t';
+    static boolean isSpoofing(int cp) {
+        if (cp == '\n' || cp == '\r' || cp == '\t') {
+            return false;
         }
-        return (c >= 0x7F && c <= 0x9F) || c == 0x00AD || c == 0x061C || c == 0x180E
-                || (c >= 0x200B && c <= 0x200F) || (c >= 0x202A && c <= 0x202E)
-                || (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xFEFF;
+        int type = Character.getType(cp);
+        if (type == Character.CONTROL || type == Character.FORMAT || type == Character.SURROGATE) {
+            return true; // Cc, Cf (bidi, zero-width, soft hyphen, tag characters) and lone surrogates
+        }
+        // Invisible characters outside Cc/Cf: grapheme joiner, Hangul fillers, braille blank, variation selectors,
+        // and the unassigned rest of the tag block.
+        return cp == 0x034F || cp == 0x115F || cp == 0x1160 || cp == 0x3164 || cp == 0xFFA0 || cp == 0x2800
+                || (cp >= 0x180B && cp <= 0x180F) || (cp >= 0xFE00 && cp <= 0xFE0F)
+                || (cp >= 0xE0000 && cp <= 0xE007F) || (cp >= 0xE0100 && cp <= 0xE01EF);
     }
 }
