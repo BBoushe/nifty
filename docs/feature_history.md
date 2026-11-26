@@ -7,7 +7,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-26 — auth-accounts
 - **What:** Added `V2__auth_accounts.sql` (`professor_account`), env bootstrap (`NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` / `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD`), `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, server session cookies (`HttpOnly`, `SameSite=Lax`), SPA CSRF (`XSRF-TOKEN` / `X-XSRF-TOKEN`) and `AuthContextServiceImpl` (`AuthContextServicePlaceholder` deleted). Added the frontend `/sign-in` view, Pinia auth store, `/ranking/*` and `/assessment/*` route guards, and CSRF header support in `apiFetch` and `postSse`.
 - **Why:** Studio and the Ranking View need a signed-in professor session and `AuthContextService.currentProfessorId()` without HTTP Basic or secrets in the repo (Decisions 1.23, 1.24).
-- **PR/MR:** pending
+- **PR/MR:** GitHub #23, GitLab !22
 - **Specs:** REQ-AA-06..07 (added to `auth-access`); REQ-AA-01..02 (implemented)   **Decisions:** applies 1.14, 1.15, 1.23, 1.24
 
 ## 2026-11-25 — frontend-foundation
