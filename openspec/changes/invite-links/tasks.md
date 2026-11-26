@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/invite-links`
 - **Worktree:** `../nifty-invite-links`
-- **Current:** Task 4 done
-- **Next action:** Task 5
+- **Current:** Task 5 done
+- **Next action:** Delivery (merge origin/dev, validate, archive, ask human before push/PR)
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -32,8 +32,8 @@
 - [x] Verify: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0; commit `feat(frontend): invite landing page and studio invite panel`
 
 ### Task 5: Docs
-- [ ] `docs/architecture.md` (invite flow), `CHANGELOG.md`
-- [ ] Verify: harness tests → exit 0; commit `docs: record invite-links`
+- [x] `docs/architecture.md` (invite flow), `CHANGELOG.md`
+- [x] Verify: harness tests → exit 0; commit `docs: record invite-links`
 
 ## Delivery
 - [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
@@ -71,4 +71,11 @@
 - Verification: RED: `cd frontend && npm run test` → FAIL (`InviteLandingView.vue` and `InvitePanel.vue` missing); GREEN: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0 (12 files, 75 passed, 0 lint warnings)
 - Contracts/Migrations added: `frontend/src/api/invites.ts`, `authStore.loginWithInvite`, `/invite/:token` (`InviteLandingView.vue`), `InvitePanel.vue` on `AssessmentDetailView.vue` and `/ranking/studio/:configId/invites`
 - Decisions: applies 1.14, 1.17, 1.23
+- Open Questions: none
+
+### Task 5 (Docs)
+- Commits: `docs: record invite-links`
+- Verification: RED: n/a (no behaviour); GREEN: `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 after archiving
+- Contracts/Migrations added: none
+- Decisions: applies 1.17, 1.23, 4.4
 - Open Questions: none
