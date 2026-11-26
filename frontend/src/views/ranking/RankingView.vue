@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   applyFormulaPreset,
   formatScore,
@@ -11,16 +11,17 @@ import {
   previewFormulaPreset,
   type FormulaPreviewResponse,
 } from '@/api/evaluation'
-import { listAssessments } from '@/api/studio'
+import { ASSESSMENTS_KEY, listAssessments } from '@/api/studio'
 import CohortGapsPanel from './CohortGapsPanel.vue'
 import EvidenceDialog from './EvidenceDialog.vue'
 import SkillsMatrixPanel from './SkillsMatrixPanel.vue'
 
 const route = useRoute()
+const router = useRouter()
 const queryClient = useQueryClient()
 
 const assessmentsQuery = useQuery({
-  queryKey: ['studio-assessments'],
+  queryKey: ASSESSMENTS_KEY,
   queryFn: listAssessments,
 })
 
@@ -46,11 +47,21 @@ watch(
   { immediate: true },
 )
 
-watch(selectedConfigId, () => {
+watch(selectedConfigId, (id) => {
   selectedAttemptId.value = null
   previewData.value = null
   formulaMessage.value = null
+  // REQ-NAV-11: the URL follows the dropdown.
+  if (id && id !== route.params.configId) router.replace({ name: 'ranking-config', params: { configId: id } })
 })
+
+// REQ-NAV-11: a link to another assessment (route param change) selects it.
+watch(
+  () => route.params.configId,
+  (id) => {
+    if (typeof id === 'string' && id !== selectedConfigId.value) selectedConfigId.value = id
+  },
+)
 
 const applyFormulaMutation = useMutation({
   mutationFn: () => applyFormulaPreset(selectedConfigId.value, selectedPreset.value),
@@ -81,23 +92,33 @@ const hasSelection = computed(() => Boolean(selectedConfigId.value))
           </p>
           <h1 class="mt-1 text-2xl font-bold text-ink">Evaluation &amp; Skills Matrix</h1>
         </div>
-        <label class="text-xs text-ink-muted">
-          Assessment
-          <select
-            v-model="selectedConfigId"
-            class="mt-1 block min-w-60 rounded-md border border-slate-300 bg-surface px-3 py-1.5 text-sm text-ink"
-            data-testid="ranking-config-select"
-          >
-            <option value="" disabled>Select an assessment</option>
-            <option
-              v-for="item in assessmentsQuery.data.value ?? []"
-              :key="item.configId"
-              :value="item.configId"
+        <div class="flex items-end gap-3">
+          <label class="text-xs text-ink-muted">
+            Assessment
+            <select
+              v-model="selectedConfigId"
+              class="mt-1 block min-w-60 rounded-md border border-slate-300 bg-surface px-3 py-1.5 text-sm text-ink"
+              data-testid="ranking-config-select"
             >
-              {{ item.title }} (v{{ item.version }})
-            </option>
-          </select>
-        </label>
+              <option value="" disabled>Select an assessment</option>
+              <option
+                v-for="item in assessmentsQuery.data.value ?? []"
+                :key="item.configId"
+                :value="item.configId"
+              >
+                {{ item.title }} (v{{ item.version }})
+              </option>
+            </select>
+          </label>
+          <RouterLink
+            v-if="hasSelection"
+            :to="`/ranking/teams/${selectedConfigId}`"
+            class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-ink hover:bg-slate-50"
+            data-testid="build-teams-link"
+          >
+            Build teams
+          </RouterLink>
+        </div>
       </div>
 
       <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
@@ -193,7 +214,7 @@ const hasSelection = computed(() => Boolean(selectedConfigId.value))
           </p>
           <ul class="space-y-1">
             <li v-for="c in previewData.candidates" :key="c.attemptId" class="font-mono text-ink-muted">
-              {{ c.inviteId.slice(0, 8) }}: fit {{ formatScore(c.fitScore) }}
+              {{ c.candidateRef }}: fit {{ formatScore(c.fitScore) }}
             </li>
           </ul>
         </div>

@@ -5,7 +5,7 @@ import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { deleteAssessment, formatPercent, getAssessment } from '@/api/studio'
+import { ASSESSMENTS_KEY, deleteAssessment, formatPercent, getAssessment } from '@/api/studio'
 import InvitePanel from './InvitePanel.vue'
 
 const route = useRoute()
@@ -24,7 +24,7 @@ const { data, isPending, isError, error } = useQuery({
 const deleteMutation = useMutation({
   mutationFn: () => deleteAssessment(configId.value),
   onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: ['studio', 'assessments'] })
+    await queryClient.invalidateQueries({ queryKey: ASSESSMENTS_KEY })
     await router.push('/ranking/studio')
   },
 })

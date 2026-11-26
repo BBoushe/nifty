@@ -46,7 +46,7 @@ const heatmapOption = computed(() => {
     return {}
   }
   const skillNames = data.skills.map((s) => s.skillName)
-  const candidateLabels = visibleRows.value.map((r) => `${r.inviteId.slice(0, 8)} (#${r.attemptNo})`)
+  const candidateLabels = visibleRows.value.map((r) => `${r.candidateRef} (#${r.attemptNo})`)
   const points: Array<{
     value: [number, number, number | null]
     itemStyle?: Record<string, unknown>
@@ -203,7 +203,7 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
           <tbody class="divide-y divide-slate-100">
             <tr v-for="row in visibleRows" :key="row.attemptId" class="hover:bg-slate-50">
               <td class="px-4 py-3 font-mono text-xs text-ink">
-                {{ row.inviteId.slice(0, 8) }} <span class="text-ink-muted">(#{{ row.attemptNo }})</span>
+                {{ row.candidateRef }} <span class="text-ink-muted">(#{{ row.attemptNo }})</span>
               </td>
               <td class="px-4 py-3">
                 <Tag

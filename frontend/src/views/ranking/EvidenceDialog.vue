@@ -77,8 +77,8 @@ function openTranscript(entryId?: string) {
   transcriptOpen.value = true
 }
 
-// shortcut: shows the short invite id until the API returns candidateRef (Tasks 3 and 4 of mvp-hardening).
-const candidateName = computed(() => drilldownQuery.data.value?.inviteId.slice(0, 8) ?? 'Evidence review')
+// REQ-SM-12: the invite name, never a UUID prefix.
+const candidateName = computed(() => drilldownQuery.data.value?.candidateRef ?? 'Evidence review')
 
 const isAlreadyReleased = computed(() => {
   const status = drilldownQuery.data.value?.releaseStatus

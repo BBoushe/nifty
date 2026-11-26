@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 3 done (committed, not pushed).
-- **Next action:** Task 4 (names, route sync, Teams link, cache key).
+- **Current:** Tasks 1 to 4 done (committed, not pushed).
+- **Next action:** Task 5 (retake UI; needs `SessionStateResponse.attemptsLeft` first).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -35,10 +35,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] GREEN: `refetchInterval` plus a Refresh button per design §2.
   - [x] Commit `fix: refresh evaluation status and gate the release button`.
 
-- [ ] **Task 4: Names, route sync, Teams link, cache key (REQ-SM-12, REQ-NAV-11)**
-  - [ ] RED: (1) the matrix label shows `candidateRef (#n)`; no `inviteId.slice` is left (`grep -rn "inviteId.slice" frontend/src` is empty); (2) a route param change A → B updates the selection; (3) a dropdown change calls `router.replace`; (4) the "Build teams" link points to `/ranking/teams/<id>`; (5) a Studio delete invalidates the key that Ranking reads.
-  - [ ] GREEN per design §2.
-  - [ ] Commit `fix(frontend): show candidate names and sync the ranking route`.
+- [x] **Task 4: Names, route sync, Teams link, cache key (REQ-SM-12, REQ-NAV-11)**
+  - [x] RED: (1) the matrix label shows `candidateRef (#n)`; no `inviteId.slice` is left (`grep -rn "inviteId.slice" frontend/src` is empty); (2) a route param change A → B updates the selection; (3) a dropdown change calls `router.replace`; (4) the "Build teams" link points to `/ranking/teams/<id>`; (5) a Studio delete invalidates the key that Ranking reads.
+  - [x] GREEN per design §2.
+  - [x] Commit `fix(frontend): show candidate names and sync the ranking route`.
 
 - [ ] **Task 5: Retake UI (REQ-AC-22)**
   - [ ] Backend RED: `SessionStateResponse.attemptsLeft` is correct for 0, 1 and 2 used of a maximum of 2. GREEN. Update `docs/api.md`.
@@ -162,4 +162,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='EvaluationReviewServiceTest,RankingEvaluationControllerTest'` → FAIL (compile: no `candidateRef`, `evaluationStatus`, `InviteService.candidateRefs`); `npx vitest run src/views/ranking/RankingLive.test.ts` → FAIL (9 of 10: no polling, no Refresh button, no tooltip); GREEN: `./mvnw -B test -Dtest='EvaluationReviewServiceTest,RankingEvaluationControllerTest,FormulaPresetServiceTest,InviteServiceTest,ArchitectureTest'` → exit 0 (41 run); `npx vitest run src/views` + `npm run typecheck && npm run lint` → exit 0 (70 run)
 - Contracts/Migrations added: `docs/api.md` (matrix row `candidateRef`; drilldown `candidateRef` and `evaluationStatus`; formula preview `candidateRef`); no migration
 - Decisions: no new ID. Design differed from code: (1) The DTO is named `AttemptEvaluationDrilldownResponse`, not `AttemptEvaluationsResponse`. (2) No suitable auth read method existed, so `InviteService.candidateRefs(configId)` is new (owner-checked, one query per config); it returns a map of invite ID to `candidateRef`. The evaluation slice never touches the invite repository. A missing invite falls back to the invite ID text, so the field is never null. (3) `FormulaPreviewCandidate` also gets `candidateRef`, because REQ-SM-12 lists the formula preview and the preview panel has no matrix data. (4) A disabled PrimeVue Button gets no hover events, so the Release tooltip is a native `title` on a wrapping span. (5) The candidate results page also gets a Refresh button. (6) The `settle` delay in `RankingViews.test.ts` went from 50 ms to 200 ms; the Esc test was flaky under parallel load.
+- Open Questions: none
+
+### Task 4: Names, route sync, Teams link, cache key
+- Commits: (this commit) fix(frontend): show candidate names and sync the ranking route
+- Verification: RED: `npx vitest run src/views/ranking/RankingNav.test.ts` → FAIL (7 of 7: UUID prefix labels, no route sync, no Build teams link, key `studio-assessments`); GREEN: `npm run typecheck && npm run lint && npx vitest run` → exit 0 (149 tests, 23 files); `grep -rn "inviteId.slice" frontend/src` → empty
+- Contracts/Migrations added: none (frontend only; the backend `candidateRef` fields came with Task 3)
+- Decisions: no new ID. Design differed from code: (1) The shared key is the constant `ASSESSMENTS_KEY` in `api/studio.ts` (Studio list, Studio delete, Ranking), not a repeated literal. (2) The `shortcut:` comment in `EvidenceDialog` is gone; `candidateName` reads `candidateRef`. (3) Ranking has two route records (`ranking`, `ranking-config`); the dropdown calls `router.replace({ name: 'ranking-config' })`, also for the first default selection. The `RankingViews.test.ts` router now has that route. (4) The Build teams link uses the path string `/ranking/teams/<id>`, like the existing Studio link.
 - Open Questions: none

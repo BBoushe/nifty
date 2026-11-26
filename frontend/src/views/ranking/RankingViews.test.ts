@@ -30,7 +30,9 @@ function attemptFetch(url: string): Promise<Response> {
         attemptId: 'att-1',
         configId: 'cfg-1',
         inviteId: 'inv-12345678',
+        candidateRef: 'anna.schmidt',
         attemptNo: 1,
+        evaluationStatus: 'COMPLETED',
         fitScore: 2.0,
         coverage: 1.0,
         minCoverage: 0.7,
@@ -538,6 +540,7 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
               rows: [
                 {
                   inviteId: 'inv-12345678',
+                  candidateRef: 'anna.schmidt',
                   attemptId: 'att-1',
                   attemptNo: 1,
                   evaluationStatus: 'COMPLETED',
@@ -572,7 +575,10 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     )
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: '/ranking', component: RankingView }],
+      routes: [
+        { path: '/ranking', component: RankingView },
+        { path: '/ranking/configs/:configId', name: 'ranking-config', component: RankingView },
+      ],
     })
     await router.push('/ranking')
     await router.isReady()

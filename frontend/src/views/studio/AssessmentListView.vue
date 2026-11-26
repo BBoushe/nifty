@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/vue-query'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { RouterLink } from 'vue-router'
-import { listAssessments } from '@/api/studio'
+import { ASSESSMENTS_KEY, listAssessments } from '@/api/studio'
 
 const { data, isPending, isError, error } = useQuery({
-  queryKey: ['studio', 'assessments'],
+  queryKey: ASSESSMENTS_KEY,
   queryFn: listAssessments,
 })
 </script>
