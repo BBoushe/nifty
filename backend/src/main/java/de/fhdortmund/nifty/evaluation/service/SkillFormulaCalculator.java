@@ -4,6 +4,7 @@ import de.fhdortmund.nifty.assessment.service.EntryOrigin;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -81,7 +82,8 @@ public class SkillFormulaCalculator {
             allBySkill.computeIfAbsent(item.skillId(), ignored -> new ArrayList<>()).add(item);
             if (item.isEligibleForScoring()) {
                 eligibleBySkill.computeIfAbsent(item.skillId(), ignored -> new ArrayList<>()).add(item);
-                if (item.coreQuestionId() != null) {
+                // Decision 2.22: an invented-question entry never counts toward coverage.
+                if (item.coreQuestionId() != null && item.origin() != EntryOrigin.INVENTED) {
                     scoredCoreQuestions.add(item.coreQuestionId());
                 }
             }
@@ -126,21 +128,38 @@ public class SkillFormulaCalculator {
         return new FormulaResult(List.copyOf(skillScores), fitScore, coverage);
     }
 
+    /**
+     * Decision 2.22: studio enforces weights &gt; 0, but the calculator never trusts that. A zero-weight entry
+     * carries no share. One positive entry is the whole score. When no weight is positive, the plain mean of the
+     * eligible levels applies. This keeps every SCORED value inside the eligible min..max level range.
+     */
     private static double computeCappedWeightedMean(List<ScoredEntryInput> entries, double maxShare) {
         int n = entries.size();
-        if (n == 1) {
-            return entries.get(0).effectiveLevel();
-        }
-
-        double[] rawWeights = new double[n];
+        double[] positiveWeights = new double[n];
+        int[] positiveLevels = new int[n];
+        int positive = 0;
+        double levelSum = 0.0;
         for (int i = 0; i < n; i++) {
-            rawWeights[i] = effectiveWeight(entries.get(i));
+            ScoredEntryInput entry = entries.get(i);
+            levelSum += entry.effectiveLevel();
+            double weight = effectiveWeight(entry);
+            if (weight > EPSILON) {
+                positiveWeights[positive] = weight;
+                positiveLevels[positive] = entry.effectiveLevel();
+                positive++;
+            }
+        }
+        if (positive == 0) {
+            return levelSum / n;
+        }
+        if (positive == 1) {
+            return positiveLevels[0];
         }
 
-        double[] shares = computeCappedShares(rawWeights, maxShare);
+        double[] shares = computeCappedShares(Arrays.copyOf(positiveWeights, positive), maxShare);
         double weightedSum = 0.0;
-        for (int i = 0; i < n; i++) {
-            weightedSum += shares[i] * entries.get(i).effectiveLevel();
+        for (int i = 0; i < positive; i++) {
+            weightedSum += shares[i] * positiveLevels[i];
         }
         return weightedSum;
     }

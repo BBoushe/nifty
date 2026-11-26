@@ -202,7 +202,9 @@ class EvaluationInvariantPropertyTest {
             int scoredCount = 0;
             Set<UUID> scoredQs = new HashSet<>();
             for (SkillFormulaCalculator.ScoredEntryInput e : evals) {
-                if (e.effectiveLevel() != null && (e.quoteVerified() || e.overridden())) {
+                // Decision 2.22: an invented-question entry never counts toward coverage.
+                if (e.effectiveLevel() != null && (e.quoteVerified() || e.overridden())
+                        && e.origin() != EntryOrigin.INVENTED) {
                     scoredQs.add(e.coreQuestionId());
                 }
             }
@@ -296,7 +298,7 @@ class EvaluationInvariantPropertyTest {
             boolean parseFailed = rnd.nextBoolean();
 
             ReleaseGateEvaluator.FlagEvaluation eval = releaseGateEvaluator.evaluateResponseFlags(
-                    substantive, verified, r1, r2, conf, threshold, paste, injection, parseFailed);
+                    substantive, verified, verified, r1, r2, conf, threshold, paste, injection, parseFailed);
 
             boolean mustFlag = paste
                     || injection

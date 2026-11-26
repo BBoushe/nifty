@@ -207,6 +207,48 @@ class SkillFormulaCalculatorTest {
         assertThat(autoOnly.skillScores().getFirst().reviewStatus()).isEqualTo("auto_released");
     }
 
+    @Test
+    void zeroWeightEntriesCarryNoShareAndAllZeroFallsBackToPlainMean() {
+        UUID skill = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID q2 = UUID.randomUUID();
+        UUID q3 = UUID.randomUUID();
+        List<SkillFormulaCalculator.QuestionWeight> questions = List.of(
+                new SkillFormulaCalculator.QuestionWeight(q1, BigDecimal.ZERO),
+                new SkillFormulaCalculator.QuestionWeight(q2, BigDecimal.ZERO),
+                new SkillFormulaCalculator.QuestionWeight(q3, new BigDecimal("1.00")));
+
+        // Decision 2.22: one positive weight is the whole score (not halved by the 0.50 cap).
+        SkillFormulaCalculator.FormulaResult onePositive = calculator.calculate(
+                List.of(skill), questions,
+                List.of(scored(q1, skill, EntryOrigin.CORE, "0.00", 0), scored(q3, skill, EntryOrigin.CORE, "1.00", 4)),
+                Set.of(q1, q3), new BigDecimal("0.5000"));
+        assertThat(onePositive.skillScores().getFirst().score()).isEqualByComparingTo("4.00");
+
+        // No positive weight at all: plain mean of the eligible levels, never 0 and never NaN.
+        SkillFormulaCalculator.FormulaResult allZero = calculator.calculate(
+                List.of(skill), questions,
+                List.of(scored(q1, skill, EntryOrigin.CORE, "0.00", 2), scored(q2, skill, EntryOrigin.CORE, "0.00", 4)),
+                Set.of(q1, q2), new BigDecimal("0.5000"));
+        assertThat(allZero.skillScores().getFirst().score()).isEqualByComparingTo("3.00");
+    }
+
+    @Test
+    void inventedEntryNeverCountsTowardCoverage() {
+        UUID skill = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID q2 = UUID.randomUUID();
+
+        SkillFormulaCalculator.FormulaResult result = calculator.calculate(
+                List.of(skill),
+                List.of(new SkillFormulaCalculator.QuestionWeight(q1, new BigDecimal("1.00")),
+                        new SkillFormulaCalculator.QuestionWeight(q2, new BigDecimal("1.00"))),
+                List.of(scored(q1, skill, EntryOrigin.CORE, "1.00", 3), scored(q2, skill, EntryOrigin.INVENTED, "1.00", 3)),
+                Set.of(q1, q2), new BigDecimal("0.5000"));
+
+        assertThat(result.coverage()).isEqualByComparingTo("0.5000");
+    }
+
     private static SkillFormulaCalculator.ScoredEntryInput scored(
             UUID coreQuestionId, UUID skillId, EntryOrigin origin, String weight, int level) {
         return new SkillFormulaCalculator.ScoredEntryInput(
