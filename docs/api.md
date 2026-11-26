@@ -66,6 +66,10 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 |---|---|---|---|---|---|
 | `GET` | `/api/v1/health` | Public | — | `{ status, service, aiProviderMode, timestamp }` | Returns `"UP"`, `"nifty-backend"`, active provider mode, ISO-8601 timestamp (`HealthController`) |
 | `GET` | `/actuator/health` | Public | — | Spring Boot Actuator health JSON | Docker Compose healthcheck target |
+| `POST` | `/api/v1/ranking/studio/configs` | `PROFESSOR` | Header `Idempotency-Key: <uuid>`, `CreateAssessmentRequest` (`settings`, `skills`, `questions`) | `AssessmentDetailResponse` (`201` created / `200` idempotent replay) | One-shot immutable snapshot `v1` (`PUBLISHED`), `CONFIG_CREATED` audit row. `400` ProblemDetail with all `errors[]` on validation failure or cross-professor key reuse (REQ-IS-01, REQ-IS-06, REQ-IS-12). Grouping mode `SOFT_SKILLS` or `COMBINED` with BFI-10 off gives `settings.bfi10Enabled` / `BFI10_REQUIRED` (REQ-IS-13, Decision 2.27). |
+| `GET` | `/api/v1/ranking/studio/configs` | `PROFESSOR` | — | `AssessmentSummaryResponse[]` | Lists the signed-in professor's own configurations, newest first (REQ-IS-10). |
+| `GET` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `AssessmentDetailResponse` | Full configuration including hidden 5-level rubrics. `404` for unknown or other professor's ID (REQ-IS-10). `PUT`/`PATCH` return `405` (REQ-IS-08). |
+| `DELETE` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `204` | GDPR purge: sets `SET LOCAL nifty.allow_purge = 'on'`, publishes `AssessmentDeletedEvent`, deletes rows, writes `CONFIG_DELETED` audit row. `404` for non-owner (REQ-IS-07, Decision 4.4). |
 | `POST` | `/api/v1/auth/login` | Public (CSRF) | `{ email, password }` | `204`, session cookie | `401` ProblemDetail with the same detail for an unknown email and a wrong password (REQ-AA-02). Email is case-insensitive (`AuthController`). |
 | `POST` | `/api/v1/auth/logout` | Public (CSRF) | — | `204` | Ends the session. `403` without the CSRF header (REQ-AA-06, `SecurityConfig`). |
 | `GET` | `/api/v1/auth/me` | Authenticated | — | `{ role, professorId }` | `role` is `PROFESSOR` or `CANDIDATE`. `professorId` is `null` for a candidate. `401` without a session. |
@@ -79,11 +83,7 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
   - `POST /api/v1/ranking/studio/configs/{id}/invites` (`PROFESSOR`) → create single invite or CSV import returning invite links.
   - `DELETE /api/v1/ranking/studio/configs/{id}/invites/{inviteId}` (`PROFESSOR`) → revoke an invite link.
 - **Studio (`studio`, `/api/v1/ranking/studio/configs/**`, `PROFESSOR` — Decisions 1.19, 2.21):**
-  - `POST /api/v1/ranking/studio/configs` (Header `Idempotency-Key: <uuid>`) → one-shot immutable config creation (`201` created / `200` idempotent replay / `400` ProblemDetail with all `errors[]`).
-  - `GET /api/v1/ranking/studio/configs` → list professor's own configs newest first (`AssessmentSummary[]`).
-  - `GET /api/v1/ranking/studio/configs/{configId}` → full config detail including hidden rubrics (`404` for unknown or other professor's config).
-  - `DELETE /api/v1/ranking/studio/configs/{configId}` → GDPR purge of all assessment and candidate data (`204`, emits `AssessmentDeletedEvent`, Decision 4.4).
-  - `PUT` / `PATCH` on `/api/v1/ranking/studio/configs/{configId}` → `405 Method Not Allowed`.
+  - Implemented (§4).
 - **Assessment Chat (`assessment`, `/api/v1/assessment/sessions/**`, `CANDIDATE` — Decisions 1.11, 2.20, 2.23, 2.24):**
   - `POST /api/v1/assessment/sessions` → `text/event-stream` greeting + question 1 with `expiresAt` (or JSON `BFI10` start for `SOFT_SKILLS`-only). `409` if `max_attempts` is exceeded.
   - `POST /api/v1/assessment/sessions/{id}/answers` (`{ content }`) → `text/event-stream` reply + next question with `expiresAt` or `done`. `409` after `expiresAt + grace` or invalid state. `400` ProblemDetail (`errors[].field = content`) when `content` is longer than 4000 characters; nothing is stored (REQ-AC-20, Decision 2.26).

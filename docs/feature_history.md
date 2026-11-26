@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — studio-assessment-creation
+- **What:** Added `V3__studio.sql` (`assessment_config`, `skill`, `core_question`, `core_question_skill`, `studio_block_mutation()` immutability triggers), `@Immutable` JPA entities and repositories in `studio/repository/`, pure zero-Stream validators with the `SOFT_SKILLS` + BFI-10 zero-question exemption, one-shot idempotent creation (`CONFIG_CREATED` audit, `REQ-IS-12` key ownership), `StudioQueryServiceImpl` (with `ownedBy` and rubric-leak guard; placeholder deleted), `PROFESSOR`-only `/api/v1/ranking/studio/configs/**` REST endpoints + GDPR `DELETE` (`AssessmentDeletedEvent` + `SET LOCAL nifty.allow_purge = 'on'`), and Vue 3.5 + PrimeVue Studio form (`localStorage` draft), list, and read-only detail views.
+- **Why:** Professors need one-shot immutable assessment creation, hidden 5-level rubrics, narrow downstream read-only views, and GDPR purge without editing live rubrics (Decisions 1.19, 2.21, 2.22, 2.23, 4.4).
+- **PR/MR:** GitHub #25, GitLab !24
+- **Specs:** REQ-IS-12 (added to `interviewer-studio`); REQ-IS-01, REQ-IS-05..11 (implemented)   **Decisions:** applies 1.10, 1.12, 1.14, 1.19, 2.21, 2.22, 2.23, 4.4
+
 ## 2026-11-26 — auth-accounts
 - **What:** Added `V2__auth_accounts.sql` (`professor_account`), env bootstrap (`NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` / `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD`), `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, server session cookies (`HttpOnly`, `SameSite=Lax`), SPA CSRF (`XSRF-TOKEN` / `X-XSRF-TOKEN`) and `AuthContextServiceImpl` (`AuthContextServicePlaceholder` deleted). Added the frontend `/sign-in` view, Pinia auth store, `/ranking/*` and `/assessment/*` route guards, and CSRF header support in `apiFetch` and `postSse`.
 - **Why:** Studio and the Ranking View need a signed-in professor session and `AuthContextService.currentProfessorId()` without HTTP Basic or secrets in the repo (Decisions 1.23, 1.24).

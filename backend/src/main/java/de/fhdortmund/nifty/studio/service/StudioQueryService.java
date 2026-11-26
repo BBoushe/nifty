@@ -11,6 +11,8 @@ public interface StudioQueryService {
 
     boolean exists(UUID configId);
 
+    boolean ownedBy(UUID configId, UUID professorId);
+
     InterviewerView interviewerView(UUID configId); // Throws DomainException(404) if missing
 
     EvaluatorView evaluatorView(UUID configId);
