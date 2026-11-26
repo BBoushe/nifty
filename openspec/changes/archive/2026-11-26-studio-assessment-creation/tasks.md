@@ -106,3 +106,10 @@
 - Contracts/Migrations added: none
 - Decisions: applies 2.23, 4.4
 - Open Questions: none
+
+### Maintainer review follow-up: BFI-10 rule (Decision 2.27)
+- Commits: `fix(studio): require BFI-10 for SOFT_SKILLS and COMBINED with code BFI10_REQUIRED`
+- Verification: RED: `./mvnw -B test -Dtest=ConfigValidatorTest` → 2 FAIL (code was `BAD_WEIGHTS`); `npx vitest run src/views/studio/StudioViews.test.ts` → 1 FAIL (no warning shown); GREEN: `cd backend && ./mvnw -B test` → exit 0 (178 tests, 0 skipped); `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (70 tests); `openspec validate --all --strict` → 13/13
+- Contracts/Migrations added: none. Error code `BFI10_REQUIRED` on `settings.bfi10Enabled`; REQ-IS-13 added to `interviewer-studio` (main spec and this archive's delta); team-builder change: REQ-TB-08 also rejects `COMBINED` without BFI-10, MODIFIED REQ-TB-06 limits "BFI-10 off" to `HARD_SKILLS`; settings form warns before submit; `docs/api.md` documents the code.
+- Decisions: 2.27 (human chose "both modes need BFI-10" in the merge review of PR #25)
+- Open Questions: none

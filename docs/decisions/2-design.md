@@ -249,3 +249,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** No API cap (rely on the sanitizer cut and linear regexes); a larger cap such as 16000 with the prompt still cut at 4000; a request-body size limit only.
 - **Rationale / Justification:** One limit for ledger and prompt keeps quote verification and judging aligned, bounds CPU per turn, and gives the candidate a clear rule instead of silent truncation.
 - **Affected Files / Pointers:** openspec/changes/assessment-chat/specs/assessment-chat/spec.md, openspec/changes/assessment-chat/tasks.md, docs/tickets/03-assessment-chat.md, backend/src/main/java/de/fhdortmund/nifty/context/service/PromptSanitizer.java
+
+## 2.27 — SOFT_SKILLS and COMBINED grouping require BFI-10
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** Studio rejected SOFT_SKILLS and COMBINED assessments without BFI-10, but no spec or decision asked for it. REQ-TB-06 let COMBINED run without BFI-10 by dropping the trait term, and REQ-TB-08 rejected SOFT_SKILLS without BFI-10 only at team generation.
+- **Decision:** Studio rejects a configuration whose grouping mode is SOFT_SKILLS or COMBINED while bfi10Enabled is false: 400 ProblemDetail, errors[].field = settings.bfi10Enabled, code BFI10_REQUIRED (REQ-IS-13). HARD_SKILLS works with or without BFI-10. The team builder therefore always has trait data in SOFT_SKILLS and COMBINED, and REQ-TB-06 drops its COMBINED-without-BFI-10 fallback.
+- **Alternatives Considered:** SOFT_SKILLS only (allow COMBINED without BFI-10 as skills-only grouping); no studio rule (team builder rejects SOFT_SKILLS later).
+- **Rationale / Justification:** COMBINED means skills plus personality. Without BFI-10 it silently equals HARD_SKILLS, which misleads the professor. Rejecting at creation is cheaper than failing at team generation after candidates have finished.
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/studio/service/SettingsRules.java, openspec/specs/interviewer-studio/spec.md, openspec/specs/team-builder/spec.md, openspec/changes/team-builder/specs/team-builder/spec.md

@@ -59,7 +59,8 @@ class ConfigValidatorTest {
         CreateAssessmentRequest softNoBfi = new CreateAssessmentRequest(validSettings(GroupingMode.SOFT_SKILLS, false),
                 List.of(), List.of());
         List<FieldErrorDetail> softErrors = validateErrors(softNoBfi);
-        assertThat(softErrors).extracting(FieldErrorDetail::code).contains("EMPTY_CONFIG", "BAD_WEIGHTS");
+        assertThat(softErrors).extracting(FieldErrorDetail::code).contains("EMPTY_CONFIG", "BFI10_REQUIRED");
+        assertThat(softErrors).extracting(FieldErrorDetail::field).contains("settings.bfi10Enabled");
     }
 
     @Test
@@ -197,7 +198,10 @@ class ConfigValidatorTest {
                 validSettings(GroupingMode.COMBINED, false),
                 List.of(new SkillInput("Java", RUBRIC_5)),
                 List.of(validQuestion(1, List.of("Java")))));
-        assertThat(combinedNoBfi).extracting(FieldErrorDetail::code).contains("BAD_WEIGHTS");
+        // Decision 2.27: COMBINED needs BFI-10 too, so every COMBINED team has a trait term.
+        assertThat(combinedNoBfi).extracting(FieldErrorDetail::code).containsExactly("BFI10_REQUIRED");
+        assertThat(combinedNoBfi).extracting(FieldErrorDetail::field).containsExactly("settings.bfi10Enabled");
+        // HARD_SKILLS without BFI-10 stays valid: validRequest() covers it in acceptsValidHardSkillsConfig.
 
         List<FieldErrorDetail> softUnused = validateErrors(new CreateAssessmentRequest(
                 validSettings(GroupingMode.SOFT_SKILLS, true),

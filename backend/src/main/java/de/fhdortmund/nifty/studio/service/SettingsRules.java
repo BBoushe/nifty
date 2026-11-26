@@ -34,13 +34,13 @@ final class SettingsRules {
 
         if (settings.groupingMode() == null) {
             errors.add(new FieldErrorDetail("settings.groupingMode", "must not be null", "REQUIRED"));
-        } else if ((settings.groupingMode() == GroupingMode.SOFT_SKILLS
-                || settings.groupingMode() == GroupingMode.COMBINED)
+        } else if (settings.groupingMode() != GroupingMode.HARD_SKILLS
                 && !Boolean.TRUE.equals(settings.bfi10Enabled())) {
+            // Decision 2.27, REQ-IS-13: SOFT_SKILLS and COMBINED group by personality, so they need BFI-10 data.
             errors.add(new FieldErrorDetail(
                     "settings.bfi10Enabled",
                     "must be enabled for SOFT_SKILLS or COMBINED grouping mode",
-                    "BAD_WEIGHTS"));
+                    "BFI10_REQUIRED"));
         }
 
         if (settings.softPreset() == null) {

@@ -89,6 +89,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **1.23** | — | Architecture | Server session cookie for professors and candidates | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#123--server-session-cookie-for-professors-and-candidates) |
 | **1.24** | — | Architecture | Professor accounts are bootstrapped from environment variables | Decided | 2026-11-25 | question-round | [1-architecture.md](./1-architecture.md#124--professor-accounts-are-bootstrapped-from-environment-variables) |
 | **2.26** | — | Design | Candidate answers are capped at 4000 characters at the assessment API | Decided | 2026-11-26 | prompter-change | [2-design.md](./2-design.md#226--candidate-answers-are-capped-at-4000-characters-at-the-assessment-api) |
+| **2.27** | — | Design | SOFT_SKILLS and COMBINED grouping require BFI-10 | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#227--soft_skills-and-combined-grouping-require-bfi-10) |
 <!-- DECISION_INDEX_END -->
 
 ---

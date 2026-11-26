@@ -76,6 +76,27 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     expect(wrapper.findAll('[data-testid^="trait-weight-"]')).toHaveLength(5)
   })
 
+  it('SettingsSection warns that SOFT_SKILLS and COMBINED need BFI-10 (Decision 2.27)', async () => {
+    const { pinia } = createTestPlugins()
+    const wrapper = mount(SettingsSection, { global: { plugins: [pinia, PrimeVue] } })
+    const store = useAssessmentFormStore()
+    const warning = () => wrapper.find('[data-testid="bfi10-required"]')
+
+    for (const mode of ['SOFT_SKILLS', 'COMBINED'] as const) {
+      store.settings.groupingMode = mode
+      store.settings.bfi10Enabled = false
+      await flushPromises()
+      expect(warning().exists(), mode).toBe(true)
+      store.settings.bfi10Enabled = true
+      await flushPromises()
+      expect(warning().exists(), mode).toBe(false)
+    }
+    store.settings.groupingMode = 'HARD_SKILLS'
+    store.settings.bfi10Enabled = false
+    await flushPromises()
+    expect(warning().exists()).toBe(false)
+  })
+
   it('SkillsSection renders 5 rubric boxes (0..4) per skill and zero weight inputs', async () => {
     const { pinia } = createTestPlugins()
     const store = useAssessmentFormStore()

@@ -26,6 +26,10 @@ const softPresets: Array<{ label: string; value: SoftPreset }> = [
 const softSkillsOnlyExempt = computed(
   () => form.settings.groupingMode === 'SOFT_SKILLS' && form.settings.bfi10Enabled,
 )
+// Decision 2.27: personality grouping needs BFI-10 data; the backend answers 400 BFI10_REQUIRED otherwise.
+const bfi10Missing = computed(
+  () => form.settings.groupingMode !== 'HARD_SKILLS' && !form.settings.bfi10Enabled,
+)
 </script>
 
 <template>
@@ -177,6 +181,10 @@ const softSkillsOnlyExempt = computed(
         Enable BFI-10 personality step
       </label>
     </div>
+
+    <Message v-if="bfi10Missing" severity="warn" data-testid="bfi10-required">
+      Soft-skills and combined grouping need the BFI-10 personality step. Turn it on or choose hard-skills grouping.
+    </Message>
 
     <Message v-if="softSkillsOnlyExempt" severity="info">
       SOFT_SKILLS mode with BFI-10 enabled allows 0 skills and 0 core questions.
