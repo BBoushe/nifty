@@ -17,7 +17,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 | 1 | `backend-foundation` | 0 | done | Shared (`shared`, `backend/pom.xml`, CI) | — | — |
 | 2 | `frontend-foundation` | 0 | done | Shared (`frontend/` shell, CI) | — | — |
 | 3 | `auth-accounts` ([change](../openspec/changes/auth-accounts/), [ticket](tickets/01-studio.md)) | 1 | in progress | Teammate R (`auth`, `views/auth/`) | 1, 2 | `V2__auth_accounts.sql` |
-| 4 | `audit-log-service` ([change](../openspec/changes/audit-log-service/), [ticket](tickets/01-studio.md)) | 1 | in progress | Teammate R (`audit`) | 1 | — (uses `V1`) |
+| 4 | `audit-log-service` ([change](../openspec/changes/archive/2026-11-25-audit-log-service/), [ticket](tickets/01-studio.md)) | 1 | done | Teammate R (`audit`) | 1 | — (uses `V1`) |
 | 5 | `context-creation` ([spec](../openspec/specs/context-creation/spec.md), [ticket](tickets/02-context-creation.md)) | 1 | done | Teammate A (`context`) | 1, 4 (mockable) | — (stateless) |
 | 6 | `studio-assessment-creation` ([change](../openspec/changes/studio-assessment-creation/), [ticket](tickets/01-studio.md)) | 2 | in progress | Teammate R (`studio`, `views/studio/`) | 1, 2, 3, 4 | `V3__studio.sql` |
 | 7 | `invite-links` ([change](../openspec/changes/invite-links/), [ticket](tickets/01-studio.md)) | 3 | in progress | Teammate R (`auth`, `views/auth/` landing, `views/studio/` invite panel) | 3, 6 | `V4__auth_invites.sql` |

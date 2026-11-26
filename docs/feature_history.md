@@ -10,6 +10,12 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 - **PR/MR:** GitHub #24, GitLab !23
 - **Specs:** REQ-CC-09 (added to the main spec), REQ-CC-01..08 (implemented)   **Decisions:** applies 1.12, 1.18, 1.19, 1.21, 2.20, 2.24, 2.25
 
+## 2026-11-25 — audit-log-service
+- **What:** `AuditService.record(...)` writes one `audit_log` row in the transaction of the caller. It rejects a missing actor, role, entity or action. `AuditLogEntity` is `@Immutable`, and `AuditLogRepository` has no update or delete method. `AuditServicePlaceholder` is gone.
+- **Why:** Studio, context, evaluation and teams must write real audit rows for overrides, deletions and injection flags (Decision 1.16).
+- **PR/MR:** GitHub #21, GitLab !20
+- **Specs:** REQ-AL-01..02 (change-local, archived with `--skip-specs`)   **Decisions:** none; applies 1.10, 1.16
+
 ## 2026-11-25 — frontend-foundation
 - **What:** Added Vitest (jsdom, ECharts mock) and `npm run test` in both CI files. Added the PrimeVue 4 preset from Tailwind `@theme` tokens and `ScoreBadge`, which never shows `N/A` as `0`. Moved views into feature folders with one `routes.ts` each. Added the shared API client for RFC 9457 errors and SSE streams from a `POST`. `npm run typecheck` now checks the app sources and `vite.config.ts`. `ScoreBadge` shows bad levels as invalid, and the preset maps the full primary scale.
 - **Why:** The five teammate tickets need a test runner, the design system, separate route files and one client. Then they do not edit the same files.
