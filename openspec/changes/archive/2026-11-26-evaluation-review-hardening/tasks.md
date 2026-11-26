@@ -2,7 +2,7 @@
 
 ## Status
 - **Branch:** `fix/evaluation-review-and-tests` (PR #33; worktree `../nifty-review-evaluation-fix`, based on PR head 9477fd9 plus a merge of `origin/dev` 8345ffb)
-- **Current:** Tasks 1–4 done; full checks run (see Handoff Log); archive step in progress.
+- **Current:** Tasks 1–4 done; full checks green; change archived.
 - **Next action:** push, PR update, human merge approval
 - **Uncommitted changes:** no
 - **PR / MR:** GitHub #33
@@ -41,7 +41,7 @@
 ## Handoff Log
 
 ### Spec fix (REQ-SM-03)
-- Commits: SPEC_SHA docs(specs): limit REQ-SM-03 to attempts that are not auto-released
+- Commits: 48aac3f docs(specs): limit REQ-SM-03 to attempts that are not auto-released
 - Verification: RED: n/a (no behaviour, spec text); GREEN: `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` → exit 0; `ste-lint.py` on the delta → 0 violations
 - Contracts/Migrations added: delta spec `skills-matrix-review` (MODIFIED REQ-SM-03); archive applies it to the main spec
 - Decisions: applies 2.30, 2.10
@@ -62,8 +62,8 @@
 - Open Questions: none
 
 ### Final verification
-- Commits: ARCHIVE_SHA chore(specs): archive evaluation-review-hardening
-- Verification: FINAL_VERIFICATION
+- Commits: the commit that holds this entry, chore(specs): archive evaluation-review-hardening
+- Verification: RED: n/a (no behaviour, archive and docs); GREEN: `cd backend && ./mvnw -B test` → exit 0 (449 run, 0 failed, includes ArchitectureTest and EvaluationReleaseRaceTest); `cd frontend && npm ci && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (114 tests in 19 files); `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` → exit 0 (10 passed); `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (46 run); `openspec archive` applied 1 modified requirement, the main spec holds the corrected REQ-SM-03
 - Contracts/Migrations added: none
 - Decisions: none
 - Open Questions: none
