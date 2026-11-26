@@ -34,6 +34,8 @@ function createTestPlugins() {
       { path: '/ranking/studio/new', component: { template: '<div>new</div>' } },
       { path: '/ranking/studio/:configId', component: AssessmentDetailView },
       { path: '/ranking/studio/:configId/invites', component: { template: '<div>invites</div>' } },
+      { path: '/ranking/configs/:configId', component: { template: '<div>ranking</div>' } },
+      { path: '/ranking/teams/:configId', component: { template: '<div>teams</div>' } },
     ],
   })
   return { pinia, queryClient, router }
@@ -287,6 +289,9 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     const inviteLink = wrapper.find(`a[href="/ranking/studio/${id}/invites"]`)
     expect(inviteLink.exists()).toBe(true)
     expect(inviteLink.text()).toContain('Send to students')
+    // REQ-NAV-06
+    expect(wrapper.get('[data-testid="open-ranking"]').attributes('href')).toBe(`/ranking/configs/${id}`)
+    expect(wrapper.get('[data-testid="build-teams"]').attributes('href')).toBe(`/ranking/teams/${id}`)
   })
 
   it('AssessmentDetailView supports cancel and two-step GDPR delete confirmation', async () => {

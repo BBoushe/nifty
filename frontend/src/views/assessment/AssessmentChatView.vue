@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import Textarea from 'primevue/textarea'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   type AttemptStatus,
   type InterviewEvent,
@@ -14,6 +15,7 @@ import {
   startSession,
 } from '@/api/assessment'
 import { ApiProblem } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 import Bfi10Form from './Bfi10Form.vue'
 
 // REQ-AC-03: this view shows the conversation, the countdown and the questions left. Nothing else.
@@ -41,6 +43,7 @@ const storage = {
   },
 }
 
+const auth = useAuthStore()
 const attemptId = ref<string | null>(null)
 const status = ref<AttemptStatus | null>(null)
 const lines = ref<ChatLine[]>([])
@@ -237,6 +240,14 @@ function submitAnswer() {
 
     <div v-if="status === 'COMPLETED'" data-testid="completed" class="rounded-xl border border-slate-200 bg-white p-6 text-sm">
       Thank you. Your interview is complete. Your results appear here after the professor releases them.
+      <RouterLink
+        v-if="auth.me?.configId"
+        :to="`/assessment/results/${auth.me.configId}`"
+        class="ml-1 font-medium text-slate-900 underline"
+        data-testid="results-link"
+      >
+        View results
+      </RouterLink>
     </div>
   </section>
 </template>
