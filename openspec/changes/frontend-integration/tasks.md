@@ -3,18 +3,18 @@
 ## Status
 - **Branch:** `feat/frontend-integration` (branch off `dev`)
 - **Worktree:** `../nifty-frontend-integration`
-- **Current:** spec written
-- **Next action:** US-NAV-01
-- **Uncommitted changes:** yes
+- **Current:** US-NAV-01 done
+- **Next action:** US-NAV-02
+- **Uncommitted changes:** no
 - **PR / MR:** —
 - **Open review findings:** —
 
 ## Tasks
 
-- [ ] **US-NAV-01: Role-aware header and sign out (REQ-NAV-01, 02, 03, 05)**
-  - [ ] RED: `frontend/src/App.test.ts` — professor, candidate and signed-out headers; sign out calls logout and shows `/sign-in`.
-  - [ ] GREEN: `App.vue` reads `useAuthStore().me`, calls `fetchMe()` on mount, renders the links and the sign-out button.
-  - [ ] Verify: `cd frontend && npm run test -- src/App.test.ts`.
+- [x] **US-NAV-01: Role-aware header and sign out (REQ-NAV-01, 02, 03, 05)**
+  - [x] RED: `frontend/src/App.test.ts` — professor, candidate and signed-out headers; sign out calls logout and shows `/sign-in`.
+  - [x] GREEN: `App.vue` reads `useAuthStore().me`, calls `fetchMe()` on mount, renders the links and the sign-out button.
+  - [x] Verify: `cd frontend && npm run test -- src/App.test.ts`.
 
 - [ ] **US-NAV-02: Role start page and sign-in default (REQ-NAV-04, 08)**
   - [ ] RED: `router/index.test.ts` resolves `/` to the role start page; `SignInView.test.ts` plain sign-in opens `/ranking/studio`.
