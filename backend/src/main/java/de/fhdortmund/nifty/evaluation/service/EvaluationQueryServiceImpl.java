@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * REQ-EV-01 / Decisions 1.18, 2.10, 2.13, REQ-TB-11:
  * Cross-slice read-only implementation of {@link EvaluationQueryService} for Team Builder.
- * Returns released latest attempts with explicit N/A scores and lists unreleased invites
- * separately with zero scores.
+ * Returns released latest attempts with explicit N/A scores and lists every other invite
+ * (queued, running, failed, pending, flagged) separately without scores.
  */
 @Service
 @Transactional(readOnly = true)
@@ -41,7 +41,9 @@ class EvaluationQueryServiceImpl implements EvaluationQueryService {
     @Override
     public CandidateProfilesView getCandidateProfilesForConfig(UUID configId) {
         EvaluatorView evaluatorView = studioQueryService.evaluatorView(configId);
-        List<CandidateEvaluationSummaryEntity> latest = summaryRepository.findLatestCompletedPerInvite(configId);
+        // Decision 2.13 / REQ-EV-01: newest attempt per invite in ANY status. A queued, running, or failed attempt
+        // is waiting (no scores), and it hides the older completed attempt of the same invite.
+        List<CandidateEvaluationSummaryEntity> latest = summaryRepository.findLatestPerInvite(configId);
 
         List<CandidateEvaluationSummaryEntity> releasedSummaries = new ArrayList<>();
         List<UUID> pendingInviteIds = new ArrayList<>();
@@ -49,7 +51,7 @@ class EvaluationQueryServiceImpl implements EvaluationQueryService {
 
         for (int i = 0; i < latest.size(); i++) {
             CandidateEvaluationSummaryEntity summary = latest.get(i);
-            if (FormulaRecalculationHelper.isReleased(summary.getReleaseStatus())) {
+            if (summary.isCompleted() && FormulaRecalculationHelper.isReleased(summary.getReleaseStatus())) {
                 releasedSummaries.add(summary);
                 releasedSummaryIds.add(summary.getId());
             } else {

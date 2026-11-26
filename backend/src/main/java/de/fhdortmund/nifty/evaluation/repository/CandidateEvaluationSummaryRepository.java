@@ -11,18 +11,34 @@ public interface CandidateEvaluationSummaryRepository extends JpaRepository<Cand
 
     Optional<CandidateEvaluationSummaryEntity> findByAttemptId(UUID attemptId);
 
-    List<CandidateEvaluationSummaryEntity> findByConfigIdOrderByCreatedAtDesc(UUID configId);
-
     Optional<CandidateEvaluationSummaryEntity> findTopByConfigIdAndInviteIdOrderByAttemptNoDescCreatedAtDesc(
             UUID configId, UUID inviteId);
 
-    /** Decision 2.13: latest completed attempt per invite for a configuration. */
+    /**
+     * Decision 2.13: the newest attempt per invite in ANY status (queued, running, failed, completed).
+     * A summary exists from enqueue on, so a retake supersedes the older attempt immediately.
+     */
     @Query(value = """
             SELECT DISTINCT ON (invite_id) *
             FROM candidate_evaluation_summary
             WHERE config_id = :configId
-              AND evaluation_status = 'COMPLETED'
             ORDER BY invite_id, attempt_no DESC, created_at DESC
+            """, nativeQuery = true)
+    List<CandidateEvaluationSummaryEntity> findLatestPerInvite(UUID configId);
+
+    /**
+     * Decision 2.13: the newest attempt per invite, kept only when it is COMPLETED. An older completed attempt never
+     * shows through while the retake is queued, running, or failed.
+     */
+    @Query(value = """
+            SELECT latest.*
+            FROM (
+                SELECT DISTINCT ON (invite_id) *
+                FROM candidate_evaluation_summary
+                WHERE config_id = :configId
+                ORDER BY invite_id, attempt_no DESC, created_at DESC
+            ) latest
+            WHERE latest.evaluation_status = 'COMPLETED'
             """, nativeQuery = true)
     List<CandidateEvaluationSummaryEntity> findLatestCompletedPerInvite(UUID configId);
 

@@ -368,7 +368,7 @@ class EvaluationReviewServiceTest {
                 3, new BigDecimal("0.9200"), null, "pending", 3);
 
         when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(formula));
-        when(summaryRepository.findLatestCompletedPerInvite(configId)).thenReturn(List.of(summary));
+        when(summaryRepository.findLatestPerInvite(configId)).thenReturn(List.of(summary));
         when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(pending));
         when(skillScoreRepository.findBySummaryIdIn(any())).thenReturn(List.of());
@@ -395,5 +395,146 @@ class EvaluationReviewServiceTest {
                 eq("pending"),
                 eq("approved"),
                 eq(null));
+    }
+
+    @Test
+    void queuedRunningOrFailedLatestAttemptShowsAsWaitingRowWithoutScores() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId, List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)), List.of()));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.7000"), List.of()));
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(formula));
+
+        List<CandidateEvaluationSummaryEntity> waiting = new java.util.ArrayList<>();
+        for (String status : List.of("QUEUED", "RUNNING", "FAILED")) {
+            UUID attemptId = UUID.randomUUID();
+            EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", attemptId.toString());
+            CandidateEvaluationSummaryEntity summary = CandidateEvaluationSummaryEntity.queued(
+                    attemptId, configId, UUID.randomUUID(), 2, formula, run);
+            summary.markEvaluationStatus(status);
+            waiting.add(summary);
+        }
+        when(summaryRepository.findLatestPerInvite(configId)).thenReturn(waiting);
+        when(skillScoreRepository.findBySummaryIdIn(any())).thenReturn(List.of());
+
+        EvaluationDtos.MatrixResponse matrix = service.getMatrix(configId);
+
+        assertThat(matrix.rows()).hasSize(3);
+        assertThat(matrix.rows()).extracting(EvaluationDtos.MatrixCandidateRow::evaluationStatus)
+                .containsExactly("QUEUED", "RUNNING", "FAILED");
+        for (EvaluationDtos.MatrixCandidateRow row : matrix.rows()) {
+            assertThat(row.releaseStatus()).isEqualTo(ReleaseStatus.PENDING);
+            assertThat(row.fitScore()).isNull();
+            assertThat(row.cells()).hasSize(1);
+            assertThat(row.cells().getFirst().status()).isEqualTo(ScoreStatus.NOT_ASSESSED);
+            assertThat(row.cells().getFirst().value()).isNull();
+        }
+    }
+
+    @Test
+    void releaseRefusesAnAttemptThatIsStillQueuedRunningOrFailed() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-q");
+        CandidateEvaluationSummaryEntity queued = CandidateEvaluationSummaryEntity.queued(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run);
+        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(queued));
+
+        assertThatThrownBy(() -> service.releaseAttempt(attemptId))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).getStatus())
+                .isEqualTo(HttpStatus.CONFLICT);
+        assertThat(queued.getReleaseStatus()).isEqualTo("pending");
+        verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void approveRefusesAnOverriddenResponseSoTheOverrideSurvives() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID responseId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(q1.toString(), BigDecimal.ONE), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-ov");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("3.00"), BigDecimal.ONE, 0, "overridden", java.time.Instant.now());
+        ResponseEvaluationEntity overridden = new ResponseEvaluationEntity(
+                run, summary, UUID.randomUUID(), q1, UUID.randomUUID(), "core", BigDecimal.ONE,
+                null, null, "x", null, false, null, null, null, new BigDecimal("0.2000"), "UNVERIFIED_QUOTE", "flagged", null);
+        overridden.overrideLevel(3, professorId, "Follow-up showed mastery", java.time.Instant.now());
+        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(overridden));
+
+        assertThatThrownBy(() -> service.approveEvaluation(responseId))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).getStatus())
+                .isEqualTo(HttpStatus.CONFLICT);
+        assertThat(overridden.getReviewStatus()).isEqualTo("overridden");
+        assertThat(overridden.getEffectiveLevel()).isEqualTo(3);
+        verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void recalculationUsesTheFormulaVersionWeightsNotTheLiveStudioWeights() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID q2 = UUID.randomUUID();
+        UUID q3 = UUID.randomUUID();
+        UUID responseId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId, List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)), List.of()));
+        // The live studio weight of q3 is 10 now; the snapshot says 1. The snapshot must win (REQ-FE-02).
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.5000"),
+                List.of(new ScoringQuestion(q3, new BigDecimal("10.00"), new BigDecimal("0.6000"), List.of(skillId)))));
+
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"),
+                Map.of(q1.toString(), BigDecimal.ONE, q2.toString(), BigDecimal.ONE, q3.toString(), BigDecimal.ONE), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-w");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("3.33"), BigDecimal.ONE, 1, "flagged", null);
+        ResponseEvaluationEntity r1 = verifiedResponse(run, summary, q1, skillId, 4, "approved");
+        ResponseEvaluationEntity r2 = verifiedResponse(run, summary, q2, skillId, 4, "approved");
+        ResponseEvaluationEntity r3 = verifiedResponse(run, summary, q3, skillId, 2, "flagged");
+        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(r3));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(r1, r2, r3));
+
+        EvaluationDtos.OverrideEvaluationResponse result = service.overrideEvaluation(
+                responseId, new EvaluationDtos.OverrideEvaluationRequest(0, "Answer was wrong on review"));
+
+        // Snapshot weights 1,1,1 -> (4 + 4 + 0) / 3 = 2.67. Live weight 10 would cap q3 and give 2.00.
+        assertThat(result.updatedFitScore()).isEqualByComparingTo("2.67");
+    }
+
+    private static ResponseEvaluationEntity verifiedResponse(
+            EvaluationRunEntity run, CandidateEvaluationSummaryEntity summary,
+            UUID questionId, UUID skillId, int level, String status) {
+        return new ResponseEvaluationEntity(
+                run, summary, UUID.randomUUID(), questionId, skillId, "core", BigDecimal.ONE,
+                level, level, "verified quote text", "verified quote text", true, "verified quote text", "ok",
+                level, new BigDecimal("0.9000"), null, status, level);
     }
 }

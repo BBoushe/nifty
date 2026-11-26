@@ -174,7 +174,36 @@ public class CandidateEvaluationSummaryEntity {
         this.flaggedCount = 0;
     }
 
-    public void updateFlaggedCount(int flaggedCount) {
-        this.flaggedCount = flaggedCount;
+    /** Decision 2.13: a summary exists from enqueue on, so a newer attempt supersedes older ones at once. */
+    public static CandidateEvaluationSummaryEntity queued(
+            UUID attemptId,
+            UUID configId,
+            UUID inviteId,
+            int attemptNo,
+            FormulaVersionEntity formulaVersion,
+            EvaluationRunEntity run) {
+        return new CandidateEvaluationSummaryEntity(
+                attemptId, configId, inviteId, attemptNo, formulaVersion, run, "QUEUED",
+                null, BigDecimal.ZERO.setScale(4), 0, "pending", null);
+    }
+
+    public boolean isCompleted() {
+        return "COMPLETED".equals(evaluationStatus);
+    }
+
+    /** QUEUED, RUNNING, or FAILED: mirrors the run so the matrix can show the attempt as waiting. */
+    public void markEvaluationStatus(String evaluationStatus) {
+        this.evaluationStatus = evaluationStatus;
+    }
+
+    public void markCompleted(
+            FormulaVersionEntity formulaVersion,
+            BigDecimal fitScore,
+            BigDecimal coverage,
+            int flaggedCount,
+            String releaseStatus,
+            Instant releasedAt) {
+        this.evaluationStatus = "COMPLETED";
+        updateScores(formulaVersion, fitScore, coverage, flaggedCount, releaseStatus, releasedAt);
     }
 }

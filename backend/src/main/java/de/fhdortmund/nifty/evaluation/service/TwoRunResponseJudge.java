@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -56,6 +57,8 @@ public class TwoRunResponseJudge {
     public record TwoRunResult(String templateVersion, ParsedRun run1, ParsedRun run2) {
     }
 
+    // Decision 2.28: two slow LLM calls must never hold a pooled DB connection, so this runs outside any transaction.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public TwoRunResult judge(JudgeContextInput input) {
         BuiltPromptContext context = contextCreationService.buildJudgeContext(input);
         String userContent = joinUserMessages(context.messages());

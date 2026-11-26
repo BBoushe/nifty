@@ -30,10 +30,15 @@ public final class EvaluationDtos {
     ) {
     }
 
+    /**
+     * {@code evaluationStatus} is QUEUED, RUNNING, FAILED, or COMPLETED. Only COMPLETED rows carry scores; the
+     * others are waiting attempts with null fit and N/A cells (REQ-SM-07, Decision 2.13).
+     */
     public record MatrixCandidateRow(
             UUID inviteId,
             UUID attemptId,
             int attemptNo,
+            String evaluationStatus,
             BigDecimal fitScore,
             BigDecimal coverage,
             ReleaseStatus releaseStatus,

@@ -96,7 +96,8 @@ class EvaluationSchemaAndCleanupTest extends PostgresContainerBase {
 
         assertThat(summaryRepository.findByAttemptId(attempt1Id)).isPresent();
         assertThat(summaryRepository.findByAttemptId(attempt2Id)).isPresent();
-        assertThat(summaryRepository.findByConfigIdOrderByCreatedAtDesc(configId)).hasSize(2);
+        assertThat(summaryRepository.findAll().stream().filter(s -> configId.equals(s.getConfigId())).count())
+                .isEqualTo(2);
     }
 
     @Test

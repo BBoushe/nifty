@@ -2,6 +2,7 @@ package de.fhdortmund.nifty.evaluation.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -29,6 +30,7 @@ import de.fhdortmund.nifty.studio.service.view.EvaluatorView;
 import de.fhdortmund.nifty.studio.service.view.ScoringQuestion;
 import de.fhdortmund.nifty.studio.service.view.ScoringView;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -37,15 +39,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * REQ-EP-05, REQ-EP-06, REQ-EP-09 / Decisions 2.10, 2.20, 2.24:
- * Evaluates non-blank timed-out answers, skips blank entries, enforces idempotent runs,
- * and isolates failures without leaving partial skill_score rows.
+ * Evaluates non-blank timed-out answers, skips blank entries, enqueues before dispatch, enforces idempotent
+ * claims, and isolates failures without leaving partial skill_score rows.
  */
 class AsyncEvaluationRunnerTest {
 
@@ -89,7 +91,9 @@ class AsyncEvaluationRunnerTest {
                 summaryRepository,
                 responseEvaluationRepository,
                 skillScoreRepository,
-                txTemplate);
+                txTemplate,
+                3,
+                Duration.ofMinutes(30));
     }
 
     @Test
@@ -102,11 +106,7 @@ class AsyncEvaluationRunnerTest {
         UUID q2 = UUID.randomUUID();
 
         FormulaVersionEntity formula = formulaWithId(configId, q1, q2);
-        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId))
-                .thenReturn(Optional.of(formula));
-        when(evaluationRunRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
-        when(evaluationRunRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(summaryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Queued queued = givenQueuedRun(configId, attemptId, inviteId, formula);
 
         when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
                 configId,
@@ -139,34 +139,76 @@ class AsyncEvaluationRunnerTest {
                 true, 3, "wrap it in a transaction", "Understands atomicity", null);
         when(judge.judge(any())).thenReturn(new TwoRunResponseJudge.TwoRunResult("evaluator-judge-v1", validRun, validRun));
 
-        runner.executeEvaluation(new AttemptCompletedEvent(attemptId, configId, inviteId));
+        runner.executeRun(queued.runId());
 
         ArgumentCaptor<JudgeContextInput> judgeCaptor = ArgumentCaptor.forClass(JudgeContextInput.class);
         verify(judge, times(1)).judge(judgeCaptor.capture());
         assertThat(judgeCaptor.getValue().entryId()).isEqualTo(timedOutWithText.entryId());
         assertThat(judgeCaptor.getValue().timedOut()).isTrue();
 
-        ArgumentCaptor<CandidateEvaluationSummaryEntity> summaryCaptor =
-                ArgumentCaptor.forClass(CandidateEvaluationSummaryEntity.class);
-        verify(summaryRepository).save(summaryCaptor.capture());
-        assertThat(summaryCaptor.getValue().getCoverage()).isEqualByComparingTo("0.5000");
-        assertThat(summaryCaptor.getValue().getReleaseStatus()).isEqualTo("auto_released");
+        assertThat(queued.summary().isCompleted()).isTrue();
+        assertThat(queued.summary().getCoverage()).isEqualByComparingTo("0.5000");
+        assertThat(queued.summary().getReleaseStatus()).isEqualTo("auto_released");
+        assertThat(queued.run().getStatus()).isEqualTo("COMPLETED");
     }
 
     @Test
-    void duplicateAttemptCompletedEventIsIdempotentWithZeroLlmCalls() {
+    void enqueuePersistsQueuedRunAndSummaryBeforeAnyLlmWork() {
         UUID configId = UUID.randomUUID();
         UUID attemptId = UUID.randomUUID();
         UUID inviteId = UUID.randomUUID();
         FormulaVersionEntity formula = formulaWithId(configId, UUID.randomUUID());
-
         when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId))
                 .thenReturn(Optional.of(formula));
-        when(evaluationRunRepository.findByIdempotencyKey(any()))
-                .thenReturn(Optional.of(new EvaluationRunEntity(
-                        attemptId, configId, formula, "evaluator-judge-v1", "COMPLETED", "dup")));
+        when(assessmentQueryService.getTranscriptForAttempt(attemptId)).thenReturn(new ImmutableTranscriptView(
+                attemptId, configId, inviteId, "v1", 2, Instant.now(), Instant.now(), List.of()));
+        when(evaluationRunRepository.save(any())).thenAnswer(inv -> {
+            EvaluationRunEntity saved = inv.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", UUID.randomUUID());
+            return saved;
+        });
 
-        runner.executeEvaluation(new AttemptCompletedEvent(attemptId, configId, inviteId));
+        UUID runId = runner.enqueue(new AttemptCompletedEvent(attemptId, configId, inviteId));
+
+        assertThat(runId).isNotNull();
+        ArgumentCaptor<EvaluationRunEntity> runCaptor = ArgumentCaptor.forClass(EvaluationRunEntity.class);
+        verify(evaluationRunRepository).save(runCaptor.capture());
+        assertThat(runCaptor.getValue().getStatus()).isEqualTo("QUEUED");
+        assertThat(runCaptor.getValue().getAttemptCount()).isZero();
+        ArgumentCaptor<CandidateEvaluationSummaryEntity> summaryCaptor =
+                ArgumentCaptor.forClass(CandidateEvaluationSummaryEntity.class);
+        verify(summaryRepository).save(summaryCaptor.capture());
+        assertThat(summaryCaptor.getValue().getEvaluationStatus()).isEqualTo("QUEUED");
+        assertThat(summaryCaptor.getValue().getAttemptNo()).isEqualTo(2);
+        assertThat(summaryCaptor.getValue().getReleaseStatus()).isEqualTo("pending");
+        verify(judge, never()).judge(any());
+    }
+
+    @Test
+    void duplicateAttemptCompletedEventEnqueuesNothingEvenAfterANewFormulaVersion() {
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        FormulaVersionEntity formula = formulaWithId(configId, UUID.randomUUID());
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "COMPLETED", "dup");
+        when(summaryRepository.findByAttemptId(attemptId))
+                .thenReturn(Optional.of(CandidateEvaluationSummaryEntity.queued(
+                        attemptId, configId, inviteId, 1, formula, run)));
+
+        UUID runId = runner.enqueue(new AttemptCompletedEvent(attemptId, configId, inviteId));
+
+        assertThat(runId).isNull();
+        verify(evaluationRunRepository, never()).save(any());
+        verify(summaryRepository, never()).save(any());
+        verify(judge, never()).judge(any());
+    }
+
+    @Test
+    void runThatAnotherWorkerOwnsOrThatIsExhaustedMakesZeroLlmCalls() {
+        UUID runId = UUID.randomUUID();
+        when(evaluationRunRepository.claim(any(), any(), any(), anyInt())).thenReturn(0);
+
+        runner.executeRun(runId);
 
         verify(judge, never()).judge(any());
         verify(summaryRepository, never()).save(any());
@@ -174,18 +216,14 @@ class AsyncEvaluationRunnerTest {
     }
 
     @Test
-    void failureIsolatesRunAsFailedWithoutPersistingPartialSkillScores() {
+    void failureKeepsRunRetryableAsFailedWithoutPersistingPartialSkillScores() {
         UUID configId = UUID.randomUUID();
         UUID attemptId = UUID.randomUUID();
         UUID inviteId = UUID.randomUUID();
         UUID skillId = UUID.randomUUID();
         UUID q1 = UUID.randomUUID();
         FormulaVersionEntity formula = formulaWithId(configId, q1);
-
-        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId))
-                .thenReturn(Optional.of(formula));
-        when(evaluationRunRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
-        when(evaluationRunRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Queued queued = givenQueuedRun(configId, attemptId, inviteId, formula);
         when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
                 configId,
                 List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)),
@@ -195,13 +233,37 @@ class AsyncEvaluationRunnerTest {
                 List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.6000"), List.of(skillId)))));
         when(assessmentQueryService.getTranscriptForAttempt(attemptId)).thenThrow(new RuntimeException("upstream down"));
 
-        runner.executeEvaluation(new AttemptCompletedEvent(attemptId, configId, inviteId));
+        runner.executeRun(queued.runId());
 
-        ArgumentCaptor<EvaluationRunEntity> runCaptor = ArgumentCaptor.forClass(EvaluationRunEntity.class);
-        verify(evaluationRunRepository, times(2)).save(runCaptor.capture());
-        assertThat(runCaptor.getAllValues().getLast().getStatus()).isEqualTo("FAILED");
+        assertThat(queued.run().getStatus()).isEqualTo("FAILED");
+        assertThat(queued.run().getErrorMessage()).contains("upstream down");
+        assertThat(queued.summary().getEvaluationStatus()).isEqualTo("FAILED");
         verify(skillScoreRepository, never()).saveAll(any());
-        verify(summaryRepository, never()).save(any());
+    }
+
+    private Queued givenQueuedRun(UUID configId, UUID attemptId, UUID inviteId, FormulaVersionEntity formula) {
+        UUID runId = UUID.randomUUID();
+        UUID summaryId = UUID.randomUUID();
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", attemptId.toString());
+        ReflectionTestUtils.setField(run, "id", runId);
+        CandidateEvaluationSummaryEntity summary =
+                CandidateEvaluationSummaryEntity.queued(attemptId, configId, inviteId, 1, formula, run);
+        ReflectionTestUtils.setField(summary, "id", summaryId);
+
+        // The real claim UPDATE flips the row to RUNNING; the failure path only fails a RUNNING run.
+        when(evaluationRunRepository.claim(any(), any(), any(), anyInt())).thenAnswer(inv -> {
+            ReflectionTestUtils.setField(run, "status", "RUNNING");
+            return 1;
+        });
+        when(evaluationRunRepository.findById(runId)).thenReturn(Optional.of(run));
+        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId))
+                .thenReturn(Optional.of(formula));
+        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(summaryRepository.findById(summaryId)).thenReturn(Optional.of(summary));
+        return new Queued(runId, run, summary);
+    }
+
+    private record Queued(UUID runId, EvaluationRunEntity run, CandidateEvaluationSummaryEntity summary) {
     }
 
     private static FormulaVersionEntity formulaWithId(UUID configId, UUID... questionIds) {

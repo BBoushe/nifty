@@ -18,6 +18,7 @@ import de.fhdortmund.nifty.evaluation.repository.FormulaVersionRepository;
 import de.fhdortmund.nifty.evaluation.repository.ResponseEvaluationEntity;
 import de.fhdortmund.nifty.evaluation.repository.ResponseEvaluationRepository;
 import de.fhdortmund.nifty.evaluation.repository.SkillScoreRepository;
+import de.fhdortmund.nifty.shared.exception.DomainException;
 import de.fhdortmund.nifty.shared.exception.FieldValidationException;
 import de.fhdortmund.nifty.studio.service.StudioQueryService;
 import de.fhdortmund.nifty.studio.service.view.EvaluatorQuestion;
@@ -32,6 +33,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 /**
  * US-EV-04b / REQ-FE-02, REQ-FE-05 / Decision 2.19:
@@ -102,7 +104,7 @@ class FormulaPresetServiceTest {
         FormulaVersionEntity v1 = new FormulaVersionEntity(
                 configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
         when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(v1));
-        when(formulaVersionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(formulaVersionRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
 
         EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, v1, "v1", "COMPLETED", "k1");
         CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
@@ -124,8 +126,33 @@ class FormulaPresetServiceTest {
         assertThat(result.recomputedCandidates()).isEqualTo(1);
         assertThat(summary.getFormulaVersion().getVersionNumber()).isEqualTo(2);
         assertThat(summary.getFitScore()).isEqualByComparingTo("3.00");
-        verify(formulaVersionRepository).save(any());
+        verify(formulaVersionRepository).saveAndFlush(any());
         verify(skillScoreRepository).saveAll(any());
+    }
+
+    @Test
+    void concurrentVersionCreationMapsTheUniqueViolationToConflict() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId, List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)), List.of()));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.5000"),
+                List.of(new ScoringQuestion(q1, new BigDecimal("2.00"), new BigDecimal("0.6000"), List.of(skillId)))));
+        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.empty());
+        when(formulaVersionRepository.saveAndFlush(any()))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uq_formula_version"));
+
+        assertThatThrownBy(() -> service.applyPreset(
+                configId, new FormulaPresetService.FormulaPresetRequest("WEIGHTED_MEAN", null)))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).getStatus())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(summaryRepository, never()).save(any());
     }
 
     @Test
@@ -182,6 +209,6 @@ class FormulaPresetServiceTest {
                 configId, new FormulaPresetService.FormulaPresetRequest("WEIGHTED_MEAN", "score * 2")))
                 .isInstanceOf(FieldValidationException.class);
 
-        verify(formulaVersionRepository, never()).save(any());
+        verify(formulaVersionRepository, never()).saveAndFlush(any());
     }
 }

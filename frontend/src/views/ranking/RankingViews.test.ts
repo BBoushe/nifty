@@ -60,6 +60,7 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
                 inviteId: 'inv-1',
                 attemptId: 'att-1',
                 attemptNo: 1,
+                evaluationStatus: 'COMPLETED',
                 fitScore: 3.25,
                 coverage: 0.8,
                 releaseStatus: 'flagged',
@@ -74,6 +75,38 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
                     avgConfidence: 0.52,
                     verifiedEvidenceCount: 2,
                     reviewStatus: 'flagged',
+                  },
+                  {
+                    skillId: 's2',
+                    skillName: 'Docker',
+                    status: 'N/A',
+                    value: null,
+                    avgConfidence: null,
+                    verifiedEvidenceCount: 0,
+                    reviewStatus: 'pending',
+                  },
+                ],
+              },
+              {
+                // Waiting retake: no scores yet, shown as evaluating (REQ-SM-07).
+                inviteId: 'inv-2',
+                attemptId: 'att-2',
+                attemptNo: 2,
+                evaluationStatus: 'RUNNING',
+                fitScore: null,
+                coverage: 0,
+                releaseStatus: 'pending',
+                flaggedCount: 0,
+                releasedAt: null,
+                cells: [
+                  {
+                    skillId: 's1',
+                    skillName: 'Spring Boot',
+                    status: 'N/A',
+                    value: null,
+                    avgConfidence: null,
+                    verifiedEvidenceCount: 0,
+                    reviewStatus: 'pending',
                   },
                   {
                     skillId: 's2',
@@ -116,6 +149,9 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     // Fit and coverage displayed separately from backend values
     expect(wrapper.text()).toContain('3.25')
     expect(wrapper.text()).toContain('80%')
+    // A waiting attempt shows as evaluating with N/A cells, never as a score
+    expect(wrapper.get('[data-testid="evaluation-status-att-2"]').text()).toContain('evaluating')
+    expect(wrapper.get('[data-testid="matrix-cell-att-2-s1"]').text()).toContain('N/A')
 
     // Bulk approve skips flagged items and shows feedback
     await wrapper.get('[data-testid="bulk-approve-btn"]').trigger('click')

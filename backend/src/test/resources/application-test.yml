@@ -12,6 +12,12 @@ spring:
   flyway:
     enabled: true
 
+# Tests call the runner directly; a background retry pass would race with their fixtures.
+nifty:
+  evaluation:
+    retry:
+      enabled: false
+
 # Quiet test output for humans and agents (REQ-BA-07)
 logging:
   level:
