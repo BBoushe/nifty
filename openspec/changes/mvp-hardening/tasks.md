@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 9 done (committed, not pushed).
-- **Next action:** Group C, Task 10 (soft-only auto-release).
+- **Current:** Tasks 1 to 10 done (Group C complete, committed, not pushed).
+- **Next action:** Group D, Task 11 (remove the invented-questions toggle). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -67,10 +67,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] Optional race test (Testcontainers, like `EvaluationReleaseRaceTest`): an approve and a release at the same time both finish, neither with a `500`. (Skipped: not cheap; the lock order is covered by the `InOrder` tests and the real-DB lifecycle tests.)
   - [x] GREEN per design §3. Commit `fix(evaluation): score with the stored formula version and lock the summary first`.
 
-- [ ] **Task 10: Soft-only auto-release (REQ-SM-13, Decision 2.31)**
-  - [ ] RED in `ReleaseGateEvaluatorTest`: zero hard skills with a complete profile → `AUTO_RELEASED`; zero hard skills without a profile → `PENDING`; 3 hard skills with no evidence → `PENDING`.
-  - [ ] GREEN: pass `hardSkillCount` (from `StudioQueryService`) and `softProfileComplete` (from `AssessmentQueryService`) into the gate. Add `// Decision 2.31`. Add one `AsyncEvaluationRunner` test for a soft-only attempt end to end with mocks.
-  - [ ] Commit `fix(evaluation): auto-release soft-skills-only attempts`.
+- [x] **Task 10: Soft-only auto-release (REQ-SM-13, Decision 2.31)**
+  - [x] RED in `ReleaseGateEvaluatorTest`: zero hard skills with a complete profile → `AUTO_RELEASED`; zero hard skills without a profile → `PENDING`; 3 hard skills with no evidence → `PENDING`.
+  - [x] GREEN: pass `hardSkillCount` (from `StudioQueryService`) and `softProfileComplete` (from `AssessmentQueryService`) into the gate. Add `// Decision 2.31`. Add one `AsyncEvaluationRunner` test for a soft-only attempt end to end with mocks.
+  - [x] Commit `fix(evaluation): auto-release soft-skills-only attempts`.
 
 ## Group D — Assessment and context backend
 
@@ -204,4 +204,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='AsyncEvaluationRunnerTest,EvaluationCleanupListenerTest,EvaluationReviewServiceTest'` → FAIL (3 tests: score 2.00 from the live weights instead of 1.33; approve and override wrote before any summary lock; the purge never locked); GREEN: `./mvnw -B test -Dtest='AsyncEvaluationRunnerTest,EvaluationCleanupListenerTest,EvaluationReviewServiceTest,EvaluationLifecycleIntegrationTest,EvaluationReleaseRaceTest,EvaluationSchemaAndCleanupTest,AsyncEvaluationRunnerIntegrationTest,FormulaPresetServiceTest,ArchitectureTest'` → exit 0 (59 run)
 - Contracts/Migrations added: `docs/api.md` (approve, override: lock order and stored weights); repository methods `ResponseEvaluationRepository.findAttemptIdById`, `CandidateEvaluationSummaryRepository.findByConfigIdForUpdate`; no migration
 - Decisions: no new ID. Design differed from code: (1) Formula version 1 was already created at enqueue (`ensureFormulaVersion`); the real gap was that `executeRun` read weights from the live `ScoringView`. It now reads them, and each pair's `questionWeight`, from `formulaVersion.getQuestionWeightsJson()`. A question missing from the snapshot falls back to the live weight, like `FormulaRecalculationHelper` does. (2) Approve and override resolve the attempt through a scalar `findAttemptIdById`, lock the summary with `findByAttemptIdForUpdate`, and only then load the response, so no stale response is in the session before the lock. The ownership check moved after the lock (a foreign professor still gets `404`). (3) The purge locks all summary rows of the configuration with one `findByConfigIdForUpdate` (ordered by id), the config-level form of the attempt lock, because the purge has a config ID and no attempt ID. (4) The optional Testcontainers race test is skipped. (5) The runner's own completion write keeps `findById`; nothing else writes an attempt's rows before it completes.
+- Open Questions: none
+
+### Task 10: Soft-only auto-release
+- Commits: (this commit) fix(evaluation): auto-release soft-skills-only attempts
+- Verification: RED: `./mvnw -B test -Dtest='ReleaseGateEvaluatorTest,AsyncEvaluationRunnerTest'` → FAIL (compile: `evaluateAttemptRelease` has no `hardSkillCount` and `softProfileComplete`); GREEN: `./mvnw -B test -Dtest='ReleaseGateEvaluatorTest,AsyncEvaluationRunnerTest,EvaluationSpecInvariantPropertyTest,EvaluationInvariantPropertyTest,EvaluationLifecycleIntegrationTest,AsyncEvaluationRunnerIntegrationTest,EvaluationRetrySchedulerIntegrationTest'` → exit 0 (52 run)
+- Contracts/Migrations added: none (`ReleaseGateEvaluator.evaluateAttemptRelease` gains two parameters; no endpoint change, so no `docs/api.md` change)
+- Decisions: 2.31 applied (`// Decision 2.31` in `ReleaseGateEvaluator`). Design differed from code: (1) `hardSkillCount` is `evaluatorView.skills().size()`, which the runner already loads; Studio skills are the hard skills (the BFI-10 traits are not Studio skills), so `StudioQueryService` needs no new method. (2) `softProfileComplete` uses the existing `AssessmentQueryService.getSoftSkillProfileForAttempt`: the assessment slice sets `softSkillScores` only when all five traits are scored, so a non-null map means complete. The lookup runs only when `hardSkillCount == 0`. (3) The gate changed its signature (no overload); the property tests pass 2 hard skills and no profile, which keeps their old behaviour. (4) The zero-hard-skills branch returns before the coverage check, because a soft-only assessment has no core questions and coverage is 0 by definition.
 - Open Questions: none

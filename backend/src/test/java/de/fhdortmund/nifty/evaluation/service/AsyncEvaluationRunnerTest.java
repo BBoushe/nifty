@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import de.fhdortmund.nifty.assessment.service.AssessmentQueryService;
 import de.fhdortmund.nifty.assessment.service.EntryOrigin;
 import de.fhdortmund.nifty.assessment.service.ImmutableTranscriptView;
+import de.fhdortmund.nifty.assessment.service.StudentSoftSkillProfile;
 import de.fhdortmund.nifty.assessment.service.TranscriptEntryView;
 import de.fhdortmund.nifty.context.service.dto.JudgeContextInput;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryEntity;
@@ -405,6 +406,45 @@ class AsyncEvaluationRunnerTest {
                 ArgumentCaptor.forClass(List.class);
         verify(responseEvaluationRepository).saveAll(responses.capture());
         assertThat(responses.getValue().getFirst().getQuestionWeight()).isEqualByComparingTo("1.00");
+    }
+
+    // REQ-SM-13 / Decision 2.31: an assessment with zero hard skills has no evidence to review; the BFI-10 decides.
+    @Test
+    void softSkillsOnlyAttemptWithACompleteProfileIsAutoReleasedWithoutAnyJudgeCall() {
+        Queued queued = evaluateSoftOnlyAttempt(Optional.of(new StudentSoftSkillProfile(
+                UUID.randomUUID(), UUID.randomUUID(),
+                Map.of("conscientiousness", 3.0, "agreeableness", 3.0, "neuroticism", 3.0,
+                        "extraversion", 3.0, "openness", 3.0))));
+
+        assertThat(queued.summary().isCompleted()).isTrue();
+        assertThat(queued.summary().getReleaseStatus()).isEqualTo("auto_released");
+        assertThat(queued.summary().getReleasedAt()).isNotNull();
+        verify(judge, never()).judge(any());
+    }
+
+    @Test
+    void softSkillsOnlyAttemptWithoutAProfileStaysPending() {
+        Queued queued = evaluateSoftOnlyAttempt(Optional.empty());
+
+        assertThat(queued.summary().isCompleted()).isTrue();
+        assertThat(queued.summary().getReleaseStatus()).isEqualTo("pending");
+        assertThat(queued.summary().getReleasedAt()).isNull();
+    }
+
+    private Queued evaluateSoftOnlyAttempt(Optional<StudentSoftSkillProfile> profile) {
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        Queued queued = givenQueuedRun(configId, attemptId, inviteId, formulaWithId(configId));
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(configId, List.of(), List.of()));
+        when(studioQueryService.scoringView(configId))
+                .thenReturn(new ScoringView(configId, new BigDecimal("0.7000"), List.of()));
+        when(assessmentQueryService.getTranscriptForAttempt(attemptId)).thenReturn(new ImmutableTranscriptView(
+                attemptId, configId, inviteId, "v1", 1, Instant.now().minusSeconds(60), Instant.now(), List.of()));
+        when(assessmentQueryService.getSoftSkillProfileForAttempt(attemptId)).thenReturn(profile);
+
+        runner.executeRun(queued.runId());
+        return queued;
     }
 
     private static ScoringView scoring(

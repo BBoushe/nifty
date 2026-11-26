@@ -80,15 +80,31 @@ class ReleaseGateEvaluatorTest {
 
     @Test
     void emptyResponseListOrUnknownCoverageNeverAutoReleases() {
+        // REQ-SM-13 scenario: 3 hard skills and no evaluated response stay pending (Decision 2.10 fail closed).
         ReleaseGateEvaluator.AttemptReleaseDecision empty = evaluator.evaluateAttemptRelease(
-                List.of(), new BigDecimal("1.0000"), new BigDecimal("0.7000"));
+                List.of(), new BigDecimal("1.0000"), new BigDecimal("0.7000"), 3, true);
         assertThat(empty.autoReleased()).isFalse();
         assertThat(empty.releaseStatus()).isEqualTo(ReleaseStatus.PENDING);
 
         assertThat(evaluator.evaluateAttemptRelease(
-                List.of(ReleaseStatus.PENDING), null, new BigDecimal("0.7000")).autoReleased()).isFalse();
+                List.of(ReleaseStatus.PENDING), null, new BigDecimal("0.7000"), 3, true).autoReleased()).isFalse();
         assertThat(evaluator.evaluateAttemptRelease(
-                List.of(ReleaseStatus.PENDING), new BigDecimal("0.9000"), null).autoReleased()).isFalse();
+                List.of(ReleaseStatus.PENDING), new BigDecimal("0.9000"), null, 3, true).autoReleased()).isFalse();
+    }
+
+    // REQ-SM-13 / Decision 2.31: with zero hard skills the complete BFI-10 profile is all the evidence there is.
+    @Test
+    void softSkillsOnlyAssessmentAutoReleasesWithACompleteProfileAndStaysPendingWithout() {
+        ReleaseGateEvaluator.AttemptReleaseDecision withProfile = evaluator.evaluateAttemptRelease(
+                List.of(), BigDecimal.ZERO, new BigDecimal("0.7000"), 0, true);
+        assertThat(withProfile.releaseStatus()).isEqualTo(ReleaseStatus.AUTO_RELEASED);
+        assertThat(withProfile.autoReleased()).isTrue();
+        assertThat(withProfile.flaggedCount()).isZero();
+
+        ReleaseGateEvaluator.AttemptReleaseDecision withoutProfile = evaluator.evaluateAttemptRelease(
+                List.of(), BigDecimal.ZERO, new BigDecimal("0.7000"), 0, false);
+        assertThat(withoutProfile.releaseStatus()).isEqualTo(ReleaseStatus.PENDING);
+        assertThat(withoutProfile.autoReleased()).isFalse();
     }
 
     @Test
@@ -96,7 +112,7 @@ class ReleaseGateEvaluatorTest {
         ReleaseGateEvaluator.AttemptReleaseDecision released = evaluator.evaluateAttemptRelease(
                 List.of(ReleaseStatus.PENDING, ReleaseStatus.PENDING),
                 new BigDecimal("0.9000"),
-                new BigDecimal("0.7000"));
+                new BigDecimal("0.7000"), 2, false);
         assertThat(released.releaseStatus()).isEqualTo(ReleaseStatus.AUTO_RELEASED);
         assertThat(released.flaggedCount()).isZero();
         assertThat(released.autoReleased()).isTrue();
@@ -104,7 +120,7 @@ class ReleaseGateEvaluatorTest {
         ReleaseGateEvaluator.AttemptReleaseDecision blockedByFlag = evaluator.evaluateAttemptRelease(
                 List.of(ReleaseStatus.PENDING, ReleaseStatus.FLAGGED),
                 new BigDecimal("0.9000"),
-                new BigDecimal("0.7000"));
+                new BigDecimal("0.7000"), 2, false);
         assertThat(blockedByFlag.releaseStatus()).isEqualTo(ReleaseStatus.FLAGGED);
         assertThat(blockedByFlag.flaggedCount()).isEqualTo(1);
         assertThat(blockedByFlag.autoReleased()).isFalse();
@@ -112,7 +128,7 @@ class ReleaseGateEvaluatorTest {
         ReleaseGateEvaluator.AttemptReleaseDecision blockedByCoverage = evaluator.evaluateAttemptRelease(
                 List.of(ReleaseStatus.PENDING),
                 new BigDecimal("0.6000"),
-                new BigDecimal("0.7000"));
+                new BigDecimal("0.7000"), 2, false);
         assertThat(blockedByCoverage.releaseStatus()).isEqualTo(ReleaseStatus.FLAGGED);
         assertThat(blockedByCoverage.flaggedCount()).isZero();
         assertThat(blockedByCoverage.autoReleased()).isFalse();

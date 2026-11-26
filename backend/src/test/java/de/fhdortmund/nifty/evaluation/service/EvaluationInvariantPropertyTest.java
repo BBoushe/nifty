@@ -329,7 +329,7 @@ class EvaluationInvariantPropertyTest {
                 statuses.add(st);
             }
             ReleaseGateEvaluator.AttemptReleaseDecision decision = releaseGateEvaluator
-                    .evaluateAttemptRelease(statuses, coverage, minCoverage);
+                    .evaluateAttemptRelease(statuses, coverage, minCoverage, 2, false);
 
             boolean expectedAuto = expectedFlagged == 0 && coverage.compareTo(minCoverage) >= 0;
             assertThat(decision.flaggedCount()).isEqualTo(expectedFlagged);

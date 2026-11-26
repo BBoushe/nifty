@@ -283,8 +283,12 @@ public class AsyncEvaluationRunner {
             for (int i = 0; i < evaluatedPairs.size(); i++) {
                 pairStatuses.add(evaluatedPairs.get(i).flagEvaluation().reviewStatus());
             }
+            // Decision 2.31: only an assessment with no hard skills asks for the BFI-10 profile (one lookup).
+            int hardSkillCount = evaluatorView.skills().size();
+            boolean softProfileComplete = hardSkillCount == 0 && hasCompleteSoftProfile(attemptId);
             ReleaseGateEvaluator.AttemptReleaseDecision releaseDecision = releaseGateEvaluator.evaluateAttemptRelease(
-                    pairStatuses, formulaResult.coverage(), scoringView.minCoverage());
+                    pairStatuses, formulaResult.coverage(), scoringView.minCoverage(), hardSkillCount,
+                    softProfileComplete);
 
             final String finalTemplateVersion = templateVersion;
 
@@ -367,6 +371,13 @@ public class AsyncEvaluationRunner {
             }
             markFailed(claim, msg);
         }
+    }
+
+    /** The assessment slice sets {@code softSkillScores} only after all five BFI-10 traits are scored. */
+    private boolean hasCompleteSoftProfile(UUID attemptId) {
+        return assessmentQueryService.getSoftSkillProfileForAttempt(attemptId)
+                .filter(profile -> profile.softSkillScores() != null)
+                .isPresent();
     }
 
     /** Keeps the run retryable (bounded by max attempts); a completed twin is never overwritten. */
