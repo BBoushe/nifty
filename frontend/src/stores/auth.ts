@@ -16,20 +16,35 @@ export const useAuthStore = defineStore('auth', () => {
   const me = ref<AuthMe | null>(null)
   const loaded = ref(false)
 
-  async function fetchMe(force = false): Promise<AuthMe | null> {
-    if (loaded.value && !force) return me.value
-    try {
-      me.value = await apiFetch<AuthMe>('/api/v1/auth/me')
-      loaded.value = true
-    } catch (error) {
-      if (error instanceof ApiProblem && error.status === 401) {
-        me.value = null
-        loaded.value = true
-      } else {
-        throw error
+  // App.vue and the route guard both check on a cold load: share one request, and apply only the newest answer,
+  // so a slow 401 from before an invite sign-in cannot overwrite the fresh candidate session (REQ-NAV-02).
+  let inFlight: Promise<AuthMe | null> | null = null
+  let latest = 0
+
+  function fetchMe(force = false): Promise<AuthMe | null> {
+    if (loaded.value && !force) return Promise.resolve(me.value)
+    if (inFlight && !force) return inFlight
+    const seq = ++latest
+    const request = (async () => {
+      try {
+        const result = await apiFetch<AuthMe>('/api/v1/auth/me')
+        if (seq === latest) {
+          me.value = result
+          loaded.value = true
+        }
+      } catch (error) {
+        if (!(error instanceof ApiProblem && error.status === 401)) throw error
+        if (seq === latest) {
+          me.value = null
+          loaded.value = true
+        }
+      } finally {
+        if (seq === latest) inFlight = null
       }
-    }
-    return me.value
+      return me.value
+    })()
+    inFlight = request
+    return request
   }
 
   async function ensureCsrfCookie(): Promise<void> {

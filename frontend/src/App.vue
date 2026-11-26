@@ -47,7 +47,8 @@ const activeClass = 'bg-slate-900 text-white hover:bg-slate-900'
                 Interview
               </RouterLink>
               <RouterLink
-                :to="`/assessment/results/${auth.me.configId ?? ''}`"
+                v-if="auth.me.configId"
+                :to="`/assessment/results/${auth.me.configId}`"
                 :class="linkClass"
                 :active-class="activeClass"
                 data-testid="nav-results"

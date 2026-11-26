@@ -54,3 +54,11 @@
 - Contracts/Migrations added: none
 - Decisions: none (chat results link reads `configId` from the auth store; chat test now mounts pinia and router)
 - Open Questions: none
+
+### Review fix (orchestrator, after the cold review APPROVE)
+- Commits: `fix(frontend): share one /auth/me request and keep the newest answer`
+- Verification: RED: `npx vitest run src/stores/auth.test.ts` → FAIL (2 new tests: two concurrent checks made 2 requests; a slow 401 from before an invite sign-in overwrote the candidate session); GREEN: same → exit 0 (5 run); `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (113 run)
+- Contracts/Migrations added: none. `fetchMe` shares an in-flight request and applies only the newest answer; the header hides "Results" when `configId` is missing.
+- Decisions: none
+- Open Questions: backend down still leaves `/` blank with no message (not a regression); a failed logout gives no message.
+
