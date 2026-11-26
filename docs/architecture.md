@@ -196,7 +196,8 @@ Each feature owns one folder under `frontend/src/views/<feature>/`: `auth`, `stu
 
 | Path | Purpose |
 |---|---|
-| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json` and sends `X-XSRF-TOKEN` on state-changing requests. `postSse()` reads an SSE stream from a `POST` with the same CSRF header. |
+| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json` and sends `X-XSRF-TOKEN` on state-changing requests. `postSse()` reads an SSE stream from a `POST` with the same CSRF header. `postJsonOrSse()` returns JSON or SSE events, for the assessment start. |
+| `src/views/assessment/` | `AssessmentChatView.vue` (`/assessment`): streamed interview, countdown to the server `expiresAt` with auto-submit at zero, 4000-character answer box. `Bfi10Form.vue`: the 10 BFI-10 items. `ResultsView.vue` belongs to `evaluation`. |
 | `src/stores/auth.ts` | Pinia session store (`me`, `fetchMe`, `login`, `logout`) backed by `/api/v1/auth/**`. |
 | `src/views/auth/` | `SignInView.vue` (`/sign-in`) and `guard.ts` (`/ranking/*` needs `PROFESSOR`, `/assessment/*` needs `CANDIDATE`). |
 | `src/style.css` | The design tokens as Tailwind `@theme` variables. |

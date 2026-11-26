@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/assessment-chat` (branch off `dev`)
 - **Worktree:** `../nifty-assessment-chat`
-- **Current:** Ready to start in parallel against mocked `StudioQueryService`, `ContextCreationService`, and `AuthContextService`
-- **Next action:** Start US-AC-01
+- **Current:** US-AC-01..06 done and committed locally (not pushed). Delivery not started.
+- **Next action:** Run `## Delivery`: merge `origin/dev`, full verification, archive, then ask the human before push and PR/MR.
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -41,11 +41,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
   - [x] Commit: `feat(assessment): add candidate session SSE and BFI-10 endpoints`
 
-- [ ] **US-AC-06: Vue 3.5 + PrimeVue Chat & BFI-10 UI (`frontend/src/views/assessment/`)**
-  - [ ] Write RED Vitest tests verifying countdown auto-submit at zero, zero pause/resume button, zero mid-interview score display, SSE streaming via shared `fetch` + `ReadableStream` client, refresh resume, 10-item BFI-10 form validation, and an answer box with `maxlength=4000` and a character counter (REQ-AC-20).
-  - [ ] Implement `AssessmentChatView.vue` and `Bfi10Form.vue` under `frontend/src/views/assessment/` (keep `ResultsView.vue` untouched for `evaluation`).
-  - [ ] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
-  - [ ] Commit: `feat(frontend): add timed SSE assessment chat and BFI-10 views`
+- [x] **US-AC-06: Vue 3.5 + PrimeVue Chat & BFI-10 UI (`frontend/src/views/assessment/`)**
+  - [x] Write RED Vitest tests verifying countdown auto-submit at zero, zero pause/resume button, zero mid-interview score display, SSE streaming via shared `fetch` + `ReadableStream` client, refresh resume, 10-item BFI-10 form validation, and an answer box with `maxlength=4000` and a character counter (REQ-AC-20).
+  - [x] Implement `AssessmentChatView.vue` and `Bfi10Form.vue` under `frontend/src/views/assessment/` (keep `ResultsView.vue` untouched for `evaluation`).
+  - [x] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
+  - [x] Commit: `feat(frontend): add timed SSE assessment chat and BFI-10 views`
 
 ## Delivery
 
@@ -91,3 +91,10 @@
 - Contracts/Migrations added: `POST/GET /api/v1/assessment/sessions/**` (`docs/api.md` §4 + §4.1 SSE events), `spring.mvc.async.request-timeout: 180s`
 - Decisions: 2.26 (`@Size(max = 4000)` rejects before the service), 1.19 (no transcript route here)
 - Open Questions: candidate sessions return `403` until `invite-links` implements `AuthContextService.currentCandidate()`
+
+### US-AC-06 (2026-11-26)
+- Commits: `fix(assessment): send attemptId in the question SSE event`, `feat(frontend): add timed SSE assessment chat and BFI-10 views`
+- Verification: RED: `npx vitest run src/views/assessment src/api/client.test.ts` → FAIL (components and `postJsonOrSse` missing); GREEN: `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (81 tests)
+- Contracts/Migrations added: `postJsonOrSse` in `src/api/client.ts` (JSON or SSE start), `src/api/assessment.ts`; `question` SSE event now carries `attemptId`; `AssessmentView.vue` placeholder replaced by `AssessmentChatView.vue`
+- Decisions: 2.14 (countdown from server `expiresAt`, auto-submit at zero, no pause), 2.26 (`maxlength=4000` + counter), REQ-AC-03 (no score, weight or trait text)
+- Open Questions: none
