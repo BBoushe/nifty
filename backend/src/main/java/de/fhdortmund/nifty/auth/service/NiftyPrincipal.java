@@ -8,10 +8,29 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * The authentication principal of a Nifty session (Decision 1.23). For a professor, {@code id} is the account ID.
- * Serializable, because the server session stores it.
+ * The authentication principal of a Nifty session (Decision 1.23).
+ * For a professor, {@code id} is the account ID. For a candidate, {@code id} equals {@code inviteId}
+ * and {@code inviteId}, {@code configId}, {@code candidateRef} bind the session to one invite.
  */
-public record NiftyPrincipal(UUID id, Role role) implements Serializable {
+public record NiftyPrincipal(
+        UUID id,
+        Role role,
+        UUID inviteId,
+        UUID configId,
+        String candidateRef
+) implements Serializable {
+
+    public NiftyPrincipal(UUID id, Role role) {
+        this(id, role, null, null, null);
+    }
+
+    public static NiftyPrincipal professor(UUID professorId) {
+        return new NiftyPrincipal(professorId, Role.PROFESSOR, null, null, null);
+    }
+
+    public static NiftyPrincipal candidate(UUID inviteId, UUID configId, String candidateRef) {
+        return new NiftyPrincipal(inviteId, Role.CANDIDATE, inviteId, configId, candidateRef);
+    }
 
     /** The principal of the current request, or empty when nobody signed in through Nifty. */
     public static Optional<NiftyPrincipal> current() {

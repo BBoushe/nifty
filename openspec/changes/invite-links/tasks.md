@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/invite-links`
 - **Worktree:** `../nifty-invite-links`
-- **Current:** Task 1 done
-- **Next action:** Task 2
+- **Current:** Task 2 done
+- **Next action:** Task 3
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -17,9 +17,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(auth): invite links with hashed tokens`
 
 ### Task 2: US-IL-03 Invite sign-in and candidate principal (REQ-AA-04)
-- [ ] RED: `InviteSignInTest` (MockMvc): valid token → `200` + session, `GET /api/v1/auth/me` shows `CANDIDATE` with `inviteId` and `configId`; unknown and revoked tokens → same `401`; `currentCandidate()` returns the bound invite.
-- [ ] GREEN: `POST /api/v1/auth/invite/{token}`, `NiftyPrincipal` candidate fields, `currentCandidate()`.
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(auth): candidate sign-in by invite link`
+- [x] RED: `InviteSignInTest` (MockMvc): valid token → `200` + session, `GET /api/v1/auth/me` shows `CANDIDATE` with `inviteId` and `configId`; unknown and revoked tokens → same `401`; `currentCandidate()` returns the bound invite.
+- [x] GREEN: `POST /api/v1/auth/invite/{token}`, `NiftyPrincipal` candidate fields, `currentCandidate()`.
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(auth): candidate sign-in by invite link`
 
 ### Task 3: US-IL-04 Revocation, scope and purge (REQ-AA-05, REQ-AA-08)
 - [ ] RED: revoking ends an open candidate session on the next request (`401`); `AssessmentDeletedEvent` deletes the config's invites in the same transaction; a candidate gets `403` on `/api/v1/ranking/**`.
@@ -50,4 +50,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=InviteServiceTest` → FAIL (compile: `InviteService`, `TokenHasher`, `CreatedInvite`, `InviteSummary` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (181 run, 0 failed)
 - Contracts/Migrations added: `V4__auth_invites.sql`, `InviteEntity`, `InviteRepository`, `TokenHasher`, `InviteService`, `InviteController` (`/api/v1/ranking/studio/configs/{configId}/invites/**`)
 - Decisions: applies 1.10, 1.17
+- Open Questions: none
+
+### Task 2 (US-IL-03, REQ-AA-04)
+- Commits: `feat(auth): candidate sign-in by invite link`
+- Verification: RED: `./mvnw -B test -Dtest=InviteSignInTest` → FAIL (compile: `NiftyPrincipal.candidate(...)` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (184 run, 0 failed)
+- Contracts/Migrations added: `POST /api/v1/auth/invite/{token}`, `NiftyPrincipal` candidate fields, `AuthContextServiceImpl.currentCandidate()`, `GET /api/v1/auth/me` candidate fields; capped Hikari test pool size to 3 in `application-test.yml`
+- Decisions: applies 1.17, 1.23
 - Open Questions: none
