@@ -1,13 +1,13 @@
 # Tasks: Assessment Chat (`assessment-chat`)
 
 ## Status
-- **Branch:** `feat/assessment-chat` (branch off `dev`)
-- **Worktree:** `../nifty-assessment-chat`
-- **Current:** US-AC-01..06, invariant/mutation round and cold-review fixes done; change archived; branch pushed and PR open.
-- **Next action:** Teammate A runs CI, a cold review and the merge on GitHub. Agents never merge.
+- **Branch:** `feat/assessment-chat` (merged with `dev` at 7015d7d)
+- **Worktree:** `../nifty-review-assessment-chat` (orchestrator review folder)
+- **Current:** US-AC-01..06, review fixes, `dev` merge (Decision 2.28 renumbered to 2.29; `V6__assessment.sql` shipped as `V10__assessment.sql`), cold review APPROVE, spec invariant property tests added.
+- **Next action:** human merge approval, then `forge.mjs sync dev`.
 - **Uncommitted changes:** none
 - **PR / MR:** GitHub #28 (https://github.com/BBoushe/nifty/pull/28)
-- **Open review findings:** none blocking; `@EnableScheduling` kept in the slice by contract (§1); `context` template wording for `followUpLimit = 0` reported to its owner
+- **Open review findings:** none blocking. Follow-ups: `followUpLimit = 0` prompt wording in `context`; `buildInterviewerContext` outside the try in `AssessmentSessionService`; abandoned BFI-10 attempts never complete (needs a decision); retake hidden by a COMPLETED attempt id in sessionStorage; MVC async executor to check at boot.
 
 ## Tasks
 
@@ -105,3 +105,11 @@
 - Contracts/Migrations added: `serverTime` on the `question` event and `SessionStateResponse`; `nifty.assessment.stale-reply-seconds`; `Bfi10SubmitRequest.items` `@NotNull`
 - Decisions: 2.29 (gap-fills; recorded as 2.28 on the branch, renumbered on merge because dev took 2.28). Not changed: `@EnableScheduling` stays in `assessment/service`, as `00-parallel-waves-and-contracts.md` §1 prescribes.
 - Open Questions: context template tells the LLM "Ask no follow-up ... the next question comes next" for a core question with `followUpLimit = 0` (context owner)
+
+### Task 9 (Pre-merge property tests, orchestrator)
+- Commits: `test(assessment): add spec invariant property tests`
+- Verification: tests only, no production change; GREEN on first run: `./mvnw -B -q test -Dtest='AssessmentSpecInvariantPropertyTest'` → exit 0 (13 run, about 2 s, seed `20261126`); full merged suite `cd backend && ./mvnw -B test` → exit 0 (426 run)
+- Contracts/Migrations added: none. The migration from US-AC-01 shipped as `V10__assessment.sql` (planned `V6`), because `V7`–`V9` merged to `dev` first and Flyway runs in order.
+- Decisions: 2.29 (was 2.28 on the branch), 4.3, 2.26, 2.20
+- Open Questions: the 4000 limit counts UTF-16 units (an emoji counts 2); a blank on-time answer is stored with `timedOut=false`; `expiresAt - serverTime` can be negative until the expiry sweep runs.
+
