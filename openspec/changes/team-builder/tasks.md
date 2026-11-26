@@ -93,7 +93,7 @@
 - Open Questions: none
 
 ### US-TB-06 Team Builder UI
-- Commits: <sha-us-tb-06> feat(frontend): add Team Builder UI with drag-and-drop balance charts
+- Commits: bdebf30 feat(frontend): add Team Builder UI with drag-and-drop balance charts
 - Verification: RED: `cd frontend && npx vitest run src/views/teams` → FAIL (TeamBuilderView.vue absent, import unresolved); GREEN: `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (86 tests, 6 new)
 - Contracts/Migrations added: `frontend/src/api/teams.ts`, `frontend/src/views/teams/{TeamBuilderView,TeamCard}.vue`, route `/ranking/teams/:configId`; migrations none. No link to the page exists yet in `views/studio/` (not owned by this change).
 - Decisions: 1.20, 4.3 (zero client-side maths, traits shown to the professor only)
