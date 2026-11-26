@@ -52,9 +52,12 @@ class RankingEvaluationControllerTest {
         UUID responseEvalId = UUID.randomUUID();
 
         when(reviewService.getMatrix(configId)).thenReturn(new EvaluationDtos.MatrixResponse(
-                configId, UUID.randomUUID(), 1, "WEIGHTED_MEAN", new BigDecimal("0.7000"), List.of(), List.of()));
+                configId, UUID.randomUUID(), 1, "WEIGHTED_MEAN", new BigDecimal("0.7000"), List.of(),
+                List.of(new EvaluationDtos.MatrixCandidateRow(
+                        UUID.randomUUID(), "anna.schmidt", attemptId, 1, "RUNNING", null, BigDecimal.ZERO,
+                        ReleaseStatus.PENDING, 0, null, List.of()))));
         when(reviewService.getAttemptDrilldown(attemptId)).thenReturn(new EvaluationDtos.AttemptEvaluationDrilldownResponse(
-                attemptId, configId, UUID.randomUUID(), 1, new BigDecimal("3.00"), BigDecimal.ONE,
+                attemptId, configId, UUID.randomUUID(), "anna.schmidt", 1, "COMPLETED", new BigDecimal("3.00"), BigDecimal.ONE,
                 new BigDecimal("0.7000"), ReleaseStatus.AUTO_RELEASED, 0, Instant.now(), List.of(), List.of()));
         when(reviewService.approveEvaluation(responseEvalId)).thenReturn(
                 new EvaluationDtos.ApproveEvaluationResponse(
@@ -73,11 +76,14 @@ class RankingEvaluationControllerTest {
 
         mockMvc.perform(get("/api/v1/ranking/configs/{id}/matrix", configId).with(user("p").roles("PROFESSOR")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.formulaPreset").value("WEIGHTED_MEAN"));
+                .andExpect(jsonPath("$.formulaPreset").value("WEIGHTED_MEAN"))
+                .andExpect(jsonPath("$.rows[0].candidateRef").value("anna.schmidt"));
 
         mockMvc.perform(get("/api/v1/ranking/attempts/{id}/evaluations", attemptId).with(user("p").roles("PROFESSOR")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.releaseStatus").value("auto_released"));
+                .andExpect(jsonPath("$.releaseStatus").value("auto_released"))
+                .andExpect(jsonPath("$.evaluationStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.candidateRef").value("anna.schmidt"));
 
         mockMvc.perform(post("/api/v1/ranking/evaluations/{id}/approve", responseEvalId)
                         .with(user("p").roles("PROFESSOR"))

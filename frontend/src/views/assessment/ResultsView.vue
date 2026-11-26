@@ -5,7 +5,7 @@ import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { formatRatioPercent, formatScore, getCandidateResults } from '@/api/evaluation'
+import { formatRatioPercent, formatScore, getCandidateResults, POLL_INTERVAL_MS } from '@/api/evaluation'
 import ScoreBadge from '@/components/ScoreBadge.vue'
 import TranscriptDialog from '@/components/TranscriptDialog.vue'
 import { fromCandidateTurn } from '@/components/transcript'
@@ -18,6 +18,8 @@ const resultsQuery = useQuery({
   queryKey: computed(() => ['candidate-results', configId.value]),
   queryFn: () => getCandidateResults(configId.value),
   enabled: computed(() => Boolean(configId.value)),
+  // REQ-CR-07: while the results are not released, check again until the professor releases them.
+  refetchInterval: (query) => (query.state.data?.released === false ? POLL_INTERVAL_MS : false),
 })
 </script>
 
@@ -49,8 +51,16 @@ const resultsQuery = useQuery({
       <h2 class="text-lg font-semibold text-ink">Your results are pending review</h2>
       <p class="text-sm text-ink-muted">
         Your assessment is currently being reviewed. Scores, evidence quotes, formula weights, and full
-        transcript details will appear here once released.
+        transcript details will appear here once released. This page checks again every few seconds.
       </p>
+      <Button
+        label="Refresh"
+        size="small"
+        severity="secondary"
+        :loading="resultsQuery.isFetching.value"
+        data-testid="results-refresh-btn"
+        @click="resultsQuery.refetch()"
+      />
     </div>
 
     <!-- REQ-CR-01, REQ-CR-04..06: Post-release transparency -->

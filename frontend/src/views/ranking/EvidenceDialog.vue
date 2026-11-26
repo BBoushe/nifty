@@ -11,7 +11,9 @@ import {
   formatScore,
   getAttemptEvaluations,
   getTranscriptExport,
+  isEvaluationPending,
   overrideEvaluation,
+  POLL_INTERVAL_MS,
   releaseAttempt,
 } from '@/api/evaluation'
 import ScoreBadge from '@/components/ScoreBadge.vue'
@@ -45,6 +47,8 @@ const drilldownQuery = useQuery({
   queryKey: computed(() => ['attempt-evaluations', props.attemptId]),
   queryFn: () => getAttemptEvaluations(props.attemptId!),
   enabled: computed(() => Boolean(visible.value && props.attemptId)),
+  // REQ-SM-11: poll while the evaluator has not finished.
+  refetchInterval: (query) => (isEvaluationPending(query.state.data?.evaluationStatus) ? POLL_INTERVAL_MS : false),
 })
 
 // REQ-SM-08: the full conversation with timestamps, durationSec, and anomaly markers.
@@ -79,6 +83,17 @@ const candidateName = computed(() => drilldownQuery.data.value?.inviteId.slice(0
 const isAlreadyReleased = computed(() => {
   const status = drilldownQuery.data.value?.releaseStatus
   return status === 'auto_released' || status === 'approved' || status === 'overridden'
+})
+
+// REQ-SM-11: Release needs a COMPLETED evaluation, zero flags and no earlier release. The tooltip names the first reason.
+const releaseBlockReason = computed(() => {
+  const data = drilldownQuery.data.value
+  if (!data) return 'Evidence is still loading.'
+  if (isEvaluationPending(data.evaluationStatus)) return 'Evaluation is still running.'
+  if (data.evaluationStatus === 'FAILED') return 'Evaluation failed, so there is nothing to release.'
+  if (data.flaggedCount > 0) return 'Resolve all flagged items first.'
+  if (isAlreadyReleased.value) return 'Already released.'
+  return null
 })
 
 const overrideMutation = useMutation({
@@ -311,6 +326,14 @@ async function downloadTranscript() {
 
     <template #footer>
       <Button label="Close" size="small" severity="secondary" text data-testid="evidence-close-btn" @click="visible = false" />
+      <Button
+        label="Refresh"
+        size="small"
+        severity="secondary"
+        :loading="drilldownQuery.isFetching.value"
+        data-testid="evidence-refresh-btn"
+        @click="drilldownQuery.refetch()"
+      />
       <Button label="Export JSON" size="small" severity="secondary" @click="downloadTranscript" />
       <Button
         label="View transcript"
@@ -319,14 +342,17 @@ async function downloadTranscript() {
         data-testid="view-transcript-btn"
         @click="openTranscript()"
       />
-      <Button
-        label="Release Attempt"
-        size="small"
-        :disabled="!drilldownQuery.data.value || drilldownQuery.data.value.flaggedCount > 0 || isAlreadyReleased"
-        :loading="releaseMutation.isPending.value"
-        data-testid="release-attempt-btn"
-        @click="releaseMutation.mutate()"
-      />
+      <!-- A disabled button gets no hover events, so the span carries the reason as a native tooltip. -->
+      <span :title="releaseBlockReason ?? undefined" data-testid="release-attempt-tip">
+        <Button
+          label="Release Attempt"
+          size="small"
+          :disabled="releaseBlockReason !== null"
+          :loading="releaseMutation.isPending.value"
+          data-testid="release-attempt-btn"
+          @click="releaseMutation.mutate()"
+        />
+      </span>
     </template>
   </Dialog>
 

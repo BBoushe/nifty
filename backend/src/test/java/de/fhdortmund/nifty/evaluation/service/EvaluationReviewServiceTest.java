@@ -13,6 +13,7 @@ import de.fhdortmund.nifty.assessment.service.AssessmentQueryService;
 import de.fhdortmund.nifty.audit.service.AuditActorRole;
 import de.fhdortmund.nifty.audit.service.AuditService;
 import de.fhdortmund.nifty.auth.service.AuthContextService;
+import de.fhdortmund.nifty.auth.service.InviteService;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryEntity;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryRepository;
 import de.fhdortmund.nifty.evaluation.repository.EvaluationRunEntity;
@@ -56,10 +57,12 @@ class EvaluationReviewServiceTest {
     private CandidateEvaluationSummaryRepository summaryRepository;
     private ResponseEvaluationRepository responseEvaluationRepository;
     private SkillScoreRepository skillScoreRepository;
+    private InviteService inviteService;
     private EvaluationReviewService service;
 
     @BeforeEach
     void setUp() {
+        inviteService = mock(InviteService.class);
         studioQueryService = mock(StudioQueryService.class);
         authContextService = mock(AuthContextService.class);
         auditService = mock(AuditService.class);
@@ -81,7 +84,44 @@ class EvaluationReviewServiceTest {
                 summaryRepository,
                 responseEvaluationRepository,
                 skillScoreRepository,
-                recalc);
+                recalc,
+                inviteService);
+    }
+
+    // REQ-SM-11, REQ-SM-12: the professor UI needs the candidate name and the evaluation status.
+    @Test
+    void matrixRowAndDrilldownCarryCandidateRefAndEvaluationStatus() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId, List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)), List.of()));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId, new BigDecimal("0.7000"), List.of()));
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(formula));
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-ref");
+        CandidateEvaluationSummaryEntity summary = CandidateEvaluationSummaryEntity.queued(
+                attemptId, configId, inviteId, 1, formula, run);
+        summary.markEvaluationStatus("RUNNING");
+        when(summaryRepository.findLatestPerInvite(configId)).thenReturn(List.of(summary));
+        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(skillScoreRepository.findBySummaryIdIn(any())).thenReturn(List.of());
+        when(skillScoreRepository.findBySummaryId(any())).thenReturn(List.of());
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of());
+        when(inviteService.candidateRefs(configId)).thenReturn(Map.of(inviteId, "anna.schmidt"));
+
+        EvaluationDtos.MatrixResponse matrix = service.getMatrix(configId);
+        EvaluationDtos.AttemptEvaluationDrilldownResponse drilldown = service.getAttemptDrilldown(attemptId);
+
+        assertThat(matrix.rows().getFirst().candidateRef()).isEqualTo("anna.schmidt");
+        assertThat(drilldown.candidateRef()).isEqualTo("anna.schmidt");
+        assertThat(drilldown.evaluationStatus()).isEqualTo("RUNNING");
     }
 
     @Test

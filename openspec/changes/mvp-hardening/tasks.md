@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 and 2 done (Group A complete, committed, not pushed).
-- **Next action:** Task 3 (Group B, live status and Release state; needs the backend `evaluationStatus` and `candidateRef` fields first).
+- **Current:** Tasks 1 to 3 done (committed, not pushed).
+- **Next action:** Task 4 (names, route sync, Teams link, cache key).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -29,11 +29,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group B — Frontend fixes
 
-- [ ] **Task 3: Live status and Release state (REQ-SM-11, REQ-CR-07)**
-  - [ ] Backend first: `AttemptEvaluationsResponse` gains `evaluationStatus` and `candidateRef`, and matrix rows gain `candidateRef` (design §3, names and status). RED: controller test asserts both fields. GREEN. Update `docs/api.md`.
-  - [ ] Frontend RED: (1) the matrix query refetches while any row is `QUEUED` or `RUNNING` (fake timers, 5 s) and stops when all rows are `COMPLETED`; (2) Release is disabled for `RUNNING` and `FAILED`, with the tooltip text; (3) ResultsView refetches while `released === false`.
-  - [ ] GREEN: `refetchInterval` plus a Refresh button per design §2.
-  - [ ] Commit `fix: refresh evaluation status and gate the release button`.
+- [x] **Task 3: Live status and Release state (REQ-SM-11, REQ-CR-07)**
+  - [x] Backend first: `AttemptEvaluationsResponse` gains `evaluationStatus` and `candidateRef`, and matrix rows gain `candidateRef` (design §3, names and status). RED: controller test asserts both fields. GREEN. Update `docs/api.md`.
+  - [x] Frontend RED: (1) the matrix query refetches while any row is `QUEUED` or `RUNNING` (fake timers, 5 s) and stops when all rows are `COMPLETED`; (2) Release is disabled for `RUNNING` and `FAILED`, with the tooltip text; (3) ResultsView refetches while `released === false`.
+  - [x] GREEN: `refetchInterval` plus a Refresh button per design §2.
+  - [x] Commit `fix: refresh evaluation status and gate the release button`.
 
 - [ ] **Task 4: Names, route sync, Teams link, cache key (REQ-SM-12, REQ-NAV-11)**
   - [ ] RED: (1) the matrix label shows `candidateRef (#n)`; no `inviteId.slice` is left (`grep -rn "inviteId.slice" frontend/src` is empty); (2) a route param change A → B updates the selection; (3) a dropdown change calls `router.replace`; (4) the "Build teams" link points to `/ranking/teams/<id>`; (5) a Studio delete invalidates the key that Ranking reads.
@@ -155,4 +155,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `npx vitest run src/views/ranking src/views/assessment` → FAIL (`./EvidenceDialog.vue` did not exist; ResultsView still showed the inline log); GREEN: `npx vitest run src/views/ranking src/views/assessment src/components` → exit 0; full `npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (132 tests)
 - Contracts/Migrations added: none (frontend only; `EvidenceDrawer.vue` renamed to `EvidenceDialog.vue`, no API change)
 - Decisions: no new ID. Where design differed from code: (1) The drilldown API has no `candidateRef` yet, so the dialog header shows the short invite id through one `candidateName` computed, with a `shortcut:` note; Tasks 3 and 4 switch it. (2) PrimeVue binds Esc on the document for every open Dialog, so the evidence dialog sets `:close-on-escape="!transcriptOpen"`; one Esc closes only the top dialog. (3) "View transcript" and "Show in transcript" both pass every verified quote as `highlight`; only "Show in transcript" sets `focusEntryId`. (4) The Release Status tile was dropped because the header now carries that tag. (5) Release gating is unchanged (Task 3 owns `evaluationStatus`).
+- Open Questions: none
+
+### Task 3: Live status and Release state
+- Commits: (this commit) fix: refresh evaluation status and gate the release button
+- Verification: RED: `./mvnw -B test -Dtest='EvaluationReviewServiceTest,RankingEvaluationControllerTest'` → FAIL (compile: no `candidateRef`, `evaluationStatus`, `InviteService.candidateRefs`); `npx vitest run src/views/ranking/RankingLive.test.ts` → FAIL (9 of 10: no polling, no Refresh button, no tooltip); GREEN: `./mvnw -B test -Dtest='EvaluationReviewServiceTest,RankingEvaluationControllerTest,FormulaPresetServiceTest,InviteServiceTest,ArchitectureTest'` → exit 0 (41 run); `npx vitest run src/views` + `npm run typecheck && npm run lint` → exit 0 (70 run)
+- Contracts/Migrations added: `docs/api.md` (matrix row `candidateRef`; drilldown `candidateRef` and `evaluationStatus`; formula preview `candidateRef`); no migration
+- Decisions: no new ID. Design differed from code: (1) The DTO is named `AttemptEvaluationDrilldownResponse`, not `AttemptEvaluationsResponse`. (2) No suitable auth read method existed, so `InviteService.candidateRefs(configId)` is new (owner-checked, one query per config); it returns a map of invite ID to `candidateRef`. The evaluation slice never touches the invite repository. A missing invite falls back to the invite ID text, so the field is never null. (3) `FormulaPreviewCandidate` also gets `candidateRef`, because REQ-SM-12 lists the formula preview and the preview panel has no matrix data. (4) A disabled PrimeVue Button gets no hover events, so the Release tooltip is a native `title` on a wrapping span. (5) The candidate results page also gets a Refresh button. (6) The `settle` delay in `RankingViews.test.ts` went from 50 ms to 200 ms; the Esc test was flaky under parallel load.
 - Open Questions: none

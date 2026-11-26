@@ -17,7 +17,7 @@ const jsonResponse = (body: unknown, status = 200) =>
 // Transitions run for real: PrimeVue binds its Esc listener in the enter hook.
 const dialogGlobal = { stubs: { teleport: true, transition: false } }
 // Leave transitions need a few frames before the Dialog leaves the DOM.
-const settle = () => new Promise((resolve) => setTimeout(resolve, 50))
+const settle = () => new Promise((resolve) => setTimeout(resolve, 200))
 
 const quote = 'wrap the write in @Transactional'
 const answerText = `I ${quote} so failures roll back.`

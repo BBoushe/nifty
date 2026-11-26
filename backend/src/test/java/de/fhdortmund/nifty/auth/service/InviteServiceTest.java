@@ -101,6 +101,22 @@ class InviteServiceTest extends PostgresContainerBase {
                 .isEqualTo(1L);
     }
 
+    // REQ-SM-12: other slices read candidate names through this public method, never the repository.
+    @Test
+    void candidateRefsMapsInviteIdToRefForAnOwnedConfig() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        List<CreatedInvite> created = inviteService.createInvites(configId, List.of("anna.schmidt", "ben.meier"));
+
+        Map<UUID, String> refs = inviteService.candidateRefs(configId);
+
+        assertThat(refs).containsEntry(created.get(0).inviteId(), "anna.schmidt")
+                .containsEntry(created.get(1).inviteId(), "ben.meier")
+                .hasSize(2);
+    }
+
     @Test
     void rejectsUnownedOrUnknownConfigWith404AndChangesNothing() {
         UUID professorId = UUID.randomUUID();

@@ -8,8 +8,10 @@ import de.fhdortmund.nifty.shared.exception.FieldErrorDetail;
 import de.fhdortmund.nifty.shared.exception.FieldValidationException;
 import de.fhdortmund.nifty.studio.service.StudioQueryService;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -76,6 +78,17 @@ public class InviteService {
             summaries.add(new InviteSummary(row.getId(), row.getCandidateRef(), row.isRevoked(), row.getCreatedAt()));
         }
         return List.copyOf(summaries);
+    }
+
+    /** REQ-SM-12: candidate names by invite ID for the ranking views of one owned config (revoked invites included). */
+    public Map<UUID, String> candidateRefs(UUID configId) {
+        requireOwnedConfig(configId);
+        List<InviteEntity> rows = inviteRepository.findByConfigIdOrderByCreatedAtDesc(configId);
+        Map<UUID, String> refs = new HashMap<>(rows.size() * 2);
+        for (int i = 0; i < rows.size(); i++) {
+            refs.put(rows.get(i).getId(), rows.get(i).getCandidateRef());
+        }
+        return refs;
     }
 
     @Transactional

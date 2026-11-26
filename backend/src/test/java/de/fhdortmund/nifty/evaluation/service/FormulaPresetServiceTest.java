@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import de.fhdortmund.nifty.audit.service.AuditService;
 import de.fhdortmund.nifty.auth.service.AuthContextService;
+import de.fhdortmund.nifty.auth.service.InviteService;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryEntity;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryRepository;
 import de.fhdortmund.nifty.evaluation.repository.EvaluationRunEntity;
@@ -52,10 +53,12 @@ class FormulaPresetServiceTest {
     private CandidateEvaluationSummaryRepository summaryRepository;
     private ResponseEvaluationRepository responseEvaluationRepository;
     private SkillScoreRepository skillScoreRepository;
+    private InviteService inviteService;
     private FormulaPresetService service;
 
     @BeforeEach
     void setUp() {
+        inviteService = mock(InviteService.class);
         studioQueryService = mock(StudioQueryService.class);
         authContextService = mock(AuthContextService.class);
         auditService = mock(AuditService.class);
@@ -74,7 +77,8 @@ class FormulaPresetServiceTest {
                 formulaVersionRepository,
                 summaryRepository,
                 responseEvaluationRepository,
-                recalc);
+                recalc,
+                inviteService);
     }
 
     @Test
@@ -173,6 +177,8 @@ class FormulaPresetServiceTest {
         UUID skillId = UUID.randomUUID();
         UUID q1 = UUID.randomUUID();
         UUID attemptId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        when(inviteService.candidateRefs(configId)).thenReturn(Map.of(inviteId, "anna.schmidt"));
 
         when(authContextService.currentProfessorId()).thenReturn(professorId);
         when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
@@ -188,7 +194,7 @@ class FormulaPresetServiceTest {
                 configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
         EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, v1, "v1", "COMPLETED", "k1");
         CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
-                attemptId, configId, UUID.randomUUID(), 1, v1, run, "COMPLETED",
+                attemptId, configId, inviteId, 1, v1, run, "COMPLETED",
                 new BigDecimal("3.00"), BigDecimal.ONE, 0, "auto_released", null);
         ResponseEvaluationEntity response = new ResponseEvaluationEntity(
                 run, summary, UUID.randomUUID(), q1, skillId, "core", new BigDecimal("2.00"),
@@ -203,6 +209,7 @@ class FormulaPresetServiceTest {
 
         assertThat(preview.candidates()).hasSize(1);
         assertThat(preview.candidates().getFirst().fitScore()).isEqualByComparingTo("4.00");
+        assertThat(preview.candidates().getFirst().candidateRef()).isEqualTo("anna.schmidt");
         verify(formulaVersionRepository, never()).save(any());
         verify(summaryRepository, never()).save(any());
         verify(skillScoreRepository, never()).saveAll(any());

@@ -13,6 +13,8 @@ import {
   formatRatioPercent,
   formatScore,
   getSkillsMatrix,
+  isEvaluationPending,
+  POLL_INTERVAL_MS,
   type MatrixCell,
 } from '@/api/evaluation'
 
@@ -27,6 +29,9 @@ const matrixQuery = useQuery({
   queryKey: computed(() => ['evaluation-matrix', props.configId]),
   queryFn: () => getSkillsMatrix(props.configId),
   enabled: computed(() => Boolean(props.configId)),
+  // REQ-SM-11: poll while any attempt still waits for the evaluator.
+  refetchInterval: (query) =>
+    query.state.data?.rows.some((row) => isEvaluationPending(row.evaluationStatus)) ? POLL_INTERVAL_MS : false,
 })
 
 const visibleRows = computed(() => {
@@ -137,6 +142,14 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
       </div>
       <!-- Decision 2.30: professors review and approve every student attempt individually (no bulk approval). -->
       <div class="flex flex-wrap items-center gap-2">
+        <Button
+          label="Refresh"
+          severity="secondary"
+          size="small"
+          :loading="matrixQuery.isFetching.value"
+          data-testid="matrix-refresh-btn"
+          @click="matrixQuery.refetch()"
+        />
         <Button
           :label="needsAttentionOnly ? 'Showing Needs Attention' : 'Filter: Needs Attention'"
           :severity="needsAttentionOnly ? 'warn' : 'secondary'"

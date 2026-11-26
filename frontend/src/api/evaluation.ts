@@ -5,6 +5,11 @@ export type ScoreStatus = 'SCORED' | 'N/A'
 // Only COMPLETED rows carry scores; the others are attempts that still wait for the evaluator.
 export type EvaluationStatus = 'QUEUED' | 'RUNNING' | 'FAILED' | 'COMPLETED'
 
+// REQ-SM-11, REQ-CR-07: one poll interval, one place.
+export const POLL_INTERVAL_MS = 5000
+export const isEvaluationPending = (status: EvaluationStatus | undefined): boolean =>
+  status === 'QUEUED' || status === 'RUNNING'
+
 export interface SkillColumn {
   skillId: string
   skillName: string
@@ -22,6 +27,7 @@ export interface MatrixCell {
 
 export interface MatrixCandidateRow {
   inviteId: string
+  candidateRef: string
   attemptId: string
   attemptNo: number
   evaluationStatus: EvaluationStatus
@@ -73,7 +79,9 @@ export interface AttemptEvaluationDrilldownResponse {
   attemptId: string
   configId: string
   inviteId: string
+  candidateRef: string
   attemptNo: number
+  evaluationStatus: EvaluationStatus
   fitScore: number | null
   coverage: number
   minCoverage: number
@@ -151,6 +159,7 @@ export interface FormulaVersionResponse {
 
 export interface FormulaPreviewCandidate {
   inviteId: string
+  candidateRef: string
   attemptId: string
   fitScore: number | null
   coverage: number
