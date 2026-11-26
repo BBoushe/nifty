@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — auth-accounts
+- **What:** Added `V2__auth_accounts.sql` (`professor_account`), env bootstrap (`NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` / `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD`), `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, server session cookies (`HttpOnly`, `SameSite=Lax`), SPA CSRF (`XSRF-TOKEN` / `X-XSRF-TOKEN`) and `AuthContextServiceImpl` (`AuthContextServicePlaceholder` deleted). Added the frontend `/sign-in` view, Pinia auth store, `/ranking/*` and `/assessment/*` route guards, and CSRF header support in `apiFetch` and `postSse`.
+- **Why:** Studio and the Ranking View need a signed-in professor session and `AuthContextService.currentProfessorId()` without HTTP Basic or secrets in the repo (Decisions 1.23, 1.24).
+- **PR/MR:** GitHub #23, GitLab !22
+- **Specs:** REQ-AA-06..07 (added to `auth-access`); REQ-AA-01..02 (implemented)   **Decisions:** applies 1.14, 1.15, 1.23, 1.24
+
 ## 2026-11-26 — context-creation
 - **What:** Built the stateless `context` slice, the only place that builds LLM prompts. A rubric-blind `interviewer-v1` builder and a per-(entry, skill) `evaluator-judge-v1` builder (levels `0..4` in order, evidence-only JSON, timed-out partial answers kept). Candidate text goes through a zero-Stream sanitizer and a deterministic injection detector, then inside `<candidate_answer>` or `<transcript_entry>` tags. A flagged answer writes one `PROMPT_INJECTION_DETECTED` audit row with a SHA-256 and rule IDs, never raw text. Added the `PROFESSOR` preview endpoint `POST /api/v1/ranking/context/preview/interviewer`. Deleted `ContextCreationServicePlaceholder`.
 - **Why:** `assessment` and `evaluation` must not write their own prompts. One slice keeps the interviewer rubric-blind and treats candidate text as untrusted data.

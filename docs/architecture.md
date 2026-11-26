@@ -185,6 +185,7 @@ The backend uses package-by-feature (Decision 1.10), enforced by `ArchitectureTe
 - **Test database:** every Spring test that needs a database extends `de.fhdortmund.nifty.PostgresContainerBase`. The class starts one `postgres:17-alpine` container for the whole test run. Flyway applies `V1` on that container. The tests use no H2, because H2 cannot run JSONB or the immutability triggers.
 - **Contract stubs:** each shared interface, record and enum of `docs/tickets/00-parallel-waves-and-contracts.md` §3 exists in its owner package. Enums carry `@JsonValue` with the JSON and database literal.
 - **Placeholders:** each of the 6 shared interfaces has one `<Interface>Placeholder` `@Service` in the same package. Every placeholder method throws `UnsupportedOperationException`. The owner deletes the placeholder when the real bean lands.
+- **Sessions and bootstrap (`auth-accounts`):** sign-in creates a server HTTP session with an `HttpOnly`, `SameSite=Lax` cookie (`NIFTY_SESSION_COOKIE_SECURE=false` for local HTTP dev) and SPA CSRF (`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header, Decision 1.23). `ProfessorBootstrap` creates one `PROFESSOR` account at startup when `NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` and `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD` are set and no account has that email (Decision 1.24). `AuthContextServiceImpl` replaces `AuthContextServicePlaceholder`.
 - **Real beans:** `AuditService` is real (`audit-log-service`). `AuditServiceImpl` writes one `audit_log` row in the transaction of the caller. `AuditLogEntity` is `@Immutable`, and `AuditLogRepository` has no update or delete method.
 - **Shared errors and events:** `FieldValidationException` (`400` with `errors[]`) is in `shared/exception`. `AttemptCompletedEvent` and `AssessmentDeletedEvent` are in `shared/config`.
 
@@ -194,7 +195,9 @@ Each feature owns one folder under `frontend/src/views/<feature>/`: `auth`, `stu
 
 | Path | Purpose |
 |---|---|
-| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json`. `postSse()` reads an SSE stream from a `POST`. |
+| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json` and sends `X-XSRF-TOKEN` on state-changing requests. `postSse()` reads an SSE stream from a `POST` with the same CSRF header. |
+| `src/stores/auth.ts` | Pinia session store (`me`, `fetchMe`, `login`, `logout`) backed by `/api/v1/auth/**`. |
+| `src/views/auth/` | `SignInView.vue` (`/sign-in`) and `guard.ts` (`/ranking/*` needs `PROFESSOR`, `/assessment/*` needs `CANDIDATE`). |
 | `src/style.css` | The design tokens as Tailwind `@theme` variables. |
 | `src/theme/preset.ts` | The one PrimeVue preset. It maps the `@theme` variables (Decision 1.14). |
 | `src/components/` | Shared components. `ScoreBadge` shows `<level>/4 · <label>` or a hatched `N/A · not enough evidence`. It never shows `N/A` as `0`. |
