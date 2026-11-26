@@ -99,3 +99,10 @@
 - Contracts/Migrations added: `frontend/src/api/studio.ts`, `frontend/src/stores/assessmentForm.ts`, `frontend/src/views/studio/{SettingsSection,SkillsSection,QuestionsSection,ReviewStep,AssessmentCreateView,AssessmentListView,AssessmentDetailView}.vue`, `frontend/src/views/studio/routes.ts`
 - Decisions: applies 1.14, 2.21, 2.22, 2.23, 4.4
 - Open Questions: none
+
+### Post-audit hardening (invariant & mutation audit)
+- Commits: `fix(studio): add custom trait weight inputs, fix skill rename, and kill surviving mutants`
+- Verification: RED: mutation & invariant audit caught missing CUSTOM Big Five trait weight inputs in `SettingsSection.vue`, clear-and-retype blank orphan in `assessmentForm.ts` `renameSkill`, missing Cancel on GDPR delete, and 4 surviving mutants (M3, M4, M10, M11); GREEN: `cd backend && ./mvnw -B test` (56 run, 0 failed, 1 skipped), `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` (7 files, 47 passed), `openspec validate --all --strict` (16/16), harness tests (43/43)
+- Contracts/Migrations added: none
+- Decisions: applies 2.23, 4.4
+- Open Questions: none

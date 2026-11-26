@@ -172,6 +172,64 @@ class ConfigValidatorTest {
         assertThat(errors).extracting(FieldErrorDetail::code).contains("NO_SKILL", "UNUSED_SKILL");
     }
 
+    @Test
+    void rejectsEqualMinAndMaxTimeAndDuplicateQuestionPositions() {
+        CreateAssessmentRequest request = new CreateAssessmentRequest(
+                validSettings(GroupingMode.HARD_SKILLS, false),
+                List.of(new SkillInput("Java", RUBRIC_5)),
+                List.of(
+                        new QuestionInput(1, "Q1", new BigDecimal("1.00"), new BigDecimal("0.7000"),
+                                60, 60, 1, List.of("Java")),
+                        new QuestionInput(1, "Q2", new BigDecimal("1.00"), new BigDecimal("0.7000"),
+                                30, 120, 1, List.of("Java"))));
+
+        List<FieldErrorDetail> errors = validateErrors(request);
+        assertThat(errors).extracting(FieldErrorDetail::code).contains("TIME_RANGE", "ORDER_GAP");
+    }
+
+    @Test
+    void rejectsCombinedEmptyCombinedWithoutBfi10SoftWithUnusedSkillAndBadCustomWeights() {
+        List<FieldErrorDetail> combinedEmpty = validateErrors(new CreateAssessmentRequest(
+                validSettings(GroupingMode.COMBINED, true), List.of(), List.of()));
+        assertThat(combinedEmpty).extracting(FieldErrorDetail::code).contains("EMPTY_CONFIG");
+
+        List<FieldErrorDetail> combinedNoBfi = validateErrors(new CreateAssessmentRequest(
+                validSettings(GroupingMode.COMBINED, false),
+                List.of(new SkillInput("Java", RUBRIC_5)),
+                List.of(validQuestion(1, List.of("Java")))));
+        assertThat(combinedNoBfi).extracting(FieldErrorDetail::code).contains("BAD_WEIGHTS");
+
+        List<FieldErrorDetail> softUnused = validateErrors(new CreateAssessmentRequest(
+                validSettings(GroupingMode.SOFT_SKILLS, true),
+                List.of(new SkillInput("Java", RUBRIC_5)),
+                List.of()));
+        assertThat(softUnused).extracting(FieldErrorDetail::code).contains("UNUSED_SKILL");
+
+        SettingsInput badSum = new SettingsInput(
+                "Bad Custom Sum",
+                "Vision",
+                new BigDecimal("0.5000"),
+                1,
+                false,
+                true,
+                4,
+                GroupingMode.COMBINED,
+                SoftPreset.CUSTOM,
+                new BigDecimal("0.5000"),
+                new BigDecimal("0.5000"),
+                Map.of(
+                        "conscientiousness", new BigDecimal("0.20"),
+                        "agreeableness", new BigDecimal("0.20"),
+                        "neuroticism", new BigDecimal("0.20"),
+                        "extraversion", new BigDecimal("0.20"),
+                        "openness", new BigDecimal("0.10")));
+        List<FieldErrorDetail> badSumErrors = validateErrors(new CreateAssessmentRequest(
+                badSum,
+                List.of(new SkillInput("Java", RUBRIC_5)),
+                List.of(validQuestion(1, List.of("Java")))));
+        assertThat(badSumErrors).extracting(FieldErrorDetail::code).contains("BAD_WEIGHTS");
+    }
+
     private List<FieldErrorDetail> validateErrors(CreateAssessmentRequest request) {
         Throwable caught = null;
         try {

@@ -7,7 +7,7 @@ import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { computed } from 'vue'
 import type { GroupingMode, SoftPreset } from '@/api/studio'
-import { useAssessmentFormStore } from '@/stores/assessmentForm'
+import { BIG_FIVE_TRAITS, useAssessmentFormStore } from '@/stores/assessmentForm'
 
 const form = useAssessmentFormStore()
 
@@ -101,13 +101,40 @@ const softSkillsOnlyExempt = computed(
       <div class="flex flex-col gap-1.5">
         <label for="studio-soft-preset" class="text-sm font-medium text-slate-700">Soft-skill preset</label>
         <Select
-          v-model="form.settings.softPreset"
+          :model-value="form.settings.softPreset"
           input-id="studio-soft-preset"
           :options="softPresets"
           option-label="label"
           option-value="value"
           class="w-full"
+          @update:model-value="(val: SoftPreset) => form.setSoftPreset(val)"
         />
+      </div>
+
+      <div
+        v-if="form.settings.softPreset === 'CUSTOM'"
+        class="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2"
+        data-testid="custom-trait-weights"
+      >
+        <p class="text-xs font-medium text-slate-700">
+          Custom Big Five trait weights (each 0–1, total must equal 1.00)
+        </p>
+        <div class="grid gap-3 sm:grid-cols-5">
+          <div v-for="trait in BIG_FIVE_TRAITS" :key="trait" class="flex flex-col gap-1">
+            <label :for="`trait-weight-${trait}`" class="text-xs capitalize text-slate-600">{{ trait }}</label>
+            <InputNumber
+              v-model="form.settings.constraintWeights[trait]"
+              :input-id="`trait-weight-${trait}`"
+              :data-testid="`trait-weight-${trait}`"
+              :min="0"
+              :max="1"
+              :step="0.05"
+              :min-fraction-digits="2"
+              :max-fraction-digits="2"
+              fluid
+            />
+          </div>
+        </div>
       </div>
 
       <div class="flex flex-col gap-1.5">

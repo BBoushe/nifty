@@ -43,6 +43,22 @@ interface PersistedDraft {
   idempotencyKey: string | null
 }
 
+export const BIG_FIVE_TRAITS = [
+  'conscientiousness',
+  'agreeableness',
+  'neuroticism',
+  'extraversion',
+  'openness',
+] as const
+
+export const defaultCustomTraitWeights = (): Record<string, number> => ({
+  conscientiousness: 0.2,
+  agreeableness: 0.2,
+  neuroticism: 0.2,
+  extraversion: 0.2,
+  openness: 0.2,
+})
+
 const newId = (): string =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -135,11 +151,28 @@ export const useAssessmentFormStore = defineStore('assessmentForm', () => {
     if (!skill) return
     const previousKey = normalize(skill.name)
     skill.name = nextName
+    const trimmedNext = nextName.trim()
     if (previousKey) {
       for (const question of questions.value) {
-        question.targetSkillNames = question.targetSkillNames.map((n) =>
-          normalize(n) === previousKey ? nextName : n,
-        )
+        if (!trimmedNext) {
+          question.targetSkillNames = question.targetSkillNames.filter((n) => normalize(n) !== previousKey)
+        } else {
+          question.targetSkillNames = question.targetSkillNames.map((n) =>
+            normalize(n) === previousKey ? trimmedNext : n,
+          )
+        }
+      }
+    }
+  }
+
+  function setSoftPreset(preset: SoftPreset): void {
+    settings.softPreset = preset
+    if (preset === 'CUSTOM') {
+      const hasAllFive = BIG_FIVE_TRAITS.every(
+        (trait) => typeof settings.constraintWeights[trait] === 'number',
+      )
+      if (!hasAllFive) {
+        settings.constraintWeights = defaultCustomTraitWeights()
       }
     }
   }
@@ -233,6 +266,7 @@ export const useAssessmentFormStore = defineStore('assessmentForm', () => {
     addSkill,
     removeSkill,
     renameSkill,
+    setSoftPreset,
     addQuestion,
     removeQuestion,
     moveQuestion,

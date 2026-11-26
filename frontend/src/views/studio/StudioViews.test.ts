@@ -61,7 +61,7 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     vi.unstubAllGlobals()
   })
 
-  it('SettingsSection binds title, groupingMode, and percentage inputs', async () => {
+  it('SettingsSection binds title, groupingMode, custom trait weights, and percentage inputs', async () => {
     const { pinia } = createTestPlugins()
     const wrapper = mount(SettingsSection, { global: { plugins: [pinia, PrimeVue] } })
     const store = useAssessmentFormStore()
@@ -69,6 +69,11 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     await wrapper.get('[data-testid="studio-title"]').setValue('Backend Craft')
     expect(store.settings.title).toBe('Backend Craft')
     expect(wrapper.text()).toContain('Minimum coverage (%)')
+
+    store.setSoftPreset('CUSTOM')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="custom-trait-weights"]').exists()).toBe(true)
+    expect(wrapper.findAll('[data-testid^="trait-weight-"]')).toHaveLength(5)
   })
 
   it('SkillsSection renders 5 rubric boxes (0..4) per skill and zero weight inputs', async () => {
@@ -258,5 +263,90 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     const inviteLink = wrapper.find(`a[href="/ranking/studio/${id}/invites"]`)
     expect(inviteLink.exists()).toBe(true)
     expect(inviteLink.text()).toContain('Send to students')
+  })
+
+  it('AssessmentDetailView supports cancel and two-step GDPR delete confirmation', async () => {
+    const { pinia, queryClient, router } = createTestPlugins()
+    const id = '66666666-6666-6666-6666-666666666666'
+    await router.push(`/ranking/studio/${id}`)
+    await router.isReady()
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          configId: id,
+          title: 'To Delete',
+          vision: 'Vision',
+          minCoverage: 0.5,
+          maxAttempts: 1,
+          inventedQuestions: false,
+          bfi10Enabled: false,
+          teamSize: 4,
+          groupingMode: 'HARD_SKILLS',
+          softPreset: 'ENGINEERING_DEFAULT',
+          combinedHardWeight: 0.5,
+          alpha: 0.5,
+          constraintWeights: {},
+          status: 'PUBLISHED',
+          version: 1,
+          createdAt: '2026-11-26T08:00:00Z',
+          skills: [],
+          questions: [],
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const wrapper = mount(AssessmentDetailView, {
+      global: { plugins: [pinia, router, [VueQueryPlugin, { queryClient }], PrimeVue] },
+    })
+    await flushPromises()
+
+    await wrapper.get('[data-testid="delete-assessment-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="delete-assessment-cancel"]').trigger('click')
+    expect(wrapper.find('[data-testid="delete-assessment-trigger"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="delete-assessment-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="delete-assessment-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/v1/ranking/studio/configs/${id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+    expect(pushSpy).toHaveBeenCalledWith('/ranking/studio')
+  })
+
+  it('AssessmentListView renders empty and error states explicitly', async () => {
+    const emptyCtx = createTestPlugins()
+    await emptyCtx.router.push('/ranking/studio')
+    await emptyCtx.router.isReady()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(jsonResponse([])))
+
+    const emptyWrapper = mount(AssessmentListView, {
+      global: {
+        plugins: [emptyCtx.pinia, emptyCtx.router, [VueQueryPlugin, { queryClient: emptyCtx.queryClient }], PrimeVue],
+      },
+    })
+    await flushPromises()
+    expect(emptyWrapper.text()).toContain('No assessments created yet')
+
+    const errCtx = createTestPlugins()
+    await errCtx.router.push('/ranking/studio')
+    await errCtx.router.isReady()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(problemResponse(500, { status: 500, title: 'Server Error', detail: 'DB down' })),
+    )
+
+    const errWrapper = mount(AssessmentListView, {
+      global: {
+        plugins: [errCtx.pinia, errCtx.router, [VueQueryPlugin, { queryClient: errCtx.queryClient }], PrimeVue],
+      },
+    })
+    await flushPromises()
+    expect(errWrapper.text()).toContain('DB down')
   })
 })

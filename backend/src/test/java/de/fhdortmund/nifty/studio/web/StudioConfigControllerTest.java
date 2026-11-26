@@ -104,12 +104,31 @@ class StudioConfigControllerTest {
         mockMvc.perform(post(BASE)
                         .with(user("prof").roles("PROFESSOR"))
                         .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MINIMAL_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errors[0].field").value("Idempotency-Key"))
+                .andExpect(jsonPath("$.errors[0].code").value("REQUIRED"));
+
+        mockMvc.perform(post(BASE)
+                        .with(user("prof").roles("PROFESSOR"))
+                        .with(csrf())
                         .header("Idempotency-Key", "not-a-uuid")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(MINIMAL_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.errors[0].field").value("Idempotency-Key"));
+
+        mockMvc.perform(post(BASE)
+                        .with(user("prof").roles("PROFESSOR"))
+                        .with(csrf())
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{not-json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
 
         UUID key = UUID.randomUUID();
         when(creationService.create(eq(key), any())).thenThrow(new FieldValidationException(List.of(

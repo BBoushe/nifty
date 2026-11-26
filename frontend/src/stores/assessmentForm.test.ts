@@ -86,4 +86,32 @@ describe('useAssessmentFormStore (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => 
     expect(payload.settings.alpha).toBe(0.4)
     expect(payload.questions[0].confidenceThreshold).toBe(0.75)
   })
+
+  it('renames a skill across bound questions and drops blank entries when cleared', () => {
+    const store = useAssessmentFormStore()
+    store.addSkill('Java')
+    store.addQuestion()
+    store.questions[0].targetSkillNames = ['Java']
+
+    store.renameSkill(0, ' Java 21 ')
+    expect(store.questions[0].targetSkillNames).toEqual(['Java 21'])
+
+    store.renameSkill(0, '   ')
+    expect(store.questions[0].targetSkillNames).toEqual([])
+  })
+
+  it('initializes all 5 Big Five trait weights summing to 1.0 when switching to CUSTOM preset', () => {
+    const store = useAssessmentFormStore()
+    store.setSoftPreset('CUSTOM')
+
+    expect(Object.keys(store.settings.constraintWeights)).toEqual([
+      'conscientiousness',
+      'agreeableness',
+      'neuroticism',
+      'extraversion',
+      'openness',
+    ])
+    const sum = Object.values(store.settings.constraintWeights).reduce((acc, v) => acc + v, 0)
+    expect(sum).toBeCloseTo(1.0, 5)
+  })
 })

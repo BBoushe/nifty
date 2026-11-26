@@ -180,6 +180,23 @@ class ConfigCreationAndQueryIntegrationTest extends PostgresContainerBase {
                 .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void createDeduplicatesCaseInsensitiveTargetSkillsOnSingleQuestion() {
+        UUID professorId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+
+        CreateAssessmentRequest dupTargets = new CreateAssessmentRequest(
+                sampleRequest().settings(),
+                List.of(new SkillInput("Java", RUBRIC_5)),
+                List.of(new QuestionInput(1, "Explain JVM memory.", new BigDecimal("1.00"),
+                        new BigDecimal("0.7000"), 30, 120, 1, List.of("Java", "java", " JAVA "))));
+
+        UUID configId = creationService.create(UUID.randomUUID(), dupTargets).configId();
+
+        InterviewerView interviewer = queryService.interviewerView(configId);
+        assertThat(interviewer.questions().getFirst().targetSkillNames()).containsExactly("Java");
+    }
+
     private static CreateAssessmentRequest sampleRequest() {
         SettingsInput settings = new SettingsInput(
                 "SE Block Week",

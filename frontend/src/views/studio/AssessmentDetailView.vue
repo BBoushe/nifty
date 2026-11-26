@@ -69,15 +69,24 @@ const deleteMutation = useMutation({
             data-testid="delete-assessment-trigger"
             @click="confirmDelete = true"
           />
-          <Button
-            v-else
-            label="Confirm GDPR purge"
-            severity="danger"
-            size="small"
-            :loading="deleteMutation.isPending.value"
-            data-testid="delete-assessment-confirm"
-            @click="deleteMutation.mutate()"
-          />
+          <template v-else>
+            <Button
+              label="Cancel"
+              severity="secondary"
+              outlined
+              size="small"
+              data-testid="delete-assessment-cancel"
+              @click="confirmDelete = false"
+            />
+            <Button
+              label="Confirm GDPR purge"
+              severity="danger"
+              size="small"
+              :loading="deleteMutation.isPending.value"
+              data-testid="delete-assessment-confirm"
+              @click="deleteMutation.mutate()"
+            />
+          </template>
         </div>
       </div>
 
