@@ -10,7 +10,7 @@ Form balanced, complementary, and defensible student teams. A seeded pure-Java S
 ## Requirements
 
 ### Requirement: REQ-TB-03 Live Deterministic Drag-and-Drop Recalculation
-**WHEN** a professor drags a candidate to another team (`POST /api/v1/ranking/teams/{proposalId}/recalculate`) **THE SYSTEM SHALL** recalculate inter-team imbalance, intra-team diversity, the skill means and the trait means of every team in Java immediately, without invoking an LLM.
+**WHEN** a professor drags a candidate to another team (`POST /api/v1/ranking/teams/{proposalId}/recalculate`) **THE SYSTEM SHALL** recalculate inter-team imbalance, intra-team diversity, the skill means and the trait means of every team in Java immediately, without invoking an LLM. The request holds the complete placement of every candidate of the proposal. The team sizes may differ from the optimizer result.
 
 #### Scenario: Manual team adjustment updates balance indicators
 - **WHEN** a candidate is moved from Team A to Team B in the Team Builder UI
@@ -24,21 +24,21 @@ Form balanced, complementary, and defensible student teams. A seeded pure-Java S
 - **THEN** the proposal stays `DRAFT` until the professor explicitly publishes it.
 
 ### Requirement: REQ-TB-05 Configured Team Size
-**THE SYSTEM SHALL** form `G = ceil(N / teamSize)` teams from the team size in the assessment configuration, unless the professor sets another team count for the run. **THE SYSTEM SHALL** place every candidate in exactly one team and give every team `floor(N / G)` or `ceil(N / G)` members (Decisions 1.20, 2.23).
+**THE SYSTEM SHALL** form `G = ceil(N / teamSize)` teams from the team size in the assessment configuration, unless the professor sets another team count for the run. **THE SYSTEM SHALL** place every candidate in exactly one team. **WHEN** the optimizer forms the teams, **THE SYSTEM SHALL** give every team `floor(N / G)` or `ceil(N / G)` members (Decisions 1.20, 2.23). A manual recalculation (REQ-TB-03) accepts any complete placement, including uneven or empty teams.
 
 #### Scenario: 22 candidates, team size 5
 - **WHEN** the professor runs the optimizer for 22 candidates with team size 5
 - **THEN** the system forms 5 teams with sizes 5, 5, 4, 4 and 4, and every candidate is in exactly one team.
 
 ### Requirement: REQ-TB-06 BFI-10 Balance Soft Constraint
-**WHERE** the assessment has BFI-10 on and the grouping mode is `SOFT_SKILLS` or `COMBINED` **THE SYSTEM SHALL** include the trait means in the inter-team imbalance term, so that the optimizer keeps each team's mean trait profile close to the cohort mean. The soft preset sets the trait weights (Decisions 1.20, 4.3).
+**WHERE** the grouping mode is `SOFT_SKILLS` or `COMBINED` **THE SYSTEM SHALL** include the trait means in the inter-team imbalance term. The optimizer thus keeps the mean trait profile of each team close to the cohort mean. Both modes always have BFI-10 on, because studio rejects them without it (REQ-IS-13). The soft preset sets the trait weights (Decisions 1.20, 2.27, 4.3).
 
 #### Scenario: Introverts spread across teams
 - **WHEN** 4 of 20 candidates have Extraversion below 2.0, BFI-10 is on and the grouping mode is `COMBINED`
 - **THEN** the optimizer prefers assignments that do not place all 4 in the same team, and the team diagnostics show the trait balance.
 
 #### Scenario: BFI-10 off
-- **WHEN** the assessment has BFI-10 off
+- **WHEN** the assessment has BFI-10 off, which only grouping mode `HARD_SKILLS` allows (REQ-IS-13)
 - **THEN** the optimizer uses no trait term.
 
 ### Requirement: REQ-TB-07 Trait Scores Visible Only to the Professor
@@ -79,3 +79,10 @@ Form balanced, complementary, and defensible student teams. A seeded pure-Java S
 #### Scenario: Assessment deletion removes team proposals
 - **WHEN** `AssessmentDeletedEvent` fires for `configId`
 - **THEN** no `team_proposal` or `team_member` row of `configId` remains.
+
+### Requirement: REQ-TB-08 Validation of Run-Time Grouping Parameters
+**IF** a team generation request specifies `numTeams < 1`, `numTeams > candidateCount`, `alpha` or `combinedHardWeight` outside `0..1`, negative or all-zero custom weights, or `SOFT_SKILLS` or `COMBINED` mode when `bfi10Enabled = false` (Decision 2.27), **THEN THE SYSTEM SHALL** reject it with `400` RFC 9457 `ProblemDetail` naming each invalid field and persist no proposal (Decisions 1.19, 1.20).
+
+#### Scenario: Invalid team count rejected
+- **WHEN** a professor requests `numTeams = 20` for a cohort of `12` candidates
+- **THEN** the backend answers `400` ProblemDetail naming `numTeams` and creates no proposal.

@@ -103,5 +103,5 @@
 - Commits: `test(assessment): add invariant property tests and kill surviving mutants`, `fix(assessment): apply cold-review findings`
 - Verification: `AssessmentInvariantPropertyTest` (seed 20261126, 2000 rounds, 6 properties) green. PIT (temporary pom plugin, reverted): pure domain 82/83 killed, services and web 142/148 detected; the 7 left are equivalent or unreachable (documented). RED → GREEN for the review fixes: `AssessmentSessionServiceTest`, 2 integration tests, 1 controller test, 2 view tests. `cd backend && ./mvnw -B test` and `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0.
 - Contracts/Migrations added: `serverTime` on the `question` event and `SessionStateResponse`; `nifty.assessment.stale-reply-seconds`; `Bfi10SubmitRequest.items` `@NotNull`
-- Decisions: 2.28 (gap-fills). Not changed: `@EnableScheduling` stays in `assessment/service`, as `00-parallel-waves-and-contracts.md` §1 prescribes.
+- Decisions: 2.29 (gap-fills; recorded as 2.28 on the branch, renumbered on merge because dev took 2.28). Not changed: `@EnableScheduling` stays in `assessment/service`, as `00-parallel-waves-and-contracts.md` §1 prescribes.
 - Open Questions: context template tells the LLM "Ask no follow-up ... the next question comes next" for a core question with `followUpLimit = 0` (context owner)

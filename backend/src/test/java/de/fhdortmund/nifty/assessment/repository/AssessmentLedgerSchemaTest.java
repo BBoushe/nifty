@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * REQ-AC-04 / REQ-AC-19 / Decision 4.4: V6__assessment.sql persists attempts, the ledger and BFI-10 rows, the
+ * REQ-AC-04 / REQ-AC-19 / Decision 4.4: V10__assessment.sql persists attempts, the ledger and BFI-10 rows, the
  * trigger blocks UPDATE and unflagged DELETE on conversation_entry, and AssessmentCleanupListener purges a config's
  * rows inside the deleting transaction.
  */

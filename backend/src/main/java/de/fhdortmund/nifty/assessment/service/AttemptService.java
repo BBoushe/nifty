@@ -79,9 +79,9 @@ class AttemptService {
     AttemptService(AssessmentAttemptRepository attempts, ConversationEntryRepository entries,
             BfiResponseRepository bfiResponses, StudioQueryService studio, ContextCreationService context,
             ApplicationEventPublisher events,
-            // Decision 2.28 / REQ-AC-08: 5 s covers the browser auto-submit at zero plus network delay.
+            // Decision 2.29 / REQ-AC-08: 5 s covers the browser auto-submit at zero plus network delay.
             @Value("${nifty.assessment.grace-seconds:5}") long graceSeconds,
-            // Decision 2.28: longer than the 180 s MVC async timeout, so a reply still streaming is never overtaken.
+            // Decision 2.29: longer than the 180 s MVC async timeout, so a reply still streaming is never overtaken.
             @Value("${nifty.assessment.stale-reply-seconds:240}") long staleReplySeconds) {
         this.attempts = attempts;
         this.entries = entries;

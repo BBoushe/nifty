@@ -50,7 +50,7 @@ const questionsRemaining = ref(0)
 const draft = ref('')
 const failure = ref<string | null>(null)
 const now = ref(Date.now())
-// Decision 2.28: server clock minus browser clock, so a wrong browser clock cannot move the auto-submit past grace.
+// Decision 2.29: server clock minus browser clock, so a wrong browser clock cannot move the auto-submit past grace.
 const clockOffset = ref(0)
 let localKey = 0
 

@@ -3,7 +3,7 @@
 - **OpenSpec Change:** [`openspec/changes/archive/2026-11-26-assessment-chat/`](../../openspec/changes/archive/2026-11-26-assessment-chat/) (archived)
 - **Branch / Worktree:** `feat/assessment-chat` (`../nifty-assessment-chat`)
 - **Owned Folders:** `backend/src/main/java/de/fhdortmund/nifty/assessment/`, `frontend/src/views/assessment/` (chat + BFI-10; leave `ResultsView.vue` for `evaluation`)
-- **Reserved Migration:** `V6__assessment.sql`
+- **Reserved Migration:** `V10__assessment.sql` (planned as `V6`; renamed because `V7`–`V9` merged first)
 - **Wave:** Wave 4 (start pure-JVM + mocked-upstream stories immediately in parallel!)
 
 ## Key Convergence Fixes Applied to Original Draft

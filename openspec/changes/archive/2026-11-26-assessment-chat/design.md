@@ -8,7 +8,7 @@
 
 - `repository/`: Private `@Entity` classes (`AssessmentAttemptEntity`, `ConversationEntryEntity`, `BfiResponseEntity`) and private `JpaRepository` interfaces.
 
-## Gap-Filling Choices (not fixed by the spec, Decision 2.28)
+## Gap-Filling Choices (not fixed by the spec, Decision 2.29)
 - Grace period: `nifty.assessment.grace-seconds`, default 5 s.
 - `POST /sessions` with an unfinished attempt returns that attempt as JSON, so a reload in a new browser never uses up a retake. A parallel start that loses `UNIQUE (invite_id, attempt_no)` gets `409`.
 - A blank answer, a too-late answer and an expired question skip follow-ups. The next core question then uses its configured text, with no LLM call.
@@ -18,6 +18,8 @@
 - The state machine asks every allowed follow-up and no invented question (`shortcut:` in `AttemptStateMachine`).
 
 ## Flyway Migration (`V6__assessment.sql`)
+
+> Shipped as `V10__assessment.sql`: `V7`–`V9` merged to `dev` first, and Flyway does not run migrations out of order.
 - `assessment_attempt(id UUID PK, invite_id UUID NOT NULL, config_id UUID NOT NULL, config_version INT NOT NULL DEFAULT 1, attempt_no INT NOT NULL, status VARCHAR(16) NOT NULL, started_at TIMESTAMPTZ, completed_at TIMESTAMPTZ, UNIQUE (invite_id, attempt_no))`
 - `conversation_entry(id UUID PK, attempt_id UUID FK, seq INT NOT NULL, author VARCHAR(16) NOT NULL, core_question_id UUID, origin VARCHAR(16) NOT NULL, content TEXT NOT NULL, target_skills JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL, expires_at TIMESTAMPTZ, timed_out BOOLEAN NOT NULL DEFAULT FALSE, paste_suspected BOOLEAN NOT NULL DEFAULT FALSE, injection_suspected BOOLEAN NOT NULL DEFAULT FALSE, UNIQUE (attempt_id, seq))`
 - PostgreSQL trigger blocking `UPDATE` and unflagged `DELETE` on `conversation_entry` (allowing delete only with `SET LOCAL nifty.allow_purge = 'on'`).

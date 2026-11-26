@@ -143,9 +143,9 @@ erDiagram
 | `CORE_QUESTION` | `studio` | `V3` | `id`, `config_id`, `position`, `text`, `weight` (`> 0`), `confidence_threshold` (`0..1`), `min_time_sec`, `max_time_sec`, `follow_up_limit` (`0..3`) |
 | `CORE_QUESTION_SKILL` | `studio` | `V3` | `core_question_id`, `skill_id` |
 | `INVITE` | `auth` | `V4` | `id`, `config_id`, `candidate_ref`, `token_hash`, `revoked`, `created_at` |
-| `ASSESSMENT_ATTEMPT` | `assessment` | `V6` | `id`, `invite_id`, `config_id`, `config_version`, `attempt_no`, `status`, `started_at`, `completed_at` |
-| `CONVERSATION_ENTRY` | `assessment` | `V6` | §4 ledger columns (`id`, `attempt_id`, `seq`, ..., `timed_out`, `paste_suspected`, `injection_suspected`) |
-| `BFI_RESPONSE` | `assessment` | `V6` | `attempt_id`, `item_1..item_10` (`1..5`), `conscientiousness`, `agreeableness`, `neuroticism`, `extraversion`, `openness` (`1.0..5.0` means) |
+| `ASSESSMENT_ATTEMPT` | `assessment` | `V10` | `id`, `invite_id`, `config_id`, `config_version`, `attempt_no`, `status`, `started_at`, `completed_at` |
+| `CONVERSATION_ENTRY` | `assessment` | `V10` | §4 ledger columns (`id`, `attempt_id`, `seq`, ..., `timed_out`, `paste_suspected`, `injection_suspected`) |
+| `BFI_RESPONSE` | `assessment` | `V10` | `attempt_id`, `item_1..item_10` (`1..5`), `conscientiousness`, `agreeableness`, `neuroticism`, `extraversion`, `openness` (`1.0..5.0` means) |
 | `FORMULA_VERSION` | `evaluation` | `V7` | `id`, `config_id`, `version_number`, `formula_preset` (`WEIGHTED_MEAN`), `max_entry_skill_weight_share` (`0.50`), `question_weights_json`, `created_by`, `created_at` |
 | `EVALUATION_RUN` | `evaluation` | `V7` | `id`, `attempt_id`, `config_id`, `formula_version_id`, `context_template_version`, `status`, `idempotency_key` (`UNIQUE`), `attempt_count`, `error_message`, `started_at`, `completed_at` |
 | `CANDIDATE_EVALUATION_SUMMARY` | `evaluation` | `V7` | `id`, `attempt_id` (`UNIQUE`), `config_id`, `invite_id`, `formula_version_id`, `latest_run_id`, `evaluation_status`, `fit_score`, `coverage`, `flagged_count`, `release_status` (`pending \| flagged \| auto_released \| approved \| overridden`), `released_at` |
@@ -174,11 +174,11 @@ The backend uses package-by-feature (Decision 1.10), enforced by `ArchitectureTe
 | — (cross-cutting) | `audit` | — | `V1` (existing) | `AuditLog` entity and public `AuditService` (sole writer of `audit_log`) |
 | `interviewer-studio` | `studio` | `views/studio/` | `V3` | One-shot immutable assessment config, skills + hidden `0..4` rubrics, core questions, `StudioQueryService` views, GDPR delete trigger |
 | `context-creation` | `context` | — (backend only) | — (stateless) | Sole prompt builder for Agent 1 (rubric-blind) and Agent 2 (hidden rubric), `PromptSanitizer`, `InjectionDetector`, `PROFESSOR` preview endpoint |
-| `assessment-chat` | `assessment` | `views/assessment/` (chat + BFI-10) | `V6` | Attempts, SSE interview streaming, append-only ledger, server timers, `pasteSuspected`/`injectionSuspected`, single-source BFI-10 scoring |
+| `assessment-chat` | `assessment` | `views/assessment/` (chat + BFI-10) | `V10` | Attempts, SSE interview streaming, append-only ledger, server timers, `pasteSuspected`/`injectionSuspected`, single-source BFI-10 scoring |
 | `evidence-pipeline`, `formula-engine`, `skills-matrix-review`, `candidate-results` | `evaluation` | `views/ranking/`, `views/assessment/` (results) | `V7` | Async 2-run judge, quote verifier, confidence, Formula B scorer, release gate, review/override queue, SQL cohort gaps, transcript export, candidate results read API |
 | `team-builder` | `teams` | `views/teams/` | `V8` | Seeded Java Simulated Annealing team optimizer, drag-and-drop recalculation, draft/publish workflow |
 
-> Flyway `V5` stays unused/reserved to keep `V6__assessment.sql` stable across teammate branches.
+> Flyway `V5` and `V6` stay unused. The assessment schema shipped as `V10__assessment.sql` because `V7`–`V9` merged first and Flyway does not run migrations out of order.
 
 ### Backend Test Base and Contract Placeholders
 

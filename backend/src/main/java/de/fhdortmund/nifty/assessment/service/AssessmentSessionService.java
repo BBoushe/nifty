@@ -94,7 +94,7 @@ public class AssessmentSessionService {
                 }
             }
         } catch (RuntimeException ex) {
-            // Decision 2.28: the ledger keeps what the candidate saw; with no text, AttemptService asks the configured
+            // Decision 2.29: the ledger keeps what the candidate saw; with no text, AttemptService asks the configured
             // question.
             log.warn("Interviewer call failed for attempt {}: {}", await.attemptId(), ex.getMessage());
         }
