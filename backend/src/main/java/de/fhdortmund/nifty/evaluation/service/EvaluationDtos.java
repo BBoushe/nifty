@@ -141,6 +141,9 @@ public final class EvaluationDtos {
     ) {
     }
 
+    public record RetryEvaluationResponse(UUID attemptId, String evaluationStatus) {
+    }
+
     public record SkillGapStat(
             UUID skillId,
             String skillName,

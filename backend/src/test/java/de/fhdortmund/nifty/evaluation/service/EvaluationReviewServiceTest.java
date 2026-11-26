@@ -536,6 +536,79 @@ class EvaluationReviewServiceTest {
         }
     }
 
+    // REQ-EP-12: the professor re-runs a FAILED evaluation from the Evidence dialog.
+    @Test
+    void retryResetsAFailedRunToQueuedWithZeroTriesAndAuditsIt() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "RUNNING", "k-retry");
+        org.springframework.test.util.ReflectionTestUtils.setField(run, "attemptCount", 3);
+        run.markFailed("boom", java.time.Instant.now());
+        CandidateEvaluationSummaryEntity summary = CandidateEvaluationSummaryEntity.queued(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run);
+        summary.markEvaluationStatus("FAILED");
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(summary));
+
+        EvaluationDtos.RetryEvaluationResponse response = service.retryEvaluation(attemptId);
+
+        assertThat(response.evaluationStatus()).isEqualTo("QUEUED");
+        assertThat(run.getStatus()).isEqualTo("QUEUED");
+        assertThat(run.getAttemptCount()).isZero();
+        assertThat(run.getErrorMessage()).isNull();
+        assertThat(summary.getEvaluationStatus()).isEqualTo("QUEUED");
+        verify(auditService).record(
+                professorId.toString(), AuditActorRole.PROFESSOR, "ATTEMPT", attemptId,
+                "EVALUATION_RETRIED", "FAILED", "QUEUED", null);
+    }
+
+    @Test
+    void retryOfANonFailedRunIsRefusedWithConflictAndChangesNothing() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-done");
+        CandidateEvaluationSummaryEntity summary = CandidateEvaluationSummaryEntity.queued(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run);
+        summary.markEvaluationStatus("COMPLETED");
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(summary));
+
+        assertThatThrownBy(() -> service.retryEvaluation(attemptId))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).getStatus())
+                .isEqualTo(HttpStatus.CONFLICT);
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        assertThat(summary.getEvaluationStatus()).isEqualTo("COMPLETED");
+        verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void retryOfAnotherProfessorsAttemptIsNotFound() {
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(UUID.randomUUID());
+        when(studioQueryService.ownedBy(any(), any())).thenReturn(false);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-foreign");
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(
+                CandidateEvaluationSummaryEntity.queued(attemptId, configId, UUID.randomUUID(), 1, formula, run)));
+
+        assertThatThrownBy(() -> service.retryEvaluation(attemptId))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).getStatus())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
     @Test
     void releaseRefusesAnAttemptThatIsStillQueuedRunningOrFailed() {
         UUID professorId = UUID.randomUUID();

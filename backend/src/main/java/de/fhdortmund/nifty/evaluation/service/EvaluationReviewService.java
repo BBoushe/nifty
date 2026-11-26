@@ -9,6 +9,7 @@ import de.fhdortmund.nifty.auth.service.AuthContextService;
 import de.fhdortmund.nifty.auth.service.InviteService;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryEntity;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryRepository;
+import de.fhdortmund.nifty.evaluation.repository.EvaluationRunEntity;
 import de.fhdortmund.nifty.evaluation.repository.FormulaVersionEntity;
 import de.fhdortmund.nifty.evaluation.repository.FormulaVersionRepository;
 import de.fhdortmund.nifty.evaluation.repository.ResponseEvaluationEntity;
@@ -405,6 +406,32 @@ public class EvaluationReviewService {
                 now,
                 summary.getFitScore(),
                 summary.getCoverage());
+    }
+
+    /**
+     * REQ-EP-12: re-runs a FAILED evaluation with a fresh set of tries. The retry scheduler dispatches the QUEUED run
+     * on its next pass. The summary row lock keeps two concurrent re-runs from writing two audit rows.
+     */
+    @Transactional
+    public EvaluationDtos.RetryEvaluationResponse retryEvaluation(UUID attemptId) {
+        UUID professorId = authContextService.currentProfessorId();
+        CandidateEvaluationSummaryEntity summary = requireOwned(summaryRepository.findByAttemptIdForUpdate(attemptId));
+        EvaluationRunEntity run = summary.getLatestRun();
+        if (!"FAILED".equals(run.getStatus())) {
+            throw new DomainException(HttpStatus.CONFLICT, "Only a failed evaluation can be re-run.");
+        }
+        run.requeue(Instant.now());
+        summary.markEvaluationStatus("QUEUED");
+        auditService.record(
+                professorId.toString(),
+                AuditActorRole.PROFESSOR,
+                "ATTEMPT",
+                attemptId,
+                "EVALUATION_RETRIED",
+                "FAILED",
+                "QUEUED",
+                null);
+        return new EvaluationDtos.RetryEvaluationResponse(attemptId, "QUEUED");
     }
 
     public EvaluationDtos.TranscriptExportResponse exportTranscript(UUID attemptId) {

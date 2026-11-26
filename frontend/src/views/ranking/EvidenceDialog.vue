@@ -15,6 +15,7 @@ import {
   overrideEvaluation,
   POLL_INTERVAL_MS,
   releaseAttempt,
+  retryEvaluation,
 } from '@/api/evaluation'
 import ScoreBadge from '@/components/ScoreBadge.vue'
 import TranscriptDialog from '@/components/TranscriptDialog.vue'
@@ -140,6 +141,21 @@ const releaseMutation = useMutation({
   },
   onError: (err: Error) => {
     actionError.value = err.message || 'Release failed.'
+  },
+})
+
+// REQ-EP-12: the matrix and this dialog poll while the re-queued run is QUEUED or RUNNING.
+const retryMutation = useMutation({
+  mutationFn: () => retryEvaluation(props.attemptId!),
+  onSuccess: () => {
+    actionError.value = null
+    actionSuccess.value = 'Evaluation queued again.'
+    queryClient.invalidateQueries({ queryKey: ['attempt-evaluations', props.attemptId] })
+    queryClient.invalidateQueries({ queryKey: ['evaluation-matrix'] })
+    emit('updated')
+  },
+  onError: (err: Error) => {
+    actionError.value = err.message || 'Re-run failed.'
   },
 })
 
@@ -333,6 +349,15 @@ async function downloadTranscript() {
         :loading="drilldownQuery.isFetching.value"
         data-testid="evidence-refresh-btn"
         @click="drilldownQuery.refetch()"
+      />
+      <Button
+        v-if="drilldownQuery.data.value?.evaluationStatus === 'FAILED'"
+        label="Re-run evaluation"
+        size="small"
+        severity="secondary"
+        :loading="retryMutation.isPending.value"
+        data-testid="rerun-evaluation-btn"
+        @click="retryMutation.mutate()"
       />
       <Button label="Export JSON" size="small" severity="secondary" @click="downloadTranscript" />
       <Button

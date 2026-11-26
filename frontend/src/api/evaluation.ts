@@ -322,6 +322,11 @@ export function releaseAttempt(attemptId: string): Promise<ReleaseAttemptRespons
   )
 }
 
+// REQ-EP-12: only a FAILED evaluation can be re-run; the backend answers 409 otherwise.
+export function retryEvaluation(attemptId: string): Promise<{ attemptId: string; evaluationStatus: EvaluationStatus }> {
+  return apiFetch(`${RANKING_BASE}/attempts/${encodeURIComponent(attemptId)}/evaluation/retry`, { method: 'POST' })
+}
+
 export function getCohortGaps(configId: string): Promise<CohortGapsResponse> {
   return apiFetch<CohortGapsResponse>(`${RANKING_BASE}/configs/${encodeURIComponent(configId)}/cohort-gaps`)
 }

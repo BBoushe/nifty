@@ -59,6 +59,11 @@ class RankingEvaluationController {
         return reviewService.releaseAttempt(attemptId);
     }
 
+    @PostMapping("/attempts/{attemptId}/evaluation/retry")
+    EvaluationDtos.RetryEvaluationResponse retryEvaluation(@PathVariable UUID attemptId) {
+        return reviewService.retryEvaluation(attemptId);
+    }
+
     @GetMapping("/configs/{configId}/cohort-gaps")
     EvaluationDtos.CohortGapsResponse getCohortGaps(@PathVariable UUID configId) {
         return cohortGapQueryService.getCohortGaps(configId);

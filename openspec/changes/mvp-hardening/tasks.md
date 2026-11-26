@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 7 done (committed, not pushed).
-- **Next action:** Group C, Task 8 (final-try crash, re-run, lost events).
+- **Current:** Tasks 1 to 8 done (committed, not pushed).
+- **Next action:** Group C, Task 9 (snapshot weights and lock order).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -57,10 +57,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] RED in `TwoRunResponseJudgeTest`: a fenced reply ` ```json\n{…}\n``` ` parses; text before and after the object parses; `level` 7 inside a fence still fails; the judge call options carry temperature `0.0` (captor on the prompt).
   - [x] GREEN per design §3. Commit `fix(evaluation): accept fenced judge JSON and call the judge at temperature 0`.
 
-- [ ] **Task 8: Final-try crash, re-run, lost events (REQ-EP-11..13)**
-  - [ ] RED. (1) `EvaluationRetrySchedulerTest`: a stale `RUNNING` run at max tries becomes `FAILED` with `STALE_FINAL_TRY`. (2) The same test: a completed attempt with no run gets exactly one run, also when the pass runs twice. (3) Controller and service tests for `POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry`: `FAILED` → `QUEUED`, tries 0, audit `EVALUATION_RETRIED`; `COMPLETED` → `409`; another professor's attempt → `404`.
-  - [ ] GREEN per design §3. The new assessment read method lives in `AssessmentQueryService` and its implementation, with no cross-slice repository access. Add the audit action. Update `docs/api.md`. The Evidence dialog shows "Re-run evaluation" for `FAILED`, with a frontend test.
-  - [ ] Commit `fix(evaluation): fail stale final tries, recover missed runs, add professor re-run`.
+- [x] **Task 8: Final-try crash, re-run, lost events (REQ-EP-11..13)**
+  - [x] RED. (1) `EvaluationRetrySchedulerTest`: a stale `RUNNING` run at max tries becomes `FAILED` with `STALE_FINAL_TRY`. (2) The same test: a completed attempt with no run gets exactly one run, also when the pass runs twice. (3) Controller and service tests for `POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry`: `FAILED` → `QUEUED`, tries 0, audit `EVALUATION_RETRIED`; `COMPLETED` → `409`; another professor's attempt → `404`.
+  - [x] GREEN per design §3. The new assessment read method lives in `AssessmentQueryService` and its implementation, with no cross-slice repository access. Add the audit action. Update `docs/api.md`. The Evidence dialog shows "Re-run evaluation" for `FAILED`, with a frontend test.
+  - [x] Commit `fix(evaluation): fail stale final tries, recover missed runs, add professor re-run`.
 
 - [ ] **Task 9: Snapshot weights and lock order (REQ-FE-07, REQ-SM-14)**
   - [ ] RED: (1) the first scoring creates formula version 1 and uses its stored weights. Change the live weights in the test stub, and the score must not change. (2) Mockito `verify(summaryRepo).findByAttemptIdForUpdate(id)` is called before any response-evaluation write, for approve, override and the cleanup listener. Use `InOrder`.
@@ -190,4 +190,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='TwoRunResponseJudgeTest'` → FAIL (4 of 9: fenced and prose-wrapped replies failed; prompt options had no temperature); GREEN: `./mvnw -B test -Dtest='TwoRunResponseJudgeTest,AsyncEvaluationRunnerTest,EvaluationSpecInvariantPropertyTest,EvaluationInvariantPropertyTest'` → exit 0 (42 run)
 - Contracts/Migrations added: none
 - Decisions: no new ID. Design differed from code: (1) No separate fence-strip step. "First `{` to last `}`" already removes both fence lines, so one extraction covers fence and prose (`shortcut:` comment for a stray `{` in leading prose). (2) The temperature uses the portable `ChatOptions.builder().temperature(0.0)` per call instead of `OpenAiChatOptions`, so a provider switch stays config-only (backend rule 4); Spring AI maps it onto the OpenAI options. (3) `EvaluationInvariantPropertyTest` listed "Here is JSON: {valid}" as a bad payload; REQ-EP-10 now makes it valid, so that one payload was removed.
+- Open Questions: none
+
+### Task 8: Final-try crash, re-run, lost events
+- Commits: (this commit) fix(evaluation): fail stale final tries, recover missed runs, add professor re-run
+- Verification: RED: `./mvnw -B test -Dtest='EvaluationRetrySchedulerTest,EvaluationReviewServiceTest,RankingEvaluationControllerTest,AssessmentQueryServiceImplTest'` → FAIL (compile: no `findStaleFinalTryIds`, `completedAttemptsSince`, `retryEvaluation`, `RetryEvaluationResponse`); `npx vitest run src/views/ranking/RankingLive.test.ts` → FAIL (1 of 14: no Re-run button); GREEN: `./mvnw -B test -Dtest='EvaluationRetrySchedulerTest,EvaluationReviewServiceTest,RankingEvaluationControllerTest,AssessmentQueryServiceImplTest,AsyncEvaluationRunnerTest,EvaluationRetrySchedulerIntegrationTest,ArchitectureTest,AssessmentSpecInvariantPropertyTest'` → exit 0 (64 run); `npx vitest run src/views/ranking` + `npm run typecheck && npm run lint` → exit 0 (30 run)
+- Contracts/Migrations added: `docs/api.md` (`POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry`, `RetryEvaluationResponse`); `AssessmentQueryService.completedAttemptsSince(Instant)`; no migration
+- Decisions: no new ID. Design differed from code: (1) The new assessment method is `completedAttemptsSince(Instant since)` and returns `AttemptCompletedEvent` (attempt, config, invite ids), not `completedAttemptIdsWithoutEvaluation`. The assessment slice cannot see which attempts have a run, and `enqueue` already skips known attempts, so evaluation re-submits every attempt completed in the last 7 days (`shortcut:` constant `RECOVERY_WINDOW`, one lookup each per pass). (2) The two scheduler steps live in `AsyncEvaluationRunner` (`failStaleFinalTries`, `recoverMissedRuns`), which already owns `maxAttempts`, `staleAfter` and `enqueue`; `EvaluationRetryScheduler.retryPass` calls both before it dispatches. (3) The re-run sets the run to `QUEUED` and does not dispatch at once; the scheduler (1 min) picks it up. (4) `EVALUATION_RETRIED` is a plain audit action string (no enum exists), entity `ATTEMPT`, old `FAILED`, new `QUEUED`. (5) The `shortcut:` note in `EvaluationEventListener` about the lost event is replaced by a pointer to the recovery.
 - Open Questions: none

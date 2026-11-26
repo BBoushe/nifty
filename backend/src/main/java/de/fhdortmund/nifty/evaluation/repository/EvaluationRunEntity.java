@@ -142,6 +142,15 @@ public class EvaluationRunEntity {
         this.updatedAt = completedAt;
     }
 
+    /** REQ-EP-12: professor re-run. The scheduler claims the run again with a fresh set of tries. */
+    public void requeue(Instant now) {
+        this.status = "QUEUED";
+        this.attemptCount = 0;
+        this.errorMessage = null;
+        this.completedAt = null;
+        this.updatedAt = now;
+    }
+
     public void markFailed(String errorMessage, Instant completedAt) {
         this.status = "FAILED";
         this.errorMessage = errorMessage;

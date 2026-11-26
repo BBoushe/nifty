@@ -189,3 +189,45 @@ describe('Live status and Release gate (REQ-SM-11, REQ-CR-07)', () => {
     await flushPromises()
   })
 })
+
+// REQ-EP-12: the professor re-runs a FAILED evaluation from the Evidence dialog.
+describe('Re-run evaluation (REQ-EP-12)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shows Re-run evaluation only for FAILED, posts the retry and refetches the drilldown', async () => {
+    let status = 'FAILED'
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (String(url).includes('/evaluation/retry') && init?.method === 'POST') {
+        status = 'QUEUED'
+        return Promise.resolve(jsonResponse({ attemptId: 'att-1', evaluationStatus: 'QUEUED' }))
+      }
+      return Promise.resolve(jsonResponse(drilldownBody(status)))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const wrapper = mount(EvidenceDialog, {
+      props: { attemptId: 'att-1', visible: true },
+      global: { ...dialogGlobal, plugins: [...plugins()] },
+    })
+    await flushPromises()
+
+    await wrapper.get('[data-testid="rerun-evaluation-btn"]').trigger('click')
+    await flushPromises()
+
+    const retryCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/attempts/att-1/evaluation/retry'))
+    expect(retryCall?.[1]?.method).toBe('POST')
+    expect(wrapper.find('[data-testid="rerun-evaluation-btn"]').exists()).toBe(false)
+  })
+
+  it.each(['QUEUED', 'RUNNING', 'COMPLETED'])('hides Re-run evaluation for %s', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(drilldownBody(status)))))
+    const wrapper = mount(EvidenceDialog, {
+      props: { attemptId: 'att-1', visible: true },
+      global: { ...dialogGlobal, plugins: [...plugins()] },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="rerun-evaluation-btn"]').exists()).toBe(false)
+  })
+})

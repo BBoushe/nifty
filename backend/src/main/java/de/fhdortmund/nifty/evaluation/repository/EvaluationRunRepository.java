@@ -34,6 +34,14 @@ public interface EvaluationRunRepository extends JpaRepository<EvaluationRunEnti
             """)
     List<UUID> findRetryableIds(int maxAttempts, Instant staleBefore, Pageable page);
 
+    /** REQ-EP-11: RUNNING runs that crashed on their last allowed try. {@link #claim} can never pick them up again. */
+    @Query("""
+            SELECT r.id FROM EvaluationRunEntity r
+            WHERE r.attemptCount >= :maxAttempts AND r.status = 'RUNNING' AND r.updatedAt < :staleBefore
+            ORDER BY r.startedAt ASC
+            """)
+    List<UUID> findStaleFinalTryIds(int maxAttempts, Instant staleBefore);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM EvaluationRunEntity r WHERE r.configId = :configId")
     void deleteByConfigId(UUID configId);

@@ -114,6 +114,32 @@ class RankingEvaluationControllerTest {
                 .andExpect(jsonPath("$.format").value("assessment-transcript/v1"));
     }
 
+    // REQ-EP-12
+    @Test
+    void professorRerunsAFailedEvaluationAndAConflictMapsTo409() throws Exception {
+        UUID attemptId = UUID.randomUUID();
+        UUID busyAttemptId = UUID.randomUUID();
+        when(reviewService.retryEvaluation(attemptId))
+                .thenReturn(new EvaluationDtos.RetryEvaluationResponse(attemptId, "QUEUED"));
+        when(reviewService.retryEvaluation(busyAttemptId))
+                .thenThrow(new de.fhdortmund.nifty.shared.exception.DomainException(
+                        org.springframework.http.HttpStatus.CONFLICT, "Only a failed evaluation can be re-run."));
+
+        mockMvc.perform(post("/api/v1/ranking/attempts/{id}/evaluation/retry", attemptId)
+                        .with(user("p").roles("PROFESSOR"))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.evaluationStatus").value("QUEUED"));
+        mockMvc.perform(post("/api/v1/ranking/attempts/{id}/evaluation/retry", busyAttemptId)
+                        .with(user("p").roles("PROFESSOR"))
+                        .with(csrf()))
+                .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/v1/ranking/attempts/{id}/evaluation/retry", attemptId)
+                        .with(user("c").roles("CANDIDATE"))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     void candidateIsForbiddenFromProfessorRankingEndpoints() throws Exception {
         UUID id = UUID.randomUUID();

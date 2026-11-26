@@ -62,6 +62,9 @@ public class AsyncEvaluationRunner {
     private static final int RETRY_BATCH = 50;
     private static final String RUNNING = "RUNNING";
     private static final String FAILED = "FAILED";
+    private static final String STALE_FINAL_TRY = "STALE_FINAL_TRY";
+    // shortcut: a completion lost for longer than this stays lost; widen the window or add a startup sweep if needed.
+    private static final Duration RECOVERY_WINDOW = Duration.ofDays(7);
 
     private final StudioQueryService studioQueryService;
     private final AssessmentQueryService assessmentQueryService;
@@ -137,6 +140,49 @@ public class AsyncEvaluationRunner {
         } catch (DataIntegrityViolationException ex) {
             // Concurrent duplicate AttemptCompletedEvent lost the unique attempt_id race (REQ-EP-09).
             return null;
+        }
+    }
+
+    /**
+     * REQ-EP-13: creates the run of every completed attempt whose completion event was lost (crash between the
+     * assessment commit and {@link #enqueue}). {@link #enqueue} is idempotent, so a repeated pass adds nothing.
+     * shortcut: re-checks every attempt completed inside the window on each pass (one lookup each); upgrade to an
+     * anti-join if cohorts grow past a few hundred attempts per week.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void recoverMissedRuns() {
+        List<AttemptCompletedEvent> completed =
+                assessmentQueryService.completedAttemptsSince(Instant.now().minus(RECOVERY_WINDOW));
+        for (int i = 0; i < completed.size(); i++) {
+            try {
+                enqueue(completed.get(i));
+            } catch (RuntimeException ex) {
+                LOG.warn("Could not recover the evaluation run of attempt {}", completed.get(i).attemptId(), ex);
+            }
+        }
+    }
+
+    /**
+     * REQ-EP-11: a stale RUNNING run on its last try can never be claimed again, so it ends as FAILED. The professor
+     * can re-run it (REQ-EP-12).
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void failStaleFinalTries() {
+        List<UUID> runIds = evaluationRunRepository.findStaleFinalTryIds(maxAttempts, Instant.now().minus(staleAfter));
+        for (int i = 0; i < runIds.size(); i++) {
+            UUID runId = runIds.get(i);
+            transactionTemplate.executeWithoutResult(tx -> {
+                EvaluationRunEntity run = evaluationRunRepository.findById(runId).orElseThrow();
+                CandidateEvaluationSummaryEntity summary =
+                        summaryRepository.findByAttemptId(run.getAttemptId()).orElseThrow();
+                if (summary.isCompleted() || !RUNNING.equals(run.getStatus())) {
+                    return;
+                }
+                run.markFailed(STALE_FINAL_TRY, Instant.now());
+                evaluationRunRepository.save(run);
+                summary.markEvaluationStatus(FAILED);
+                summaryRepository.save(summary);
+            });
         }
     }
 
