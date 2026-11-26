@@ -3,11 +3,11 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** Archived (`2026-11-26-evaluation-service`), cold review findings (5 blocking + 4 convention candidates) fixed, invariance property tests (`EvaluationInvariantPropertyTest`) and PITest mutation hardening verified (249 backend tests, 85 frontend tests, 43 harness tests, 11 OpenSpec validations, 94% line / 80% mutation test strength)
-- **Next action:** Hand PR #29 / MR !27 to Teammate A for cold review, CI check, and merge on GitHub (then `node scripts/forge.mjs sync dev`)
-- **Uncommitted changes:** none
+- **Current:** Archived (`2026-11-26-evaluation-service`). Second review round fixed (lost evaluations, retake rule, invented coverage, zero weights, override survival, fail-closed gate, duplicate events, judge transactions, snapshot weights) and `EvaluationSpecInvariantPropertyTest` added. Verified: 356 backend tests, 91 frontend tests, 43 harness tests, 11 OpenSpec validations (`--strict`)
+- **Next action:** Push the fix commits to PR #29 / MR !27 (the builder session did not push), then cold re-review, CI check, and merge on GitHub (then `node scripts/forge.mjs sync dev`)
+- **Uncommitted changes:** none after the docs commit
 - **PR / MR:** GitHub #29, GitLab !27
-- **Open review findings:** none (all 5 blocking and 4 convention candidates resolved)
+- **Open review findings:** none (second-round findings fixed; see the last Handoff Log entry for what was not done)
 
 ## Tasks
 
@@ -118,3 +118,10 @@
 - Contracts/Migrations added: `POST /api/v1/ranking/evaluations/{responseEvalId}/approve` (synced in `docs/api.md`, `RankingEvaluationController`, `EvaluationReviewService`, `EvidenceDrawer.vue`), `EvaluationInvariantPropertyTest.java`, `AsyncEvaluationRunnerIntegrationTest.java`
 - Decisions: 2.10, 2.11, 2.16, 2.22, 2.24, 2.25
 - Open Questions: none
+
+### Task N (Review and property-test fixes)
+- Commits: `08b20c4 fix(evaluation): keep invented entries out of coverage and guard zero weights`, `1975fe0 fix(evaluation): fail closed in the release gate and judge outside transactions`, `124660d fix(evaluation): queue evaluations before dispatch, retry failures and show waiting attempts`, `ebcb9bb test(evaluation): add spec invariant property tests`
+- Verification: `RED: cd backend && ./mvnw -B test -Dtest=ReleaseGateEvaluatorTest,TwoRunResponseJudgeTest,SkillFormulaCalculatorTest,EvaluationSpecInvariantPropertyTest (old calculator, gate and judge) → FAIL (7 failures: invented entry counted toward coverage, zero-weight score 1.0 outside levels 2..4, fail-open gate, judge ran inside a transaction); lifecycle RED = compile error (no enqueue/executeRun/findLatestPerInvite); GREEN: cd backend && ./mvnw -B test → exit 0 (356 tests, incl. ArchitectureTest), cd frontend && npm run typecheck && npm run lint && npm run test && npm run build → exit 0 (91 tests), node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs → exit 0 (43 tests), OPENSPEC_TELEMETRY=0 openspec validate --all --strict → exit 0 (10 items)`
+- Contracts/Migrations added: `V7__evaluation.sql` (edited, not yet merged: `attempt_count` default 0, new `updated_at`), `EvaluationRetryScheduler.java`, `EvaluationRunRepository.claim/findRetryableIds`, `CandidateEvaluationSummaryRepository.findLatestPerInvite`, `MatrixCandidateRow.evaluationStatus` (`docs/api.md`, `frontend/src/api/evaluation.ts`, `SkillsMatrixPanel.vue`), new `409` cases on approve, release and formula apply, config keys `nifty.evaluation.retry.*`, `EvaluationLifecycleIntegrationTest.java`, `EvaluationRetrySchedulerIntegrationTest.java`, `EvaluationSpecInvariantPropertyTest.java`
+- Decisions: 2.10, 2.13, 2.22, 2.24 (design choices in `design.md` "Review Fixes"; no new decision recorded)
+- Open Questions: none. Not done: a crash between the assessment commit and `enqueue` still loses the event, and a `RUNNING` run that is stale at its last try is never reclaimed (both are `shortcut:` notes in `design.md`)
