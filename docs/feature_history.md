@@ -10,6 +10,24 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 - **PR/MR:** GitHub #25, GitLab !24
 - **Specs:** REQ-IS-12 (added to `interviewer-studio`); REQ-IS-01, REQ-IS-05..11 (implemented)   **Decisions:** applies 1.10, 1.12, 1.14, 1.19, 2.21, 2.22, 2.23, 4.4
 
+## 2026-11-26 — auth-accounts
+- **What:** Added `V2__auth_accounts.sql` (`professor_account`), env bootstrap (`NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` / `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD`), `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, server session cookies (`HttpOnly`, `SameSite=Lax`), SPA CSRF (`XSRF-TOKEN` / `X-XSRF-TOKEN`) and `AuthContextServiceImpl` (`AuthContextServicePlaceholder` deleted). Added the frontend `/sign-in` view, Pinia auth store, `/ranking/*` and `/assessment/*` route guards, and CSRF header support in `apiFetch` and `postSse`.
+- **Why:** Studio and the Ranking View need a signed-in professor session and `AuthContextService.currentProfessorId()` without HTTP Basic or secrets in the repo (Decisions 1.23, 1.24).
+- **PR/MR:** GitHub #23, GitLab !22
+- **Specs:** REQ-AA-06..07 (added to `auth-access`); REQ-AA-01..02 (implemented)   **Decisions:** applies 1.14, 1.15, 1.23, 1.24
+
+## 2026-11-26 — context-creation
+- **What:** Built the stateless `context` slice, the only place that builds LLM prompts. A rubric-blind `interviewer-v1` builder and a per-(entry, skill) `evaluator-judge-v1` builder (levels `0..4` in order, evidence-only JSON, timed-out partial answers kept). Candidate text goes through a zero-Stream sanitizer and a deterministic injection detector, then inside `<candidate_answer>` or `<transcript_entry>` tags. A flagged answer writes one `PROMPT_INJECTION_DETECTED` audit row with a SHA-256 and rule IDs, never raw text. Added the `PROFESSOR` preview endpoint `POST /api/v1/ranking/context/preview/interviewer`. Deleted `ContextCreationServicePlaceholder`.
+- **Why:** `assessment` and `evaluation` must not write their own prompts. One slice keeps the interviewer rubric-blind and treats candidate text as untrusted data.
+- **PR/MR:** GitHub #24, GitLab !23
+- **Specs:** REQ-CC-09 (added to the main spec), REQ-CC-01..08 (implemented)   **Decisions:** applies 1.12, 1.18, 1.19, 1.21, 2.20, 2.24, 2.25
+
+## 2026-11-25 — audit-log-service
+- **What:** `AuditService.record(...)` writes one `audit_log` row in the transaction of the caller. It rejects a missing actor, role, entity or action. `AuditLogEntity` is `@Immutable`, and `AuditLogRepository` has no update or delete method. `AuditServicePlaceholder` is gone.
+- **Why:** Studio, context, evaluation and teams must write real audit rows for overrides, deletions and injection flags (Decision 1.16).
+- **PR/MR:** GitHub #21, GitLab !20
+- **Specs:** REQ-AL-01..02 (change-local, archived with `--skip-specs`)   **Decisions:** none; applies 1.10, 1.16
+
 ## 2026-11-25 — frontend-foundation
 - **What:** Added Vitest (jsdom, ECharts mock) and `npm run test` in both CI files. Added the PrimeVue 4 preset from Tailwind `@theme` tokens and `ScoreBadge`, which never shows `N/A` as `0`. Moved views into feature folders with one `routes.ts` each. Added the shared API client for RFC 9457 errors and SSE streams from a `POST`. `npm run typecheck` now checks the app sources and `vite.config.ts`. `ScoreBadge` shows bad levels as invalid, and the preset maps the full primary scale.
 - **Why:** The five teammate tickets need a test runner, the design system, separate route files and one client. Then they do not edit the same files.

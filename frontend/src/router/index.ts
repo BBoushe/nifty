@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import assessmentRoutes from '@/views/assessment/routes'
+import { authGuard } from '@/views/auth/guard'
 import authRoutes from '@/views/auth/routes'
 import rankingRoutes from '@/views/ranking/routes'
 import studioRoutes from '@/views/studio/routes'
@@ -17,5 +18,7 @@ const router = createRouter({
     ...teamsRoutes,
   ],
 })
+
+router.beforeEach(authGuard)
 
 export default router

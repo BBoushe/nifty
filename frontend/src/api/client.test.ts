@@ -122,3 +122,57 @@ describe('postSse (REQ-FF-03)', () => {
     await expect(collect(postSse('/x'))).rejects.toThrow('text/event-stream')
   })
 })
+
+describe('CSRF header (REQ-AA-06, Decision 1.23)', () => {
+  afterEach(() => {
+    document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    vi.unstubAllGlobals()
+  })
+
+  it('sends X-XSRF-TOKEN on POST from the XSRF-TOKEN cookie', async () => {
+    document.cookie = 'XSRF-TOKEN=tok-123-abc; path=/'
+    const fetchMock = stubFetch(new Response(null, { status: 204 }))
+
+    await apiFetch('/api/v1/auth/logout', { method: 'POST' })
+
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+    expect(headers.get('X-XSRF-TOKEN')).toBe('tok-123-abc')
+  })
+
+  it('does not send X-XSRF-TOKEN on GET', async () => {
+    document.cookie = 'XSRF-TOKEN=tok-123-abc; path=/'
+    const fetchMock = stubFetch(new Response(JSON.stringify({ ok: true })))
+
+    await apiFetch('/api/v1/auth/me')
+
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+    expect(headers.get('X-XSRF-TOKEN')).toBeNull()
+  })
+
+  it('sends X-XSRF-TOKEN in postSse from the XSRF-TOKEN cookie', async () => {
+    document.cookie = 'XSRF-TOKEN=sse-tok-99; path=/'
+    const fetchMock = stubFetch(sseResponse(['data: ok\n\n']))
+
+    await collect(postSse('/api/v1/assessment/sessions', { a: 1 }))
+
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+    expect(headers.get('X-XSRF-TOKEN')).toBe('sse-tok-99')
+  })
+
+  it.each(['PUT', 'PATCH', 'DELETE'])(
+    'sends decoded X-XSRF-TOKEN from multiple cookies on %s',
+    async (method) => {
+      document.cookie = 'other=1; path=/'
+      document.cookie = 'XSRF-TOKEN=abc%3D123; path=/'
+      document.cookie = 'tail=2; path=/'
+      const fetchMock = stubFetch(new Response(null, { status: 204 }))
+
+      await apiFetch('/api/v1/x', { method })
+
+      const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+      expect(headers.get('X-XSRF-TOKEN')).toBe('abc=123')
+      document.cookie = 'other=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+      document.cookie = 'tail=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    },
+  )
+})

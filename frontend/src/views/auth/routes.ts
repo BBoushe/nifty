@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
+import SignInView from './SignInView.vue'
 
-// Owned by the auth-accounts change (US-AU-02): the sign-in page goes here.
-const routes: RouteRecordRaw[] = []
+// Owned by auth-accounts (US-AU-02).
+const routes: RouteRecordRaw[] = [{ path: '/sign-in', name: 'sign-in', component: SignInView }]
 
 export default routes

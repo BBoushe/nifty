@@ -2,7 +2,6 @@ package de.fhdortmund.nifty;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import de.fhdortmund.nifty.assessment.service.AssessmentQueryService;
 import de.fhdortmund.nifty.assessment.service.EntryOrigin;
@@ -78,7 +77,10 @@ class ContractStubsTest extends PostgresContainerBase {
     }
 
     private static void assertPlaceholderThrows(Object bean, ThrowingCallable call) {
-        assumeTrue(bean.getClass().getSimpleName().endsWith("Placeholder"), "real bean replaced the placeholder");
+        // A real bean replaced this placeholder. Return, not assumeTrue: an abort would skip the remaining checks.
+        if (!bean.getClass().getSimpleName().endsWith("Placeholder")) {
+            return;
+        }
         assertThatThrownBy(call).isInstanceOf(UnsupportedOperationException.class);
     }
 }
