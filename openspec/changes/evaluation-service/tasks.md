@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-02 complete (zero-Stream VerbatimQuoteVerifier, ConfidenceCalculator, SkillFormulaCalculator, ReleaseGateEvaluator)
-- **Next action:** Start US-EV-03 (TwoRunResponseJudge, AsyncEvaluationRunner, AFTER_COMMIT EvaluationEventListener)
+- **Current:** US-EV-03 complete (TwoRunResponseJudge, AsyncEvaluationRunner, EvaluationEventListener AFTER_COMMIT, EvaluationAsyncConfig)
+- **Next action:** Start US-EV-04 (review queue, audited overrides, SQL cohort gaps, EvaluationQueryServiceImpl)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -23,11 +23,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(evaluation): implement deterministic verifier, confidence, Formula B, and release gate`
 
-- [ ] **US-EV-03: `TwoRunResponseJudge`, `AsyncEvaluationRunner`, and `AFTER_COMMIT` `AttemptCompletedEvent` listener**
-  - [ ] Write RED unit tests with mocked `ChatClient`, `ContextCreationService`, `StudioQueryService`, and `AssessmentQueryService`: 2 fresh-context calls per `(entryId, skillId)`, non-blank `timedOut = true` evaluated (Decision 2.20), blank entry skipped, duplicate event idempotency, failure isolation (no partial `skill_score` rows), rollback does not trigger run.
-  - [ ] Implement `TwoRunResponseJudge`, `AsyncEvaluationRunner`, and `EvaluationEventListener`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(evaluation): add async two-run judge and AFTER_COMMIT event runner`
+- [x] **US-EV-03: `TwoRunResponseJudge`, `AsyncEvaluationRunner`, and `AFTER_COMMIT` `AttemptCompletedEvent` listener**
+  - [x] Write RED unit tests with mocked `ChatClient`, `ContextCreationService`, `StudioQueryService`, and `AssessmentQueryService`: 2 fresh-context calls per `(entryId, skillId)`, non-blank `timedOut = true` evaluated (Decision 2.20), blank entry skipped, duplicate event idempotency, failure isolation (no partial `skill_score` rows), rollback does not trigger run.
+  - [x] Implement `TwoRunResponseJudge`, `AsyncEvaluationRunner`, and `EvaluationEventListener`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(evaluation): add async two-run judge and AFTER_COMMIT event runner`
 
 - [ ] **US-EV-04: Review queue, `AuditService` overrides, SQL Cohort Gaps, and `EvaluationQueryService`**
   - [ ] Write RED tests: bulk-approve skips `flagged`, override requires non-blank `reason` + calls `AuditService.record(...)` + preserves `ai_level` + recalculates Formula B with zero LLM calls, explicit release requires zero remaining `flagged` items, latest-attempt-only matrix/cohort SQL, and `EvaluationQueryService.getCandidateProfilesForConfig` returns explicit `N/A`, returns released attempts only, and lists unreleased candidates in `pendingInviteIds` (REQ-EV-01).
@@ -71,8 +71,15 @@
 - Open Questions: none
 
 ### US-EV-02
-- Commits: `feat(evaluation): implement deterministic verifier, confidence, Formula B, and release gate`
+- Commits: `185ad23 feat(evaluation): implement deterministic verifier, confidence, Formula B, and release gate`
 - Verification: `RED: ./mvnw -B test -Dtest=VerbatimQuoteVerifierTest,ConfidenceCalculatorTest,SkillFormulaCalculatorTest,ReleaseGateEvaluatorTest → FAIL (cannot find symbol VerbatimQuoteVerifier/ConfidenceCalculator/SkillFormulaCalculator/ReleaseGateEvaluator); GREEN: cd backend && ./mvnw -B test → exit 0 (209 tests)`
 - Contracts/Migrations added: `VerbatimQuoteVerifier.java`, `ConfidenceCalculator.java`, `SkillFormulaCalculator.java`, `ReleaseGateEvaluator.java`
 - Decisions: 2.2, 2.4, 2.10, 2.11, 2.12, 2.20, 2.22, 2.24
+- Open Questions: none
+
+### US-EV-03
+- Commits: `feat(evaluation): add async two-run judge and AFTER_COMMIT event runner`
+- Verification: `RED: ./mvnw -B test -Dtest=TwoRunResponseJudgeTest,AsyncEvaluationRunnerTest,EvaluationEventListenerRollbackTest → FAIL (cannot find symbol TwoRunResponseJudge/AsyncEvaluationRunner); GREEN: ./mvnw -B test -Dtest=TwoRunResponseJudgeTest,AsyncEvaluationRunnerTest,EvaluationEventListenerRollbackTest → exit 0 (7/7 tests; 216/216 total)`
+- Contracts/Migrations added: `EvaluationAsyncConfig.java`, `TwoRunResponseJudge.java`, `AsyncEvaluationRunner.java`, `EvaluationEventListener.java`
+- Decisions: 1.12, 1.18, 2.10, 2.20, 2.24, 2.25
 - Open Questions: none
