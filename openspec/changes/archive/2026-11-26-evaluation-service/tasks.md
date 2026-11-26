@@ -4,9 +4,9 @@
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
 - **Current:** Archived (`2026-11-26-evaluation-service`), cold review findings (5 blocking + 4 convention candidates) fixed, invariance property tests (`EvaluationInvariantPropertyTest`) and PITest mutation hardening verified (249 backend tests, 85 frontend tests, 43 harness tests, 11 OpenSpec validations, 94% line / 80% mutation test strength)
-- **Next action:** Push branch and open PR/MR via `node scripts/forge.mjs` once human confirms
+- **Next action:** Hand PR #29 / MR !27 to Teammate A for cold review, CI check, and merge on GitHub (then `node scripts/forge.mjs sync dev`)
 - **Uncommitted changes:** none
-- **PR / MR:** pending
+- **PR / MR:** GitHub #29, GitLab !27
 - **Open review findings:** none (all 5 blocking and 4 convention candidates resolved)
 
 ## Tasks
@@ -58,7 +58,7 @@
 - [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
 - [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive evaluation-service -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive evaluation-service`.
-- [ ] Push and open PR/MR via `node scripts/forge.mjs`.
+- [x] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log
