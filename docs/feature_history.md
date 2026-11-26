@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — local-run-fixes
+- **What:** ki:connect model IDs (`GPT-OSS-120B`, `Qwen3.8 27B`, `mistralai-mistral-small-4`) instead of display names in config and docs; `docker-compose.yml` passes `NIFTY_FRONTEND_BASE_URL` (default `http://localhost:3000`); the route guard sends a signed-in user of the other role to their start page (REQ-NAV-09); the `tests-only` agent guard accepts worktree paths.
+- **Why:** The first manual run found every evaluation failing with `404 model does not exist`, invite links on port 5173, and reloads that looked like logouts because one browser held one session for both roles.
+- **PR/MR:** open (see `tasks.md` Status)
+- **Specs:** REQ-NAV-09 (added to `app-navigation`)   **Decisions:** applies 1.13, 1.15
+
 ## 2026-11-26 — frontend-integration
 - **What:** Role-aware header in `App.vue` (professor: Studio, Ranking, Sign out; candidate: Interview, Results, Sign out; signed out: Sign in), a `/` start page per role, professor sign-in default `/ranking/studio`, and links between pages (Studio detail to ranking and team builder, ranking empty state to Studio, finished interview to results).
 - **Why:** Tickets 01–05 built every page, but each ticket could edit only its own folder, so the shared shell still showed the Wave 0 links and most pages had no link.
