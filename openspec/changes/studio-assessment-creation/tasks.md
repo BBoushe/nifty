@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** US-ST-01 done
-- **Next action:** US-ST-02
+- **Current:** US-ST-02 done
+- **Next action:** US-ST-03
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -17,11 +17,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
   - [x] Commit: `feat(studio): add StudioQueryService hand-off view contracts and rubric guard`
 
-- [ ] **US-ST-02: Flyway `V3__studio.sql`, `@Immutable` entities in `studio/repository/`, and mutation triggers**
-  - [ ] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) verifying schema CHECK constraints (`min_coverage`, `rubric_levels` length 5, `follow_up_limit` 0..3, `min < max`) and trigger rejection on `UPDATE` and unflagged `DELETE`, plus purge success under `SET LOCAL nifty.allow_purge = 'on'`.
-  - [ ] Implement `V3__studio.sql`, entities in `studio/repository/` (NOT `domain/`), and package-private `Repository<T, UUID>` interfaces.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(studio): add V3 studio schema, entities, repositories, and immutability triggers`
+- [x] **US-ST-02: Flyway `V3__studio.sql`, `@Immutable` entities in `studio/repository/`, and mutation triggers**
+  - [x] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) verifying schema CHECK constraints (`min_coverage`, `rubric_levels` length 5, `follow_up_limit` 0..3, `min < max`) and trigger rejection on `UPDATE` and unflagged `DELETE`, plus purge success under `SET LOCAL nifty.allow_purge = 'on'`.
+  - [x] Implement `V3__studio.sql`, entities in `studio/repository/` (NOT `domain/`), and package-private `Repository<T, UUID>` interfaces.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(studio): add V3 studio schema, entities, repositories, and immutability triggers`
 
 - [ ] **US-ST-03: Pure validators (`SettingsRules`, `SkillRules`, `QuestionRules`, `ConfigValidator`)**
   - [ ] Write RED pure-JVM unit tests covering every error code (`REQUIRED`, `OUT_OF_RANGE`, `BAD_WEIGHTS`, `RUBRIC_INCOMPLETE`, `DUPLICATE_SKILL`, `TIME_RANGE`, `NO_SKILL`, `UNUSED_SKILL`, `ORDER_GAP`, `EMPTY_CONFIG`) AND the `SOFT_SKILLS` + `bfi10Enabled = true` zero-question exemption (Decision 2.23).
@@ -63,4 +63,11 @@
 - Verification: RED: n/a (the US-BF-06 stubs already comply with the reflection guard, per tasks.md); GREEN: `cd backend && ./mvnw -B test` → exit 0 (31 run, 0 failed, incl. `ArchitectureTest` and `InterviewerViewRubricGuardTest`)
 - Contracts/Migrations added: verified US-BF-06 `StudioQueryService` and `studio/service/view/*` stubs against contract pack §3.4 (zero duplicates)
 - Decisions: applies 1.12, 1.19
+- Open Questions: none
+
+### US-ST-02 (REQ-IS-06, REQ-IS-08)
+- Commits: `feat(studio): add V3 studio schema, entities, repositories, and immutability triggers`
+- Verification: RED: `./mvnw -B test -Dtest=StudioSchemaAndTriggerTest` → FAIL (compile: entities and repositories missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (34 run, 0 failed, incl. `StudioSchemaAndTriggerTest` and `ArchitectureTest`)
+- Contracts/Migrations added: `V3__studio.sql` (`assessment_config`, `skill`, `core_question`, `core_question_skill`, `studio_block_mutation()` trigger), `@Immutable` entities and `Repository` interfaces in `studio/repository/`
+- Decisions: applies 1.10, 1.19, 2.21, 2.22, 4.4
 - Open Questions: none
