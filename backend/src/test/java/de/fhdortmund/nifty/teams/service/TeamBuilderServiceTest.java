@@ -1,0 +1,337 @@
+package de.fhdortmund.nifty.teams.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import de.fhdortmund.nifty.PostgresContainerBase;
+import de.fhdortmund.nifty.assessment.service.AssessmentQueryService;
+import de.fhdortmund.nifty.assessment.service.StudentSoftSkillProfile;
+import de.fhdortmund.nifty.audit.service.AuditActorRole;
+import de.fhdortmund.nifty.audit.service.AuditService;
+import de.fhdortmund.nifty.auth.service.AuthContextService;
+import de.fhdortmund.nifty.auth.service.InviteService;
+import de.fhdortmund.nifty.auth.service.InviteSummary;
+import de.fhdortmund.nifty.evaluation.service.CandidateHardSkillProfile;
+import de.fhdortmund.nifty.evaluation.service.CandidateProfilesView;
+import de.fhdortmund.nifty.evaluation.service.EvaluationQueryService;
+import de.fhdortmund.nifty.evaluation.service.ReleaseStatus;
+import de.fhdortmund.nifty.evaluation.service.ScoreStatus;
+import de.fhdortmund.nifty.evaluation.service.SkillScoreView;
+import de.fhdortmund.nifty.shared.exception.DomainException;
+import de.fhdortmund.nifty.shared.exception.FieldValidationException;
+import de.fhdortmund.nifty.studio.service.StudioQueryService;
+import de.fhdortmund.nifty.studio.service.view.GroupingMode;
+import de.fhdortmund.nifty.studio.service.view.SoftPreset;
+import de.fhdortmund.nifty.studio.service.view.TeamView;
+import de.fhdortmund.nifty.teams.service.RecalculateTeamsRequest.Assignment;
+import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+/**
+ * US-TB-04, REQ-TB-03, REQ-TB-04, REQ-TB-05, REQ-TB-08, REQ-TB-11: the cross-slice contracts are mocked, the
+ * repositories are real (PostgreSQL Testcontainers). No LLM exists in this slice, so recalculation has none.
+ */
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
+@Import(TeamBuilderService.class)
+class TeamBuilderServiceTest extends PostgresContainerBase {
+
+    private static final UUID PROFESSOR = UUID.randomUUID();
+
+    @Autowired
+    private TeamBuilderService service;
+    @Autowired
+    private JdbcTemplate jdbc;
+    @Autowired
+    private EntityManager entityManager;
+
+    @MockitoBean
+    private StudioQueryService studio;
+    @MockitoBean
+    private EvaluationQueryService evaluation;
+    @MockitoBean
+    private AssessmentQueryService assessment;
+    @MockitoBean
+    private AuditService audit;
+    @MockitoBean
+    private AuthContextService authContext;
+    @MockitoBean
+    private InviteService inviteService;
+
+    private final UUID configId = UUID.randomUUID();
+    private final UUID gitSkill = UUID.randomUUID();
+    private final UUID dockerSkill = UUID.randomUUID();
+    private final List<UUID> invites = new ArrayList<>();
+
+    @BeforeEach
+    void ownedConfig() {
+        when(authContext.currentProfessorId()).thenReturn(PROFESSOR);
+        when(studio.ownedBy(configId, PROFESSOR)).thenReturn(true);
+        when(studio.teamView(configId)).thenReturn(view(GroupingMode.HARD_SKILLS, false));
+    }
+
+    private TeamView view(GroupingMode mode, boolean bfi10) {
+        return new TeamView(configId, 3, mode, SoftPreset.ENGINEERING_DEFAULT, new BigDecimal("0.6000"),
+                new BigDecimal("0.5000"), Map.of(), bfi10);
+    }
+
+    private static SkillScoreView scored(UUID skill, String name, double score) {
+        return new SkillScoreView(skill, name, ScoreStatus.SCORED, BigDecimal.valueOf(score));
+    }
+
+    private static SkillScoreView notAssessed(UUID skill, String name) {
+        return new SkillScoreView(skill, name, ScoreStatus.NOT_ASSESSED, null);
+    }
+
+    /** Releases {@code count} candidates; candidate i has git = i % 5 and docker = (i + 2) % 5 (candidate 0: docker N/A). */
+    private List<CandidateHardSkillProfile> release(int count) {
+        List<CandidateHardSkillProfile> profiles = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            UUID invite = UUID.randomUUID();
+            invites.add(invite);
+            SkillScoreView docker = i == 0 ? notAssessed(dockerSkill, "docker")
+                    : scored(dockerSkill, "docker", (i + 2) % 5);
+            profiles.add(new CandidateHardSkillProfile(invite, UUID.randomUUID(), ReleaseStatus.APPROVED,
+                    new BigDecimal("2.00"), new BigDecimal("1.0000"),
+                    List.of(scored(gitSkill, "git", i % 5), docker)));
+        }
+        return profiles;
+    }
+
+    private void evaluationReturns(List<CandidateHardSkillProfile> released, List<UUID> pending) {
+        when(evaluation.getCandidateProfilesForConfig(configId)).thenReturn(new CandidateProfilesView(released, pending));
+    }
+
+    private int count(String table) {
+        entityManager.flush();
+        return jdbc.queryForObject("SELECT count(*) FROM " + table, Integer.class);
+    }
+
+    private static Set<UUID> memberIds(TeamProposalResponse response) {
+        Set<UUID> ids = new HashSet<>();
+        response.teams().forEach(team -> team.members().forEach(member -> ids.add(member.inviteId())));
+        return ids;
+    }
+
+    @Test
+    void generateUsesOnlyReleasedCandidatesSavesDraftAndListsPendingAsWaiting() {
+        UUID pending = UUID.randomUUID();
+        evaluationReturns(release(7), List.of(pending));
+
+        TeamProposalResponse response = service.generate(configId, GenerateTeamsRequest.defaults());
+
+        assertThat(response.status()).isEqualTo("DRAFT");
+        assertThat(response.numTeams()).isEqualTo(3); // ceil(7 / teamSize 3), REQ-TB-05
+        assertThat(response.teams()).extracting(TeamProposalResponse.TeamCard::size).containsExactlyInAnyOrder(3, 2, 2);
+        assertThat(memberIds(response)).containsExactlyInAnyOrderElementsOf(invites).doesNotContain(pending);
+        assertThat(response.pendingInviteIds()).containsExactly(pending);
+        assertThat(count("team_proposal")).isEqualTo(1);
+        assertThat(count("team_member")).isEqualTo(7);
+        verifyNoInteractions(assessment); // BFI-10 off: no soft profile read
+    }
+
+    @Test
+    void generateKeepsCandidateWithNaSkillReportsNaCountAndNeverCountsItAsZero() {
+        evaluationReturns(release(6), List.of());
+
+        TeamProposalResponse response = service.generate(configId,
+                new GenerateTeamsRequest(2, null, null, null, 1L, null));
+
+        assertThat(response.diagnostics().naCount()).isEqualTo(1);
+        TeamProposalResponse.TeamMember naMember = response.teams().stream()
+                .flatMap(team -> team.members().stream()).filter(m -> m.inviteId().equals(invites.get(0)))
+                .findFirst().orElseThrow();
+        assertThat(naMember.skillScores()).containsEntry("docker", null).containsEntry("git", 0.0);
+        TeamProposalResponse.TeamCard naTeam = response.teams().stream()
+                .filter(team -> team.members().contains(naMember)).findFirst().orElseThrow();
+        assertThat(naTeam.skillNaCounts()).containsEntry("docker", 1);
+    }
+
+    @Test
+    void sameSeedGivesTheSameTeams() {
+        evaluationReturns(release(12), List.of());
+        GenerateTeamsRequest request = new GenerateTeamsRequest(4, null, null, null, 42L, null);
+
+        TeamProposalResponse first = service.generate(configId, request);
+        TeamProposalResponse second = service.generate(configId, request);
+
+        assertThat(second.teams()).usingRecursiveComparison().isEqualTo(first.teams());
+        assertThat(second.diagnostics()).isEqualTo(first.diagnostics());
+        assertThat(first.seed()).isEqualTo(42L);
+    }
+
+    @Test
+    void generateRejectsTooManyTeamsAndPersistsNothing() {
+        evaluationReturns(release(12), List.of());
+
+        assertThatThrownBy(() -> service.generate(configId, new GenerateTeamsRequest(20, null, null, null, 1L, null)))
+                .isInstanceOfSatisfying(FieldValidationException.class,
+                        ex -> assertThat(ex.getErrors()).extracting("field").containsExactly("numTeams"));
+        assertThat(count("team_proposal")).isZero();
+    }
+
+    @Test
+    void generateRejectsSoftAndCombinedModesWhenBfi10IsOffWithoutFallback() {
+        evaluationReturns(release(6), List.of());
+
+        for (GroupingMode mode : List.of(GroupingMode.SOFT_SKILLS, GroupingMode.COMBINED)) {
+            assertThatThrownBy(() -> service.generate(configId, new GenerateTeamsRequest(null, mode, null, null, 1L, null)))
+                    .isInstanceOfSatisfying(FieldValidationException.class,
+                            ex -> assertThat(ex.getErrors()).extracting("field").containsExactly("groupingMode"));
+        }
+        assertThat(count("team_proposal")).isZero();
+    }
+
+    @Test
+    void generateRejectsNegativeAllZeroOrUnknownTraitWeights() {
+        when(studio.teamView(configId)).thenReturn(view(GroupingMode.COMBINED, true));
+        evaluationReturns(release(6), List.of());
+        when(assessment.getSoftSkillProfilesForConfig(configId)).thenReturn(List.of());
+
+        for (Map<String, Double> weights : List.of(
+                Map.of("conscientiousness", -1.0, "agreeableness", 2.0),
+                Map.of("conscientiousness", 0.0, "agreeableness", 0.0),
+                Map.of("sparkle", 1.0))) {
+            assertThatThrownBy(() -> service.generate(configId, new GenerateTeamsRequest(null, null, null, null, 1L, weights)))
+                    .isInstanceOfSatisfying(FieldValidationException.class,
+                            ex -> assertThat(ex.getErrors()).extracting("field").containsExactly("traitWeights"));
+        }
+        assertThat(count("team_proposal")).isZero();
+    }
+
+    @Test
+    void combinedModeShowsTraitsUnchangedToTheProfessorAndBalancesThem() {
+        when(studio.teamView(configId)).thenReturn(view(GroupingMode.COMBINED, true));
+        List<CandidateHardSkillProfile> released = release(6);
+        evaluationReturns(released, List.of());
+        List<StudentSoftSkillProfile> soft = new ArrayList<>();
+        for (UUID invite : invites) {
+            soft.add(new StudentSoftSkillProfile(invite, UUID.randomUUID(), Map.of("conscientiousness", 3.0,
+                    "agreeableness", 3.0, "neuroticism", 4.0, "extraversion", 2.0, "openness", 3.0)));
+        }
+        when(assessment.getSoftSkillProfilesForConfig(configId)).thenReturn(soft);
+
+        TeamProposalResponse response = service.generate(configId,
+                new GenerateTeamsRequest(2, null, null, null, 3L, null));
+
+        TeamProposalResponse.TeamMember member = response.teams().get(0).members().get(0);
+        assertThat(member.traits()).containsEntry("neuroticism", 4.0).containsEntry("extraversion", 2.0); // Decision 4.3
+        assertThat(response.teams().get(0).traitAverages()).containsEntry("neuroticism", 4.0);
+    }
+
+    @Test
+    void anotherProfessorsConfigIsNotFound() {
+        when(studio.ownedBy(configId, PROFESSOR)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.generate(configId, GenerateTeamsRequest.defaults()))
+                .isInstanceOfSatisfying(DomainException.class, ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+        assertThatThrownBy(() -> service.list(configId)).isInstanceOf(DomainException.class);
+        verify(evaluation, never()).getCandidateProfilesForConfig(any());
+    }
+
+    @Test
+    void recalculateMovesAMemberUpdatesDiagnosticsAndRequiresEveryCandidateExactlyOnce() {
+        evaluationReturns(release(6), List.of());
+        TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 9L, null));
+        List<Assignment> placement = new ArrayList<>();
+        for (TeamProposalResponse.TeamCard team : draft.teams()) {
+            for (TeamProposalResponse.TeamMember member : team.members()) {
+                placement.add(new Assignment(member.inviteId(), team.teamNo()));
+            }
+        }
+        UUID moved = placement.get(0).inviteId();
+        int from = placement.get(0).teamNo();
+        placement.set(0, new Assignment(moved, from == 1 ? 2 : 1));
+
+        TeamProposalResponse response = service.recalculate(draft.proposalId(), new RecalculateTeamsRequest(placement));
+
+        assertThat(response.status()).isEqualTo("DRAFT");
+        assertThat(response.teams().get(from == 1 ? 1 : 0).members())
+                .extracting(TeamProposalResponse.TeamMember::inviteId).contains(moved);
+        assertThat(response.teams()).extracting(TeamProposalResponse.TeamCard::size).doesNotContain(0);
+        assertThat(response.teams().stream().mapToInt(TeamProposalResponse.TeamCard::size).sum()).isEqualTo(6);
+
+        List<Assignment> missingOne = placement.subList(1, placement.size());
+        assertThatThrownBy(() -> service.recalculate(draft.proposalId(), new RecalculateTeamsRequest(missingOne)))
+                .isInstanceOfSatisfying(FieldValidationException.class,
+                        ex -> assertThat(ex.getErrors()).extracting("field").containsExactly("assignments"));
+        List<Assignment> unknownTeam = new ArrayList<>(placement);
+        unknownTeam.set(1, new Assignment(placement.get(1).inviteId(), 3));
+        assertThatThrownBy(() -> service.recalculate(draft.proposalId(), new RecalculateTeamsRequest(unknownTeam)))
+                .isInstanceOf(FieldValidationException.class);
+        List<Assignment> duplicate = new ArrayList<>(placement);
+        duplicate.set(1, placement.get(0));
+        assertThatThrownBy(() -> service.recalculate(draft.proposalId(), new RecalculateTeamsRequest(duplicate)))
+                .isInstanceOf(FieldValidationException.class);
+    }
+
+    @Test
+    void publishFlipsDraftToPublishedAuditsOnceAndLocksTheProposal() {
+        evaluationReturns(release(6), List.of());
+        TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 9L, null));
+        verify(audit, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+
+        TeamProposalResponse published = service.publish(draft.proposalId());
+
+        assertThat(published.status()).isEqualTo("PUBLISHED");
+        assertThat(published.publishedAt()).isBefore(Instant.now().plusSeconds(5)).isNotNull();
+        verify(audit).record(eq(PROFESSOR.toString()), eq(AuditActorRole.PROFESSOR), eq("TEAM_PROPOSAL"),
+                eq(draft.proposalId()), eq("TEAMS_PUBLISHED"), eq("DRAFT"), eq("PUBLISHED"), eq(null));
+        assertThatThrownBy(() -> service.publish(draft.proposalId())).isInstanceOfSatisfying(DomainException.class,
+                ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+        assertThatThrownBy(() -> service.recalculate(draft.proposalId(), new RecalculateTeamsRequest(
+                List.of(new Assignment(invites.get(0), 1))))).isInstanceOfSatisfying(DomainException.class,
+                ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void proposalOfAnotherProfessorIsNotFound() {
+        evaluationReturns(release(4), List.of());
+        TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 1L, null));
+        when(studio.ownedBy(configId, PROFESSOR)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.publish(draft.proposalId())).isInstanceOfSatisfying(DomainException.class,
+                ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+        assertThatThrownBy(() -> service.publish(UUID.randomUUID())).isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void listReturnsProposalsNewestFirstWithCandidateRefs() {
+        evaluationReturns(release(4), List.of());
+        when(inviteService.listInvites(configId)).thenReturn(List.of(
+                new InviteSummary(invites.get(0), "cand_001", false, Instant.now())));
+        TeamProposalResponse first = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 1L, null));
+        TeamProposalResponse second = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 2L, null));
+
+        List<TeamProposalResponse> listed = service.list(configId);
+
+        assertThat(listed).extracting(TeamProposalResponse::proposalId).containsExactly(second.proposalId(), first.proposalId());
+        assertThat(listed.get(0).teams().stream().flatMap(t -> t.members().stream())
+                .filter(m -> m.inviteId().equals(invites.get(0))).findFirst().orElseThrow().candidateRef())
+                .isEqualTo("cand_001");
+    }
+}

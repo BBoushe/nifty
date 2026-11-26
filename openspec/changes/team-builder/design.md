@@ -3,7 +3,7 @@
 > **Canonical Contract Reference:** `docs/architecture.md`, `docs/api.md`, `docs/tickets/00-parallel-waves-and-contracts.md`, `docs/tickets/05-teams.md`.
 
 ## Package Layout (`de.fhdortmund.nifty.teams`)
-- `web/`: `TeamBuilderController` (`/api/v1/ranking/configs/{configId}/teams/**` and `/api/v1/ranking/teams/**`, `PROFESSOR` only), `@Valid` record DTOs (`GenerateTeamsRequest`, `RecalculateTeamsRequest`, `TeamProposalResponse`, `TeamCardDto`, `TeamMemberDto`, `TeamDiagnosticsDto`).
+- `web/`: `TeamBuilderController` (`/api/v1/ranking/configs/{configId}/teams/**` and `/api/v1/ranking/teams/**`, `PROFESSOR` only), the `@Valid` request records and response records live in `service/` (like `studio`), so `service` never imports `web`: `GenerateTeamsRequest` (optional `numTeams`, `groupingMode`, `alpha`, `combinedHardWeight`, `seed`, `traitWeights`), `RecalculateTeamsRequest` (full placement), and `TeamProposalResponse` with nested `Diagnostics`, `TeamCard` and `TeamMember`. The run-time trait weights travel in `cost_metrics` (keys `traitWeight.<trait>`), because `V8` has no column for them.
 - `service/`:
   - `TeamBuilderService` (`@Transactional(readOnly = true)` class default; `@Transactional` on generate/publish)
   - `SimulatedAnnealingTeamOptimizer` (**pure Java, ZERO Java Streams in inner 2-opt loop!**)

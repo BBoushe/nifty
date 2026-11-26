@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-03 done, committed
-- **Next action:** US-TB-04 (TeamBuilderService)
+- **Current:** US-TB-04 done, committed
+- **Next action:** US-TB-05 (TeamBuilderController and docs/api.md)
 - **Uncommitted changes:** none (after the task commit)
 - **PR / MR:** — (orchestrator opens it)
 - **Open review findings:** —
@@ -29,11 +29,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(teams): implement seeded Simulated Annealing 2-opt team optimizer`
 
-- [ ] **US-TB-04: `TeamBuilderService` (generate `DRAFT`, drag-and-drop recalculate, `AuditService` publish)**
-  - [ ] Write RED Mockito tests against `StudioQueryService`, `EvaluationQueryService`, `AssessmentQueryService`, and `AuditService`: generate uses only `CandidateProfilesView.released` and shows `pendingInviteIds` as waiting for review (REQ-TB-11), generate saves `DRAFT`, recalculate updates diagnostics with zero LLM calls and validates every candidate assigned once, publish flips `DRAFT -> PUBLISHED` and writes `TEAMS_PUBLISHED` via `AuditService`.
-  - [ ] Implement `TeamBuilderService`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(teams): implement team generation, live recalculation, and audited publish`
+- [x] **US-TB-04: `TeamBuilderService` (generate `DRAFT`, drag-and-drop recalculate, `AuditService` publish)**
+  - [x] Write RED Mockito tests against `StudioQueryService`, `EvaluationQueryService`, `AssessmentQueryService`, and `AuditService`: generate uses only `CandidateProfilesView.released` and shows `pendingInviteIds` as waiting for review (REQ-TB-11), generate saves `DRAFT`, recalculate updates diagnostics with zero LLM calls and validates every candidate assigned once, publish flips `DRAFT -> PUBLISHED` and writes `TEAMS_PUBLISHED` via `AuditService`.
+  - [x] Implement `TeamBuilderService`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(teams): implement team generation, live recalculation, and audited publish`
 
 - [ ] **US-TB-05: `TeamBuilderController` (`PROFESSOR` only) and `docs/api.md` sync**
   - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `POST .../teams/generate` (`201`), `POST .../recalculate` (`200`), `POST .../publish` (`200`), `GET .../teams` (`200` with professor-only traits), invalid request → `400` RFC 9457 `ProblemDetail`, `CANDIDATE` → `403`.
@@ -72,8 +72,15 @@
 - Open Questions: none
 
 ### US-TB-03 SimulatedAnnealingTeamOptimizer
-- Commits: <sha-us-tb-03> feat(teams): implement seeded Simulated Annealing 2-opt team optimizer
+- Commits: 890afd0 feat(teams): implement seeded Simulated Annealing 2-opt team optimizer
 - Verification: RED: `cd backend && ./mvnw -B test -Dtest=SimulatedAnnealingTeamOptimizerTest` → FAIL (compile error: optimizer absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (211 run, 7 in the new class)
 - Contracts/Migrations added: `teams/service/SimulatedAnnealingTeamOptimizer.optimize(calculator, candidates, numTeams, seed)`; migrations none
 - Decisions: 1.20 (seeded, 2-opt swaps keep floor/ceil sizes; test greps both sources for zero Streams)
+- Open Questions: none
+
+### US-TB-04 TeamBuilderService
+- Commits: <sha-us-tb-04> feat(teams): implement team generation, live recalculation, and audited publish
+- Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamBuilderServiceTest` → FAIL (compile error: service absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (223 run, 12 in the new class)
+- Contracts/Migrations added: `TeamBuilderService` (`generate`, `recalculate`, `publish`, `list`), `GenerateTeamsRequest`, `RecalculateTeamsRequest`, `TeamProposalResponse` in `teams/service/`; migrations none. Deviation: DTO records live in `service/` (studio pattern), `design.md` updated. Extra optional request fields `combinedHardWeight`, `traitWeights` (REQ-TB-08 names custom weights). `candidateRef` comes from `InviteService.listInvites`.
+- Decisions: 1.20, 2.27 (400 without BFI-10, no fallback), 4.3 (traits read, never re-inverted), 2.10/2.13 (released only)
 - Open Questions: none
