@@ -8,8 +8,8 @@
 | Owner | Feature / Change | Backend Package | Frontend Folder | Flyway | Branch |
 |---|---|---|---|---|---|
 | Shared (Wave 0) | `backend-foundation` + `frontend-foundation` | `shared/`, `pom.xml` | `frontend/` shell | — | `feat/backend-foundation`, `feat/frontend-foundation` |
-| Shared (Wave 1/3) | `auth-accounts`, `invite-links` | `auth` | `views/auth/` | `V2`, `V4` | `feat/auth-accounts`, `feat/invite-links` |
-| Shared (Wave 1) | `audit-log-service` | `audit` | — | `V1` (existing) | `feat/audit-log-service` |
+| **#1 Teammate R** (Wave 1/3) | `auth-accounts`, `invite-links` ([ticket 01](01-studio.md)) | `auth` | `views/auth/` | `V2`, `V4` | `feat/auth-accounts`, `feat/invite-links` |
+| **#1 Teammate R** (Wave 1) | `audit-log-service` ([ticket 01](01-studio.md)) | `audit` | — | `V1` (existing) | `feat/audit-log-service` |
 | **#1 Teammate R** | [`studio-assessment-creation`](01-studio.md) | `studio` | `views/studio/` | `V3__studio.sql` | `feat/studio-assessment-creation` |
 | **#2 Teammate A** | [`context-creation`](02-context-creation.md) | `context` | — | — (stateless) | `feat/context-creation` |
 | **#3 Teammate S** | [`assessment-chat`](03-assessment-chat.md) | `assessment` | `views/assessment/` (chat + BFI-10) | `V6__assessment.sql` | `feat/assessment-chat` |
@@ -48,7 +48,7 @@ flowchart LR
 **Gate before handing out tickets 01–05:** Wave 0 must be merged on `dev`, including US-BF-06 (all §3 interfaces, records and enums as compile-only Java stubs) and US-FF-01 (Vitest and `npm run test`). Without the stubs, each teammate would write their own copy of the shared types, and the five branches would conflict.
 
 **How everyone starts immediately without waiting idle:**
-- **Wave 0** (`backend-foundation` with the US-BF-06 stubs, `frontend-foundation`) runs first via `orchestrate-changes`. **Wave 1** (`auth-accounts`, `audit-log-service`) can run beside the teammates, because the stubs let them mock `AuthContextService` and `AuditService`.
+- **Wave 0** (`backend-foundation` with the US-BF-06 stubs, `frontend-foundation`) is merged on `dev` (2026-11-25). **Wave 1** (`auth-accounts`, `audit-log-service`) can run beside the teammates, because the stubs let them mock `AuthContextService` and `AuditService`.
 - **#2 Teammate A (`context`)** has zero DB tables and can start immediately in Wave 1 (mock `AuditService` in unit tests).
 - **#1 Teammate R (`studio`)** implements `StudioQueryService` behind the US-BF-06 stub. Teammates #3, #4 and #5 import the stub records directly and never copy them.
 - **#3 Teammate S (`assessment`), #4 Teammate M (`evaluation`), and #5 Teammate C (`teams`)** can each begin all pure-JVM unit tests (`US-*-01`..`US-*-04`) immediately in parallel by mocking upstream `@Service` interfaces (`StudioQueryService`, `ContextCreationService`, `AssessmentQueryService`, `EvaluationQueryService`, `AuditService`) using the exact signatures below, then merge `origin/dev` once upstream waves merge. Each owner replaces the stub of their own interface with the real implementation.
@@ -106,13 +106,14 @@ public record CandidateSessionPrincipal(UUID inviteId, UUID configId, String can
 ```java
 public interface StudioQueryService {
     boolean exists(UUID configId);
+    boolean ownedBy(UUID configId, UUID professorId); // added by studio-assessment-creation; used by invite-links
     InterviewerView interviewerView(UUID configId); // Throws DomainException(404) if missing
     EvaluatorView   evaluatorView(UUID configId);
     ScoringView     scoringView(UUID configId);
     TeamView        teamView(UUID configId);
 }
 
-// studio/service/view/ — typed enums. Every §3 enum stub carries @JsonValue with its JSON/DB literal (for example "N/A", "follow_up", "auto_released").
+// studio/service/view/ — typed enums. An enum whose JSON/DB literal differs from its name carries @JsonValue (EntryOrigin, ReleaseStatus, ScoreStatus: "follow_up", "auto_released", "N/A"). The others serialise as their names.
 public enum GroupingMode { HARD_SKILLS, SOFT_SKILLS, COMBINED }
 public enum SoftPreset { ENGINEERING_DEFAULT, EQUAL_WEIGHTS, CUSTOM }
 

@@ -1,0 +1,35 @@
+# Tasks: `audit-log-service`
+
+## Status
+- **Branch:** `feat/audit-log-service`
+- **Worktree:** `../nifty-audit-log-service`
+- **Current:** not started
+- **Next action:** Task 1
+- **Uncommitted changes:** no
+- **PR / MR:** none yet
+- **Open review findings:** none
+
+## Tasks
+
+### Task 1: US-AL-01 AuditService implementation (REQ-AL-01)
+- [ ] RED: `AuditServiceImplTest` (`@SpringBootTest`, extends `PostgresContainerBase`): `record(...)` stores one row with every field; a null `action` throws `IllegalArgumentException`.
+- [ ] GREEN: `AuditLogEntity`, `AuditLogRepository`, `AuditServiceImpl` (design §2); delete `AuditServicePlaceholder`.
+- [ ] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`, `ContractStubsTest`) → exit 0; commit `feat(audit): implement AuditService over the V1 audit_log table`
+
+### Task 2: US-AL-02 Immutable rows (REQ-AL-02)
+- [ ] RED: test that changes a loaded entity's `reason`, flushes, and reads the row back with `JdbcTemplate`; it fails if the entity is not `@Immutable`.
+- [ ] GREEN: `@Immutable` on the entity; the repository has no delete or update method.
+- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `test(audit): prove audit rows cannot change`
+
+### Task 3: Docs
+- [ ] `docs/architecture.md` (`AuditService` is real), `docs/tickets/00-parallel-waves-and-contracts.md` §1 conventions (audit placeholder gone), `CHANGELOG.md`
+- [ ] Verify: harness tests → exit 0; commit `docs: record audit-log-service`
+
+## Delivery
+- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [ ] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
+- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive audit-log-service -y --skip-specs`, set its `docs/feature_backlog.md` row to `done`, add a `docs/feature_history.md` entry (`PR/MR: pending`), commit `chore(specs): archive audit-log-service`
+- [ ] Ask the human, then `node scripts/forge.mjs push` and open the PR/MR with `pr-memo` (`node scripts/forge.mjs pr ... --base dev`)
+- [ ] Stop. Teammate A runs the cold review, checks CI and merges.
+
+## Handoff Log
