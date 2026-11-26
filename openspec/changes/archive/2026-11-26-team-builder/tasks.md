@@ -3,10 +3,10 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-06 done, committed; all six stories complete
-- **Next action:** Delivery section (orchestrator): merge origin/dev, archive, push, PR
-- **Uncommitted changes:** none (after the task commit)
-- **PR / MR:** — (orchestrator opens it)
+- **Current:** US-TB-01..06 done; change archived (`openspec/changes/archive/2026-11-26-team-builder/`)
+- **Next action:** push and open PR/MR after human approval, then cold review
+- **Uncommitted changes:** none
+- **PR / MR:** —
 - **Open review findings:** —
 
 ## Tasks
@@ -49,9 +49,9 @@
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
-- [ ] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive team-builder -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive team-builder`.
+- [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive team-builder -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive team-builder`.
 - [ ] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 

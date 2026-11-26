@@ -23,7 +23,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 | 7 | `invite-links` ([change](../openspec/changes/archive/2026-11-26-invite-links/), [ticket](tickets/01-studio.md)) | 3 | done | Teammate R (`auth`, `views/auth/` landing, `views/studio/` invite panel) | 3, 6 | `V4__auth_invites.sql` |
 | 8 | `assessment-chat` ([change](../openspec/changes/assessment-chat/), [ticket](tickets/03-assessment-chat.md)) | 4 | in progress | Teammate S (`assessment`, `views/assessment/` chat) | 5, 6, 7 (mockable) | `V6__assessment.sql` |
 | 9 | `evaluation-service` ([change](../openspec/changes/evaluation-service/), [ticket](tickets/04-evaluation.md)) | 4 | in progress | Teammate M (`evaluation`, `views/ranking/`, `views/assessment/` results) | 4, 5, 6, 8 (mockable) | `V7__evaluation.sql` |
-| 10 | `team-builder` ([change](../openspec/changes/team-builder/), [ticket](tickets/05-teams.md)) | 5 | in progress | Teammate C (`teams`, `views/teams/`) | 4, 6, 8, 9 (mockable) | `V8__teams.sql` |
+| 10 | `team-builder` ([change](../openspec/changes/archive/2026-11-26-team-builder/), [ticket](tickets/05-teams.md)) | 5 | done | Teammate C (`teams`, `views/teams/`) | 4, 6, 8, 9 (mockable) | `V8__teams.sql` |
 | 11 | `harness-review-followups` | any | queued | Shared (harness, CI, `shared`) | — | — |
 
 ## Stories (Foundation & Shared Glue)
