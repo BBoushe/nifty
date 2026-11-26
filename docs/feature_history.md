@@ -10,6 +10,12 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 - **PR/MR:** GitHub #29, GitLab !27
 - **Specs:** REQ-EV-01..02 (added to `evidence-pipeline`); REQ-EP-01..09, REQ-FE-01..03, REQ-FE-05..06, REQ-SM-01..08, REQ-CR-01..06 (implemented)   **Decisions:** applies 1.10, 1.12, 1.14, 1.15, 1.18, 1.19, 2.10–2.13, 2.15, 2.16, 2.19, 2.20, 2.22, 2.24, 2.25, 4.3, 4.4
 
+## 2026-11-26 — team-builder
+- **What:** Added `V8__teams.sql` (`team_proposal`, `team_member` with `UNIQUE (proposal_id, invite_id)`), a zero-Stream `TeamObjectiveCalculator` (hard skills `0..4` and BFI-10 `1..5` normalized to `0..1`, `N/A` excluded per dimension), a seeded Simulated Annealing optimizer with 2-opt swaps, and `TeamBuilderService` (generate `DRAFT`, recalculate after drag and drop, publish with a `TEAMS_PUBLISHED` audit row). Added `PROFESSOR`-only `/api/v1/ranking/configs/{configId}/teams/**` and `/api/v1/ranking/teams/{proposalId}/**` endpoints scoped via `StudioQueryService.ownedBy`, `TeamCleanupListener` on `AssessmentDeletedEvent`, and the Vue Team Builder view in `views/teams/`.
+- **Why:** Professors form balanced teams from released results only, deterministically and without an LLM, and approve them before publishing (Decisions 1.20, 2.23, 2.27, 4.3, 4.4).
+- **PR/MR:** GitHub #27, GitLab !26
+- **Specs:** REQ-TB-08 (added), REQ-TB-06 (modified); REQ-TB-03..05, REQ-TB-07, REQ-TB-09..12 (implemented)   **Decisions:** applies 1.20, 2.10, 2.13, 2.23, 2.27, 4.3, 4.4
+
 ## 2026-11-26 — invite-links
 - **What:** Added `V4__auth_invites.sql` (`invite` with 256-bit random tokens stored only as SHA-256 hex), `PROFESSOR`-only invite create/list/revoke endpoints scoped via `StudioQueryService.ownedBy`, public `POST /api/v1/auth/invite/{token}` starting a `CANDIDATE` session, `AuthContextServiceImpl.currentCandidate()`, `RevokedInviteFilter` ending revoked sessions on their next request (`401`), synchronous `AssessmentDeletedEvent` invite purge, and frontend `/invite/:token` landing page + Studio detail invite panel (single add, CSV import, copy/download links, revoke).
 - **Why:** Candidates sign in only through personal invite links, assessment/evaluation need `AuthContextService.currentCandidate()`, and revoking an invite or deleting an assessment must end access and purge invite rows immediately (Decisions 1.17, 1.23, 4.4).
