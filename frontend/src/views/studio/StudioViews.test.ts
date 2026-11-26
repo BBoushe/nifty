@@ -229,47 +229,50 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValueOnce(
-        jsonResponse({
-          configId: id,
-          title: 'Distributed Systems',
-          vision: 'Check consensus understanding',
-          minCoverage: 0.7,
-          maxAttempts: 2,
-          inventedQuestions: false,
-          bfi10Enabled: true,
-          teamSize: 4,
-          groupingMode: 'COMBINED',
-          softPreset: 'ENGINEERING_DEFAULT',
-          combinedHardWeight: 0.6,
-          alpha: 0.5,
-          constraintWeights: {},
-          status: 'PUBLISHED',
-          version: 1,
-          createdAt: '2026-11-26T08:00:00Z',
-          skills: [
-            {
-              skillId: '33333333-3333-3333-3333-333333333333',
-              name: 'Raft',
-              rubricLevels: ['None', 'Basic', 'Developing', 'Proficient', 'Expert'],
-            },
-          ],
-          questions: [
-            {
-              coreQuestionId: '44444444-4444-4444-4444-444444444444',
-              position: 1,
-              text: 'How does leader election work?',
-              weight: 2,
-              confidenceThreshold: 0.75,
-              minTimeSec: 30,
-              maxTimeSec: 180,
-              followUpLimit: 2,
-              targetSkillIds: ['33333333-3333-3333-3333-333333333333'],
-              targetSkillNames: ['Raft'],
-            },
-          ],
-        }),
-      ),
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        if (String(input).endsWith('/invites')) return Promise.resolve(jsonResponse([]))
+        return Promise.resolve(
+          jsonResponse({
+            configId: id,
+            title: 'Distributed Systems',
+            vision: 'Check consensus understanding',
+            minCoverage: 0.7,
+            maxAttempts: 2,
+            inventedQuestions: false,
+            bfi10Enabled: true,
+            teamSize: 4,
+            groupingMode: 'COMBINED',
+            softPreset: 'ENGINEERING_DEFAULT',
+            combinedHardWeight: 0.6,
+            alpha: 0.5,
+            constraintWeights: {},
+            status: 'PUBLISHED',
+            version: 1,
+            createdAt: '2026-11-26T08:00:00Z',
+            skills: [
+              {
+                skillId: '33333333-3333-3333-3333-333333333333',
+                name: 'Raft',
+                rubricLevels: ['None', 'Basic', 'Developing', 'Proficient', 'Expert'],
+              },
+            ],
+            questions: [
+              {
+                coreQuestionId: '44444444-4444-4444-4444-444444444444',
+                position: 1,
+                text: 'How does leader election work?',
+                weight: 2,
+                confidenceThreshold: 0.75,
+                minTimeSec: 30,
+                maxTimeSec: 180,
+                followUpLimit: 2,
+                targetSkillIds: ['33333333-3333-3333-3333-333333333333'],
+                targetSkillNames: ['Raft'],
+              },
+            ],
+          }),
+        )
+      }),
     )
 
     const wrapper = mount(AssessmentDetailView, {
@@ -292,9 +295,10 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     await router.push(`/ranking/studio/${id}`)
     await router.isReady()
 
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'DELETE') return Promise.resolve(new Response(null, { status: 204 }))
+      if (String(input).endsWith('/invites')) return Promise.resolve(jsonResponse([]))
+      return Promise.resolve(
         jsonResponse({
           configId: id,
           title: 'To Delete',
@@ -316,7 +320,7 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
           questions: [],
         }),
       )
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    })
     vi.stubGlobal('fetch', fetchMock)
     const pushSpy = vi.spyOn(router, 'push')
 

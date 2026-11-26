@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/ranking/studio', name: 'studio-list', component: AssessmentListView },
   { path: '/ranking/studio/new', name: 'studio-create', component: AssessmentCreateView },
   { path: '/ranking/studio/:configId', name: 'studio-detail', component: AssessmentDetailView },
+  { path: '/ranking/studio/:configId/invites', name: 'studio-invites', component: AssessmentDetailView },
 ]
 
 export default routes

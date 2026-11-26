@@ -7,9 +7,11 @@ export type UserRole = 'PROFESSOR' | 'CANDIDATE'
 export interface AuthMe {
   role: UserRole
   professorId: string | null
+  inviteId?: string | null
+  configId?: string | null
 }
 
-/** Session state for both roles (Decision 1.23, US-AU-02). */
+/** Session state for both roles (Decision 1.23, US-AU-02, US-IL-03). */
 export const useAuthStore = defineStore('auth', () => {
   const me = ref<AuthMe | null>(null)
   const loaded = ref(false)
@@ -30,15 +32,29 @@ export const useAuthStore = defineStore('auth', () => {
     return me.value
   }
 
+  async function ensureCsrfCookie(): Promise<void> {
+    if (!loaded.value || !hasCsrfCookie()) await fetchMe(true)
+  }
+
   async function login(email: string, password: string): Promise<void> {
     // Ensure a fresh XSRF-TOKEN cookie exists on cold load and after logout (CsrfLogoutHandler clears it).
-    if (!loaded.value || !hasCsrfCookie()) await fetchMe(true)
+    await ensureCsrfCookie()
     await apiFetch<void>('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     })
     await fetchMe(true)
+  }
+
+  async function loginWithInvite(token: string): Promise<{ configId: string }> {
+    await ensureCsrfCookie()
+    const result = await apiFetch<{ configId: string }>(
+      `/api/v1/auth/invite/${encodeURIComponent(token)}`,
+      { method: 'POST' },
+    )
+    await fetchMe(true)
+    return result
   }
 
   async function logout(): Promise<void> {
@@ -48,5 +64,5 @@ export const useAuthStore = defineStore('auth', () => {
     loaded.value = false
   }
 
-  return { me, loaded, fetchMe, login, logout }
+  return { me, loaded, fetchMe, login, loginWithInvite, logout }
 })

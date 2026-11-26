@@ -6,6 +6,7 @@ import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { deleteAssessment, formatPercent, getAssessment } from '@/api/studio'
+import InvitePanel from './InvitePanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -156,6 +157,8 @@ const deleteMutation = useMutation({
           </p>
         </div>
       </div>
+
+      <InvitePanel :config-id="data.configId" />
     </template>
   </section>
 </template>

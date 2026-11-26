@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/invite-links`
 - **Worktree:** `../nifty-invite-links`
-- **Current:** Task 3 done
-- **Next action:** Task 4
+- **Current:** Task 4 done
+- **Next action:** Task 5
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -27,9 +27,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; update `docs/api.md`; commit `feat(auth): revocation, candidate scope and invite purge`
 
 ### Task 4: Frontend landing route and studio invite panel
-- [ ] RED: Vitest: `InviteLandingView.test.ts` (success → `/assessment`, `401` → message); invite panel test (CSV of 3 rows posts 3 refs; revoke calls `DELETE`).
-- [ ] GREEN: design §3.
-- [ ] Verify: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0; commit `feat(frontend): invite landing page and studio invite panel`
+- [x] RED: Vitest: `InviteLandingView.test.ts` (success → `/assessment`, `401` → message); invite panel test (CSV of 3 rows posts 3 refs; revoke calls `DELETE`).
+- [x] GREEN: design §3.
+- [x] Verify: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0; commit `feat(frontend): invite landing page and studio invite panel`
 
 ### Task 5: Docs
 - [ ] `docs/architecture.md` (invite flow), `CHANGELOG.md`
@@ -64,4 +64,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=InviteRevocationAndPurgeTest` → FAIL (revoked session returned 200; deleted config left 2 invite rows); GREEN: `cd backend && ./mvnw -B test` → exit 0 (186 run, 0 failed, incl. `ArchitectureTest`)
 - Contracts/Migrations added: `RevokedInviteFilter`, `InviteService.onAssessmentDeleted(AssessmentDeletedEvent)` (`MANDATORY` tx); `docs/api.md` §4/§5 updated
 - Decisions: applies 1.15, 1.23, 4.4
+- Open Questions: none
+
+### Task 4 (Frontend)
+- Commits: `feat(frontend): invite landing page and studio invite panel`
+- Verification: RED: `cd frontend && npm run test` → FAIL (`InviteLandingView.vue` and `InvitePanel.vue` missing); GREEN: `cd frontend && npm run typecheck && npm run test && npm run lint && npm run build` → exit 0 (12 files, 75 passed, 0 lint warnings)
+- Contracts/Migrations added: `frontend/src/api/invites.ts`, `authStore.loginWithInvite`, `/invite/:token` (`InviteLandingView.vue`), `InvitePanel.vue` on `AssessmentDetailView.vue` and `/ranking/studio/:configId/invites`
+- Decisions: applies 1.14, 1.17, 1.23
 - Open Questions: none
