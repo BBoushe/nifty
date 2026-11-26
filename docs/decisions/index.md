@@ -97,6 +97,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **2.32** | — | Design | Remove the interviewer-invented-questions toggle for the MVP | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#232--remove-the-interviewer-invented-questions-toggle-for-the-mvp) |
 | **2.33** | — | Design | Expired attempts complete without BFI-10 and are evaluated | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#233--expired-attempts-complete-without-bfi-10-and-are-evaluated) |
 | **2.34** | — | Design | Allow a new invite after a revoke | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#234--allow-a-new-invite-after-a-revoke) |
+| **2.35** | — | Design | Retake gap in a new tab accepted | Decided | 2026-11-27 | question-round | [2-design.md](./2-design.md#235--retake-gap-in-a-new-tab-accepted) |
 <!-- DECISION_INDEX_END -->
 
 ---

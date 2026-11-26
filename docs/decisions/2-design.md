@@ -321,3 +321,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Keep revoke final per student and assessment.
 - **Rationale / Justification:** Replacing a leaked link is the main reason to revoke.
 - **Affected Files / Pointers:** backend/.../auth/service/InviteService.java
+
+## 2.35 — Retake gap in a new tab accepted
+- **Date:** 2026-11-27
+- **Triggered By:** question-round
+- **Context:** A candidate in a new tab has no stored attempt ID, so the page cannot read attemptsLeft before Start.
+- **Decision:** Keep the Start button. A 409 on start shows No attempts left. Add no new read endpoint.
+- **Alternatives Considered:** Add a read endpoint for attemptsLeft before start.
+- **Rationale / Justification:** The gap costs one click. A new endpoint adds API surface for a rare case.
+- **Affected Files / Pointers:** frontend/src/views/assessment/AssessmentChatView.vue, openspec/changes/mvp-hardening/tasks.md
