@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -329,7 +330,8 @@ public class EvaluationReviewService {
     @Transactional
     public EvaluationDtos.ReleaseAttemptResponse releaseAttempt(UUID attemptId) {
         UUID professorId = authContextService.currentProfessorId();
-        CandidateEvaluationSummaryEntity summary = requireOwnedSummary(attemptId);
+        // Decision 2.10: the row lock makes two concurrent releases write one audit row; the second sees 409.
+        CandidateEvaluationSummaryEntity summary = requireOwned(summaryRepository.findByAttemptIdForUpdate(attemptId));
         // Decision 2.28: a queued, running, or failed attempt has no evidence yet and must never be released.
         if (!summary.isCompleted()) {
             throw new DomainException(HttpStatus.CONFLICT, "This attempt has not finished evaluation yet.");
@@ -477,8 +479,12 @@ public class EvaluationReviewService {
     }
 
     private CandidateEvaluationSummaryEntity requireOwnedSummary(UUID attemptId) {
+        return requireOwned(summaryRepository.findByAttemptId(attemptId));
+    }
+
+    private CandidateEvaluationSummaryEntity requireOwned(Optional<CandidateEvaluationSummaryEntity> found) {
         UUID professorId = authContextService.currentProfessorId();
-        CandidateEvaluationSummaryEntity summary = summaryRepository.findByAttemptId(attemptId)
+        CandidateEvaluationSummaryEntity summary = found
                 .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, ATTEMPT_NOT_FOUND));
         if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
             throw new DomainException(HttpStatus.NOT_FOUND, ATTEMPT_NOT_FOUND);

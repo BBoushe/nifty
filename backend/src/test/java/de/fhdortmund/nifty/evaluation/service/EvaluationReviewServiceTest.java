@@ -261,7 +261,7 @@ class EvaluationReviewServiceTest {
                 new BigDecimal("1.00"), 1, 3, "q", "q", true, "q", "r",
                 1, new BigDecimal("0.4000"), "JUDGE_DISAGREEMENT", "flagged", 1);
 
-        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(summary));
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(stillFlagged));
 
         assertThatThrownBy(() -> service.releaseAttempt(attemptId))
@@ -425,6 +425,7 @@ class EvaluationReviewServiceTest {
         when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(formula));
         when(summaryRepository.findLatestPerInvite(configId)).thenReturn(List.of(summary));
         when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(summary));
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(pending));
         when(skillScoreRepository.findBySummaryIdIn(any())).thenReturn(List.of());
         when(skillScoreRepository.findBySummaryId(any())).thenReturn(List.of());
@@ -507,7 +508,7 @@ class EvaluationReviewServiceTest {
         EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-q");
         CandidateEvaluationSummaryEntity queued = CandidateEvaluationSummaryEntity.queued(
                 attemptId, configId, UUID.randomUUID(), 1, formula, run);
-        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(queued));
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(queued));
 
         assertThatThrownBy(() -> service.releaseAttempt(attemptId))
                 .isInstanceOf(DomainException.class)
@@ -515,6 +516,27 @@ class EvaluationReviewServiceTest {
                 .isEqualTo(HttpStatus.CONFLICT);
         assertThat(queued.getReleaseStatus()).isEqualTo("pending");
         verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void releaseReadsTheSummaryThroughTheRowLock() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-lock");
+        CandidateEvaluationSummaryEntity queued = CandidateEvaluationSummaryEntity.queued(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run);
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(queued));
+
+        assertThatThrownBy(() -> service.releaseAttempt(attemptId)).isInstanceOf(DomainException.class);
+
+        // Decision 2.10: the row lock makes two concurrent releases write one audit row (see EvaluationReleaseRaceTest).
+        verify(summaryRepository).findByAttemptIdForUpdate(attemptId);
+        verify(summaryRepository, never()).findByAttemptId(attemptId);
     }
 
     @Test
@@ -534,7 +556,7 @@ class EvaluationReviewServiceTest {
             CandidateEvaluationSummaryEntity released = new CandidateEvaluationSummaryEntity(
                     attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
                     new BigDecimal("3.00"), BigDecimal.ONE, 0, releasedStatus, originalReleasedAt);
-            when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(released));
+            when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(released));
 
             assertThatThrownBy(() -> service.releaseAttempt(attemptId))
                     .isInstanceOf(DomainException.class)
