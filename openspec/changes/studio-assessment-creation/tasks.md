@@ -1,21 +1,21 @@
 # Tasks: Studio Assessment Creation (`studio-assessment-creation`)
 
 ## Status
-- **Branch:** `feat/studio-assessment-creation` (branch off `dev`)
+- **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** Ready to start after Wave 0 (the `StudioQueryService` stubs come from US-BF-06)
-- **Next action:** Start US-ST-01
+- **Current:** US-ST-01 done
+- **Next action:** US-ST-02
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
 
 ## Tasks
 
-- [ ] **US-ST-01: Hand-off view contracts (`StudioQueryService`) and rubric-leak reflection guard**
-  - [ ] Verify the US-BF-06 stubs of `StudioQueryService` and `studio/service/view/` match `docs/tickets/00-parallel-waves-and-contracts.md` §3. Never add a second copy.
-  - [ ] Add the reflection guard test: `InterviewerView` and `InterviewerQuestion` declare zero fields containing `rubric`, `weight`, `threshold`, or `coverage` (RED: n/a, the stub from US-BF-06 already complies; log that in the Handoff).
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
-  - [ ] Commit: `feat(studio): add StudioQueryService hand-off view contracts and rubric guard`
+- [x] **US-ST-01: Hand-off view contracts (`StudioQueryService`) and rubric-leak reflection guard**
+  - [x] Verify the US-BF-06 stubs of `StudioQueryService` and `studio/service/view/` match `docs/tickets/00-parallel-waves-and-contracts.md` §3. Never add a second copy.
+  - [x] Add the reflection guard test: `InterviewerView` and `InterviewerQuestion` declare zero fields containing `rubric`, `weight`, `threshold`, or `coverage` (RED: n/a, the stub from US-BF-06 already complies; log that in the Handoff).
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
+  - [x] Commit: `feat(studio): add StudioQueryService hand-off view contracts and rubric guard`
 
 - [ ] **US-ST-02: Flyway `V3__studio.sql`, `@Immutable` entities in `studio/repository/`, and mutation triggers**
   - [ ] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) verifying schema CHECK constraints (`min_coverage`, `rubric_levels` length 5, `follow_up_limit` 0..3, `min < max`) and trigger rejection on `UPDATE` and unflagged `DELETE`, plus purge success under `SET LOCAL nifty.allow_purge = 'on'`.
@@ -56,3 +56,11 @@
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log
+
+
+### US-ST-01 (REQ-IS-09)
+- Commits: `feat(studio): add StudioQueryService hand-off view contracts and rubric guard`
+- Verification: RED: n/a (the US-BF-06 stubs already comply with the reflection guard, per tasks.md); GREEN: `cd backend && ./mvnw -B test` → exit 0 (31 run, 0 failed, incl. `ArchitectureTest` and `InterviewerViewRubricGuardTest`)
+- Contracts/Migrations added: verified US-BF-06 `StudioQueryService` and `studio/service/view/*` stubs against contract pack §3.4 (zero duplicates)
+- Decisions: applies 1.12, 1.19
+- Open Questions: none
