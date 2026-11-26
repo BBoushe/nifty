@@ -394,8 +394,8 @@ class EvaluationInvariantPropertyTest {
             "{\"level\":3,\"verbatimQuote\":\"exact quote\",\"rationale\":\"ok\",\"total\":10}",
             "{\"level\":3,\"verbatimQuote\":123,\"rationale\":\"ok\"}",
             "{\"level\":3,\"verbatimQuote\":\"exact quote\",\"rationale\":null}",
-            "{\"level\":3,\"verbatimQuote\":\"exact quote\",\"rationale\":\"ok\",\"suggestion\":42}",
-            "Here is JSON: {\"level\":3,\"verbatimQuote\":\"exact quote\",\"rationale\":\"ok\"}"
+            // REQ-EP-10: prose around a valid object is accepted now; see TwoRunResponseJudgeTest.
+            "{\"level\":3,\"verbatimQuote\":\"exact quote\",\"rationale\":\"ok\",\"suggestion\":42}"
         };
 
         for (String payload : badPayloads) {

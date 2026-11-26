@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 6 done (Groups A and B complete, committed, not pushed).
-- **Next action:** Group C, Task 7 (tolerant judge parsing).
+- **Current:** Tasks 1 to 7 done (committed, not pushed).
+- **Next action:** Group C, Task 8 (final-try crash, re-run, lost events).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -53,9 +53,9 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group C — Evaluation backend
 
-- [ ] **Task 7: Tolerant judge parsing (REQ-EP-10)**
-  - [ ] RED in `TwoRunResponseJudgeTest`: a fenced reply ` ```json\n{…}\n``` ` parses; text before and after the object parses; `level` 7 inside a fence still fails; the judge call options carry temperature `0.0` (captor on the prompt).
-  - [ ] GREEN per design §3. Commit `fix(evaluation): accept fenced judge JSON and call the judge at temperature 0`.
+- [x] **Task 7: Tolerant judge parsing (REQ-EP-10)**
+  - [x] RED in `TwoRunResponseJudgeTest`: a fenced reply ` ```json\n{…}\n``` ` parses; text before and after the object parses; `level` 7 inside a fence still fails; the judge call options carry temperature `0.0` (captor on the prompt).
+  - [x] GREEN per design §3. Commit `fix(evaluation): accept fenced judge JSON and call the judge at temperature 0`.
 
 - [ ] **Task 8: Final-try crash, re-run, lost events (REQ-EP-11..13)**
   - [ ] RED. (1) `EvaluationRetrySchedulerTest`: a stale `RUNNING` run at max tries becomes `FAILED` with `STALE_FINAL_TRY`. (2) The same test: a completed attempt with no run gets exactly one run, also when the pass runs twice. (3) Controller and service tests for `POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry`: `FAILED` → `QUEUED`, tries 0, audit `EVALUATION_RETRIED`; `COMPLETED` → `409`; another professor's attempt → `404`.
@@ -183,4 +183,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `npx vitest run src/App.test.ts src/views/auth/NotFoundView.test.ts src/views/studio/StudioViews.test.ts src/stores/assessmentForm.test.ts` → FAIL (NotFoundView missing; no server-down or sign-out message; no scroll; `setItem` threw); GREEN: `npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (160 tests, 24 files); `grep -rn "schema" frontend/src` (after the delete) → empty
 - Contracts/Migrations added: none (frontend only; `frontend/src/api/schema.d.ts` deleted, no import existed)
 - Decisions: no new ID. Design differed from code: (1) The invites scroll runs from a `watch` on the loaded assessment, not `onMounted`: the `#invites` panel only exists after the query returns, so a mount-time scroll finds nothing. It scrolls through a template ref on `InvitePanel`. (2) `fetchMe` already swallows a `401`, so `App.vue` treats any error it throws as "Server not reachable" (network error or 5xx). (3) The route guard calls `fetchMe` too, so a down server also aborts the first navigation. Retry therefore re-runs the first navigation from the browser URL when the router is still at `START_LOCATION` (covered by a test). (4) `package.json` keeps the `api:generate` script; it recreates `schema.d.ts` on demand and nothing imports the file. (5) `assessmentForm.ts` wraps both `setItem` and `removeItem`, with a `shortcut:` note (no "draft not saved" notice yet).
+- Open Questions: none
+
+### Task 7: Tolerant judge parsing
+- Commits: (this commit) fix(evaluation): accept fenced judge JSON and call the judge at temperature 0
+- Verification: RED: `./mvnw -B test -Dtest='TwoRunResponseJudgeTest'` → FAIL (4 of 9: fenced and prose-wrapped replies failed; prompt options had no temperature); GREEN: `./mvnw -B test -Dtest='TwoRunResponseJudgeTest,AsyncEvaluationRunnerTest,EvaluationSpecInvariantPropertyTest,EvaluationInvariantPropertyTest'` → exit 0 (42 run)
+- Contracts/Migrations added: none
+- Decisions: no new ID. Design differed from code: (1) No separate fence-strip step. "First `{` to last `}`" already removes both fence lines, so one extraction covers fence and prose (`shortcut:` comment for a stray `{` in leading prose). (2) The temperature uses the portable `ChatOptions.builder().temperature(0.0)` per call instead of `OpenAiChatOptions`, so a provider switch stays config-only (backend rule 4); Spring AI maps it onto the OpenAI options. (3) `EvaluationInvariantPropertyTest` listed "Here is JSON: {valid}" as a bad payload; REQ-EP-10 now makes it valid, so that one payload was removed.
 - Open Questions: none

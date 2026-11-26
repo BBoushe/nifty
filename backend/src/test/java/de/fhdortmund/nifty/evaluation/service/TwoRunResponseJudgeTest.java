@@ -97,6 +97,70 @@ class TwoRunResponseJudgeTest {
         assertThat(result.run2().level()).isNull();
     }
 
+    private static final String VALID_JSON =
+            "{\"level\":3,\"verbatimQuote\":\"I would add an index on email\",\"rationale\":\"Names fix\"}";
+
+    private static TwoRunResponseJudge judgeReplying(String reply, ChatModel chatModel) {
+        when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
+        ContextCreationService contextService = mock(ContextCreationService.class);
+        when(contextService.buildJudgeContext(any())).thenReturn(sampleBuiltContext());
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse(reply));
+        return new TwoRunResponseJudge(ChatClient.builder(chatModel), contextService, JsonMapper.builder().build());
+    }
+
+    @Test
+    void parsesJsonInsideAJsonCodeFence() {
+        // REQ-EP-10: fenced reply is parsed, not flagged.
+        TwoRunResponseJudge judge = judgeReplying("```json\n" + VALID_JSON + "\n```", mock(ChatModel.class));
+
+        assertThat(judge.judge(sampleInput(false)).run1().valid()).isTrue();
+    }
+
+    @Test
+    void parsesJsonInsideAPlainCodeFence() {
+        TwoRunResponseJudge judge = judgeReplying("```\n" + VALID_JSON + "\n```", mock(ChatModel.class));
+
+        assertThat(judge.judge(sampleInput(false)).run1().valid()).isTrue();
+    }
+
+    @Test
+    void parsesJsonWithTextBeforeAndAfter() {
+        TwoRunResponseJudge judge =
+                judgeReplying("Here is my answer:\n" + VALID_JSON + "\nHope that helps.", mock(ChatModel.class));
+
+        assertThat(judge.judge(sampleInput(false)).run1().valid()).isTrue();
+    }
+
+    @Test
+    void stillRejectsOutOfRangeLevelInsideAFence() {
+        TwoRunResponseJudge judge = judgeReplying(
+                "```json\n{\"level\":7,\"verbatimQuote\":\"q\",\"rationale\":\"r\"}\n```", mock(ChatModel.class));
+
+        assertThat(judge.judge(sampleInput(false)).run1().valid()).isFalse();
+    }
+
+    @Test
+    void rejectsReplyWithNoObject() {
+        TwoRunResponseJudge judge = judgeReplying("I cannot answer that.", mock(ChatModel.class));
+
+        assertThat(judge.judge(sampleInput(false)).run1().valid()).isFalse();
+    }
+
+    @Test
+    void callsTheJudgeAtTemperatureZero() {
+        // REQ-EP-10: per-call option, so the interviewer keeps the provider default.
+        ChatModel chatModel = mock(ChatModel.class);
+        TwoRunResponseJudge judge = judgeReplying(VALID_JSON, chatModel);
+
+        judge.judge(sampleInput(false));
+
+        org.mockito.ArgumentCaptor<Prompt> captor = org.mockito.ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel, times(2)).call(captor.capture());
+        for (Prompt prompt : captor.getAllValues()) {
+            assertThat(prompt.getOptions().getTemperature()).isEqualTo(0.0);
+        }
+    }
+
     private static JudgeContextInput sampleInput(boolean timedOut) {
         return new JudgeContextInput(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "SQL",
