@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** US-ST-04 done
-- **Next action:** US-ST-05
+- **Current:** US-ST-05 done
+- **Next action:** US-ST-06
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -35,11 +35,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(studio): implement idempotent assessment creation and StudioQueryServiceImpl`
 
-- [ ] **US-ST-05: Professor read endpoints, GDPR `DELETE`, and `StudioConfigController`**
-  - [ ] Write RED `@WebMvcTest` tests for `POST /api/v1/ranking/studio/configs` (`201`/`200`/`400`/`403`), `GET` list & detail (professor scoping, `404` for other professor), `PUT`/`PATCH` → `405`, and `DELETE` (`204`, emits `AssessmentDeletedEvent`, writes `CONFIG_DELETED` via `AuditService`).
-  - [ ] Implement `AssessmentReadService`, `AssessmentDeletionService`, `StudioConfigController`, and update `docs/api.md`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(studio): add ranking studio REST endpoints and GDPR assessment deletion`
+- [x] **US-ST-05: Professor read endpoints, GDPR `DELETE`, and `StudioConfigController`**
+  - [x] Write RED `@WebMvcTest` tests for `POST /api/v1/ranking/studio/configs` (`201`/`200`/`400`/`403`), `GET` list & detail (professor scoping, `404` for other professor), `PUT`/`PATCH` → `405`, and `DELETE` (`204`, emits `AssessmentDeletedEvent`, writes `CONFIG_DELETED` via `AuditService`).
+  - [x] Implement `AssessmentReadService`, `AssessmentDeletionService`, `StudioConfigController`, and update `docs/api.md`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(studio): add ranking studio REST endpoints and GDPR assessment deletion`
 
 - [ ] **US-ST-06: Vue 3.5 + PrimeVue Studio form, list, and detail views (`frontend/src/views/studio/`)**
   - [ ] Write RED Vitest tests for `assessmentForm` Pinia store (`localStorage` persistence, skill removal cleanup, idempotency key reuse), `SettingsSection`, `SkillsSection` (5 rubric boxes, no weight input), `QuestionsSection` (skill dropdown, reorder), `ReviewStep` (submit + `400` field mapping), `AssessmentList`, and read-only `AssessmentDetail` ("Send to students" link).
@@ -84,4 +84,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=ConfigCreationAndQueryIntegrationTest` → FAIL (compile: `ConfigCreationService`, `CreatedAssessment`, `ownedBy` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (46 run, 0 failed, 1 skipped by design: `StudioQueryServicePlaceholder` deleted)
 - Contracts/Migrations added: `StudioQueryService.ownedBy(configId, professorId)`, `ConfigCreationService`, `CreatedAssessment`, `StudioQueryServiceImpl` (`StudioQueryServicePlaceholder` deleted)
 - Decisions: applies 1.12, 1.19, 2.21
+- Open Questions: none
+
+### US-ST-05 (REQ-IS-01, REQ-IS-07, REQ-IS-08, REQ-IS-10)
+- Commits: `feat(studio): add ranking studio REST endpoints and GDPR assessment deletion`
+- Verification: RED: `./mvnw -B test -Dtest=StudioConfigControllerTest,AssessmentReadAndDeletionIntegrationTest` → FAIL (compile: controller and read/deletion services missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (53 run, 0 failed, 1 skipped by design)
+- Contracts/Migrations added: `POST/GET/DELETE /api/v1/ranking/studio/configs/**` (`StudioConfigController`), `AssessmentReadService`, `AssessmentDeletionService`, `AssessmentSummaryResponse`, `AssessmentDetailResponse`; `docs/api.md` §4/§5 updated
+- Decisions: applies 1.15, 1.19, 2.21, 4.4
 - Open Questions: none

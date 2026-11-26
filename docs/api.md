@@ -58,6 +58,10 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 |---|---|---|---|---|---|
 | `GET` | `/api/v1/health` | Public | — | `{ status, service, aiProviderMode, timestamp }` | Returns `"UP"`, `"nifty-backend"`, active provider mode, ISO-8601 timestamp (`HealthController`) |
 | `GET` | `/actuator/health` | Public | — | Spring Boot Actuator health JSON | Docker Compose healthcheck target |
+| `POST` | `/api/v1/ranking/studio/configs` | `PROFESSOR` | Header `Idempotency-Key: <uuid>`, `CreateAssessmentRequest` (`settings`, `skills`, `questions`) | `AssessmentDetailResponse` (`201` created / `200` idempotent replay) | One-shot immutable snapshot `v1` (`PUBLISHED`), `CONFIG_CREATED` audit row. `400` ProblemDetail with all `errors[]` on validation failure or cross-professor key reuse (REQ-IS-01, REQ-IS-06, REQ-IS-12). |
+| `GET` | `/api/v1/ranking/studio/configs` | `PROFESSOR` | — | `AssessmentSummaryResponse[]` | Lists the signed-in professor's own configurations, newest first (REQ-IS-10). |
+| `GET` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `AssessmentDetailResponse` | Full configuration including hidden 5-level rubrics. `404` for unknown or other professor's ID (REQ-IS-10). `PUT`/`PATCH` return `405` (REQ-IS-08). |
+| `DELETE` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `204` | GDPR purge: sets `SET LOCAL nifty.allow_purge = 'on'`, publishes `AssessmentDeletedEvent`, deletes rows, writes `CONFIG_DELETED` audit row. `404` for non-owner (REQ-IS-07, Decision 4.4). |
 
 ## 5. Planned MVP Module Endpoints (Update as Implemented)
 
@@ -67,11 +71,7 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
   - `POST /api/v1/ranking/studio/configs/{id}/invites` (`PROFESSOR`) → create single invite or CSV import returning invite links.
   - `DELETE /api/v1/ranking/studio/configs/{id}/invites/{inviteId}` (`PROFESSOR`) → revoke an invite link.
 - **Studio (`studio`, `/api/v1/ranking/studio/configs/**`, `PROFESSOR` — Decisions 1.19, 2.21):**
-  - `POST /api/v1/ranking/studio/configs` (Header `Idempotency-Key: <uuid>`) → one-shot immutable config creation (`201` created / `200` idempotent replay / `400` ProblemDetail with all `errors[]`).
-  - `GET /api/v1/ranking/studio/configs` → list professor's own configs newest first (`AssessmentSummary[]`).
-  - `GET /api/v1/ranking/studio/configs/{configId}` → full config detail including hidden rubrics (`404` for unknown or other professor's config).
-  - `DELETE /api/v1/ranking/studio/configs/{configId}` → GDPR purge of all assessment and candidate data (`204`, emits `AssessmentDeletedEvent`, Decision 4.4).
-  - `PUT` / `PATCH` on `/api/v1/ranking/studio/configs/{configId}` → `405 Method Not Allowed`.
+  - Implemented (§4).
 - **Context Creation (`context`, `/api/v1/ranking/context/**`, `PROFESSOR` — Decision 1.18):**
   - `POST /api/v1/ranking/context/preview/interviewer` → dry-run preview of the rubric-blind Agent 1 prompt (`{ templateVersion, systemPrompt, promptSha256, rubricLeakCheckPassed }`).
 - **Assessment Chat (`assessment`, `/api/v1/assessment/sessions/**`, `CANDIDATE` — Decisions 1.11, 2.20, 2.23, 2.24):**
