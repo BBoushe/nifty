@@ -27,7 +27,7 @@ function safeRedirectTarget(): string {
   ) {
     return redirect
   }
-  return '/ranking'
+  return '/ranking/studio'
 }
 
 async function onSubmit() {

@@ -32,7 +32,7 @@ describe('SignInView (US-AU-02)', () => {
     vi.restoreAllMocks()
   })
 
-  it('calls auth.login with email and password and navigates to /ranking', async () => {
+  it('calls auth.login with email and password and navigates to /ranking/studio', async () => {
     const { wrapper, auth, router } = await mountSignIn()
     const loginSpy = vi.spyOn(auth, 'login').mockResolvedValue()
     const pushSpy = vi.spyOn(router, 'push')
@@ -43,7 +43,7 @@ describe('SignInView (US-AU-02)', () => {
     await flushPromises()
 
     expect(loginSpy).toHaveBeenCalledWith('prof@example.test', 'synthetic-secret')
-    expect(pushSpy).toHaveBeenCalledWith('/ranking')
+    expect(pushSpy).toHaveBeenCalledWith('/ranking/studio')
   })
 
   it('shows the 401 ProblemDetail detail when sign-in fails', async () => {
@@ -61,7 +61,7 @@ describe('SignInView (US-AU-02)', () => {
   })
 
   it.each(['//evil.example', 'https://evil.example', '/assessment/chat'])(
-    'ignores unsafe or candidate-only redirect %s and falls back to /ranking',
+    'ignores unsafe or candidate-only redirect %s and falls back to /ranking/studio',
     async (redirect) => {
       const { wrapper, auth, router } = await mountSignIn(`/sign-in?redirect=${encodeURIComponent(redirect)}`)
       vi.spyOn(auth, 'login').mockResolvedValue()
@@ -72,7 +72,7 @@ describe('SignInView (US-AU-02)', () => {
       await wrapper.get('form').trigger('submit.prevent')
       await flushPromises()
 
-      expect(pushSpy).toHaveBeenCalledWith('/ranking')
+      expect(pushSpy).toHaveBeenCalledWith('/ranking/studio')
     },
   )
 

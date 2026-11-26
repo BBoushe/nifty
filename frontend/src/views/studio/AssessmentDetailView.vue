@@ -61,6 +61,20 @@ const deleteMutation = useMutation({
           >
             Send to students
           </RouterLink>
+          <RouterLink
+            :to="`/ranking/configs/${data.configId}`"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            data-testid="open-ranking"
+          >
+            Open ranking
+          </RouterLink>
+          <RouterLink
+            :to="`/ranking/teams/${data.configId}`"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            data-testid="build-teams"
+          >
+            Build teams
+          </RouterLink>
           <Button
             v-if="!confirmDelete"
             label="Delete assessment"

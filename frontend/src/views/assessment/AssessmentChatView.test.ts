@@ -1,7 +1,10 @@
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import AssessmentChatView from './AssessmentChatView.vue'
 
 const T0 = new Date('2026-11-26T10:00:00Z')
@@ -24,9 +27,17 @@ const firstQuestion = () =>
     ],
   ])
 
+const CONFIG = '22222222-2222-2222-2222-222222222222'
+
 function mountView() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return mount(AssessmentChatView, { global: { plugins: [[VueQueryPlugin, { queryClient }], PrimeVue] } })
+  const pinia = createPinia()
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/assessment/results/:configId', component: { template: '<div />' } }],
+  })
+  useAuthStore(pinia).me = { role: 'CANDIDATE', professorId: null, configId: CONFIG }
+  return mount(AssessmentChatView, { global: { plugins: [pinia, router, [VueQueryPlugin, { queryClient }], PrimeVue] } })
 }
 
 describe('AssessmentChatView (REQ-AC-03, 05, 06, 10, 20)', () => {
@@ -77,6 +88,8 @@ describe('AssessmentChatView (REQ-AC-03, 05, 06, 10, 20)', () => {
     expect(url).toBe(`/api/v1/assessment/sessions/${ATTEMPT}/answers`)
     expect(JSON.parse(init.body)).toEqual({ content: 'Partial answer' })
     expect(wrapper.find('[data-testid="completed"]').exists()).toBe(true)
+    // REQ-NAV-07
+    expect(wrapper.get('[data-testid="results-link"]').attributes('href')).toBe(`/assessment/results/${CONFIG}`)
   })
 
   it('resumes after a refresh with the same deadline', async () => {
