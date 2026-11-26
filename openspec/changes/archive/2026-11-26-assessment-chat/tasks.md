@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/assessment-chat` (branch off `dev`)
 - **Worktree:** `../nifty-assessment-chat`
-- **Current:** US-AC-01..06 done and committed locally (not pushed). Delivery not started.
-- **Next action:** Run `## Delivery`: merge `origin/dev`, full verification, archive, then ask the human before push and PR/MR.
+- **Current:** US-AC-01..06 done, `origin/dev` merged (with `invite-links`), all checks green, change archived. Committed locally, not pushed.
+- **Next action:** Ask the human before push and PR/MR (`node scripts/forge.mjs`). Never merge.
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -49,9 +49,9 @@
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
-- [ ] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive assessment-chat -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive assessment-chat`.
+- [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive assessment-chat -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive assessment-chat`.
 - [ ] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
