@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/invite-links`
 - **Worktree:** `../nifty-invite-links`
-- **Current:** not started
-- **Next action:** Task 1
+- **Current:** Task 1 done
+- **Next action:** Task 2
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -12,9 +12,9 @@
 ## Tasks
 
 ### Task 1: US-IL-01..02 Invite table and creation (REQ-AA-03, REQ-AA-09)
-- [ ] RED: `InviteServiceTest` (extends `PostgresContainerBase`, `StudioQueryService` mocked): 3 refs → 3 distinct links, 3 hashes, no plain token in the table; a duplicate ref → `400`; a config that `ownedBy` rejects → `404`.
-- [ ] GREEN: `V4__auth_invites.sql`, entity and repository, `InviteService`, `TokenHasher`, create, list and revoke endpoints (design §2).
-- [ ] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(auth): invite links with hashed tokens`
+- [x] RED: `InviteServiceTest` (extends `PostgresContainerBase`, `StudioQueryService` mocked): 3 refs → 3 distinct links, 3 hashes, no plain token in the table; a duplicate ref → `400`; a config that `ownedBy` rejects → `404`.
+- [x] GREEN: `V4__auth_invites.sql`, entity and repository, `InviteService`, `TokenHasher`, create, list and revoke endpoints (design §2).
+- [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(auth): invite links with hashed tokens`
 
 ### Task 2: US-IL-03 Invite sign-in and candidate principal (REQ-AA-04)
 - [ ] RED: `InviteSignInTest` (MockMvc): valid token → `200` + session, `GET /api/v1/auth/me` shows `CANDIDATE` with `inviteId` and `configId`; unknown and revoked tokens → same `401`; `currentCandidate()` returns the bound invite.
@@ -43,3 +43,11 @@
 - [ ] Stop. Teammate A runs the cold review, checks CI and merges.
 
 ## Handoff Log
+
+
+### Task 1 (US-IL-01..02, REQ-AA-03, REQ-AA-09)
+- Commits: `feat(auth): invite links with hashed tokens`
+- Verification: RED: `./mvnw -B test -Dtest=InviteServiceTest` → FAIL (compile: `InviteService`, `TokenHasher`, `CreatedInvite`, `InviteSummary` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (181 run, 0 failed)
+- Contracts/Migrations added: `V4__auth_invites.sql`, `InviteEntity`, `InviteRepository`, `TokenHasher`, `InviteService`, `InviteController` (`/api/v1/ranking/studio/configs/{configId}/invites/**`)
+- Decisions: applies 1.10, 1.17
+- Open Questions: none
