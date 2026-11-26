@@ -29,7 +29,7 @@ spring:
       api-key: ${KICONNECT_API_KEY:not-configured}
       base-url: ${AI_EVALUATOR_BASE_URL:https://chat.kiconnect.nrw/api/v1}
       chat:
-        model: ${AI_EVALUATOR_MODEL:OpenAI GPT OSS 120B}
+        model: ${AI_EVALUATOR_MODEL:GPT-OSS-120B}
 
 nifty:
   frontend-base-url: ${NIFTY_FRONTEND_BASE_URL:http://localhost:5173}
@@ -50,11 +50,11 @@ nifty:
     evaluator:
       provider: ${AI_EVALUATOR_PROVIDER:kiconnect-nrw}
       base-url: ${AI_EVALUATOR_BASE_URL:https://chat.kiconnect.nrw/api/v1}
-      model: ${AI_EVALUATOR_MODEL:OpenAI GPT OSS 120B}
+      model: ${AI_EVALUATOR_MODEL:GPT-OSS-120B}
       allowed-models:
-        - "OpenAI GPT OSS 120B"
-        - "Qwen 3.8 27B"
-        - "Mistral Small 4 119B"
+        - "GPT-OSS-120B"
+        - "Qwen3.8 27B"
+        - "mistralai-mistral-small-4"
 
 server:
   port: ${BACKEND_PORT:8080}
