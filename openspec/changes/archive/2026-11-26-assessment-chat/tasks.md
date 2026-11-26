@@ -3,11 +3,11 @@
 ## Status
 - **Branch:** `feat/assessment-chat` (branch off `dev`)
 - **Worktree:** `../nifty-assessment-chat`
-- **Current:** US-AC-01..06 done, `origin/dev` merged (with `invite-links`), all checks green, change archived. Committed locally, not pushed.
-- **Next action:** Ask the human before push and PR/MR (`node scripts/forge.mjs`). Never merge.
+- **Current:** US-AC-01..06, invariant/mutation round and cold-review fixes done; change archived; branch pushed and PR open.
+- **Next action:** Teammate A runs CI, a cold review and the merge on GitHub. Agents never merge.
 - **Uncommitted changes:** none
-- **PR / MR:** —
-- **Open review findings:** —
+- **PR / MR:** GitHub #28 (https://github.com/BBoushe/nifty/pull/28)
+- **Open review findings:** none blocking; `@EnableScheduling` kept in the slice by contract (§1); `context` template wording for `followUpLimit = 0` reported to its owner
 
 ## Tasks
 
@@ -52,7 +52,7 @@
 - [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
 - [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive assessment-chat -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive assessment-chat`.
-- [ ] Push and open PR/MR via `node scripts/forge.mjs`.
+- [x] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log

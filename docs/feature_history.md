@@ -7,7 +7,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-26 — assessment-chat
 - **What:** Added `V6__assessment.sql` (`assessment_attempt`, append-only `conversation_entry` with a trigger that blocks `UPDATE` and unflagged `DELETE`, `bfi_response`) and the candidate endpoints `POST/GET /api/v1/assessment/sessions/**`. The start and each answer stream the interviewer reply over SSE (`delta`, `question`, `done`). A pure state machine enforces core question order, follow-up limits, server deadlines with a 5 s grace period, the attempt limit and the SOFT_SKILLS-only BFI-10 start. The service stores `timedOut`, `pasteSuspected` (minimum time + 12 chars/s for 150+ chars) and `injectionSuspected` (from `ContextCreationService`). An expiry sweep closes unanswered questions. BFI-10 is scored once in Java. `AssessmentQueryServiceImpl` replaces its placeholder. `AttemptCompletedEvent` fires on completion, and `AssessmentDeletedEvent` purges the slice. Frontend: `AssessmentChatView.vue` (countdown, auto-submit at zero, 4000-character box, refresh resume) and `Bfi10Form.vue`.
 - **Why:** Candidates need a timed, rubric-blind interview whose every message lands in an immutable ledger, so that `evaluation` can judge verified evidence after commit and `teams` can read trait means (Decisions 1.11, 1.12, 1.18, 2.20, 2.23, 2.24, 2.26, 4.3).
-- **PR/MR:** pending
+- **PR/MR:** GitHub #28
 - **Specs:** REQ-AC-17, REQ-AC-20 (added to `assessment-chat`); REQ-AC-01..16, 18, 19 (implemented)   **Decisions:** applies 1.10, 1.11, 1.12, 1.18, 1.19, 1.21, 2.13, 2.14, 2.20, 2.23, 2.24, 2.26, 4.3, 4.4
 
 ## 2026-11-26 — invite-links
