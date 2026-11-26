@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** US-ST-05 done
-- **Next action:** US-ST-06
+- **Current:** US-ST-06 done
+- **Next action:** Delivery (merge origin/dev, validate, archive, ask human before push/PR)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -41,11 +41,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(studio): add ranking studio REST endpoints and GDPR assessment deletion`
 
-- [ ] **US-ST-06: Vue 3.5 + PrimeVue Studio form, list, and detail views (`frontend/src/views/studio/`)**
-  - [ ] Write RED Vitest tests for `assessmentForm` Pinia store (`localStorage` persistence, skill removal cleanup, idempotency key reuse), `SettingsSection`, `SkillsSection` (5 rubric boxes, no weight input), `QuestionsSection` (skill dropdown, reorder), `ReviewStep` (submit + `400` field mapping), `AssessmentList`, and read-only `AssessmentDetail` ("Send to students" link).
-  - [ ] Implement store and views using PrimeVue + Tailwind v4 tokens.
-  - [ ] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
-  - [ ] Commit: `feat(frontend): add Studio assessment form, list, and detail views`
+- [x] **US-ST-06: Vue 3.5 + PrimeVue Studio form, list, and detail views (`frontend/src/views/studio/`)**
+  - [x] Write RED Vitest tests for `assessmentForm` Pinia store (`localStorage` persistence, skill removal cleanup, idempotency key reuse), `SettingsSection`, `SkillsSection` (5 rubric boxes, no weight input), `QuestionsSection` (skill dropdown, reorder), `ReviewStep` (submit + `400` field mapping), `AssessmentList`, and read-only `AssessmentDetail` ("Send to students" link).
+  - [x] Implement store and views using PrimeVue + Tailwind v4 tokens.
+  - [x] Verify GREEN with `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`.
+  - [x] Commit: `feat(frontend): add Studio assessment form, list, and detail views`
 
 ## Delivery
 
@@ -91,4 +91,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=StudioConfigControllerTest,AssessmentReadAndDeletionIntegrationTest` → FAIL (compile: controller and read/deletion services missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (53 run, 0 failed, 1 skipped by design)
 - Contracts/Migrations added: `POST/GET/DELETE /api/v1/ranking/studio/configs/**` (`StudioConfigController`), `AssessmentReadService`, `AssessmentDeletionService`, `AssessmentSummaryResponse`, `AssessmentDetailResponse`; `docs/api.md` §4/§5 updated
 - Decisions: applies 1.15, 1.19, 2.21, 4.4
+- Open Questions: none
+
+### US-ST-06 (REQ-IS-01, REQ-IS-05, REQ-IS-06, REQ-IS-07, REQ-IS-10)
+- Commits: `feat(frontend): add Studio assessment form, list, and detail views`
+- Verification: RED: `cd frontend && npm run test` → FAIL (`assessmentForm` store and Studio views missing); GREEN: `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (7 files, 43 passed)
+- Contracts/Migrations added: `frontend/src/api/studio.ts`, `frontend/src/stores/assessmentForm.ts`, `frontend/src/views/studio/{SettingsSection,SkillsSection,QuestionsSection,ReviewStep,AssessmentCreateView,AssessmentListView,AssessmentDetailView}.vue`, `frontend/src/views/studio/routes.ts`
+- Decisions: applies 1.14, 2.21, 2.22, 2.23, 4.4
 - Open Questions: none
