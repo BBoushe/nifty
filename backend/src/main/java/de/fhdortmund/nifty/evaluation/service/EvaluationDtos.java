@@ -102,12 +102,6 @@ public final class EvaluationDtos {
     ) {
     }
 
-    public record BulkApproveRequest(UUID configId, List<UUID> responseEvaluationIds) {
-    }
-
-    public record BulkApproveResponse(int approvedCount, int skippedFlaggedCount) {
-    }
-
     public record ApproveEvaluationResponse(
             UUID responseEvaluationId,
             UUID attemptId,

@@ -83,7 +83,9 @@ public class CandidateResultsService {
                 .findTopByConfigIdAndInviteIdOrderByAttemptNoDescCreatedAtDesc(configId, principal.inviteId());
 
         // REQ-CR-02: withhold all scores, weights, formulas, conversation log, and traits before release.
-        if (latestOpt.isEmpty() || !FormulaRecalculationHelper.isReleased(latestOpt.get().getReleaseStatus())) {
+        if (latestOpt.isEmpty()
+                || !latestOpt.get().isCompleted()
+                || !FormulaRecalculationHelper.isReleased(latestOpt.get().getReleaseStatus())) {
             UUID attemptId = latestOpt.map(CandidateEvaluationSummaryEntity::getAttemptId).orElse(null);
             return new EvaluationDtos.CandidateResultsResponse(
                     configId, attemptId, ReleaseStatus.PENDING, false, null,
@@ -136,7 +138,8 @@ public class CandidateResultsService {
         List<EvaluationDtos.CandidateEvidenceItem> items = new ArrayList<>();
         for (int i = 0; i < responses.size(); i++) {
             ResponseEvaluationEntity r = responses.get(i);
-            boolean overridden = ReleaseStatus.OVERRIDDEN.literal().equals(r.getReviewStatus());
+            boolean overridden = r.getOverriddenBy() != null
+                    || ReleaseStatus.OVERRIDDEN.literal().equals(r.getReviewStatus());
             if ((r.isQuoteVerified() || overridden) && r.getEffectiveLevel() != null) {
                 items.add(new EvaluationDtos.CandidateEvidenceItem(
                         r.getEntryId(),

@@ -51,7 +51,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Review fixes for PR 29 on real PostgreSQL: no lost evaluations (REQ-EP-05, REQ-EP-09, Decision 2.24),
+ * Review fixes for PR 29 on real PostgreSQL: no lost evaluations (REQ-EP-05, REQ-EP-09, Decision 2.28),
  * bounded retry, atomic claims, waiting attempts in matrix and query service (REQ-EV-01, REQ-SM-07),
  * and the retake rule (Decision 2.13).
  */

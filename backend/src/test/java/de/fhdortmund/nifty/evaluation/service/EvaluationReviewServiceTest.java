@@ -39,10 +39,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
 /**
- * US-EV-04 / REQ-SM-02, REQ-SM-03, REQ-SM-06, REQ-FE-02:
- * bulk-approve skips flagged items, override requires non-blank reason + calls AuditService
- * + preserves aiLevel + recalculates Formula B without LLM, explicit release blocks on flagged items,
- * and unowned config returns 404.
+ * US-EV-04 / REQ-SM-02, REQ-SM-03, REQ-SM-06, REQ-FE-02 / Decision 2.30:
+ * individual approval (no bulk approval), override requires non-blank reason + 0..4 bounds
+ * + calls AuditService + preserves aiLevel + recalculates Formula B without LLM, explicit release
+ * blocks on flagged items, and unowned config returns 404.
  */
 class EvaluationReviewServiceTest {
 
@@ -85,49 +85,98 @@ class EvaluationReviewServiceTest {
     }
 
     @Test
-    void bulkApproveSkipsFlaggedItemsAndApprovesPendingOnly() {
+    void overrideValidatesZeroToFourBoundariesAndPreservesReleasedStatusAndRecalculatesSkillScores() {
         UUID professorId = UUID.randomUUID();
         UUID configId = UUID.randomUUID();
         UUID attemptId = UUID.randomUUID();
         UUID skillId = UUID.randomUUID();
         UUID q1 = UUID.randomUUID();
+        UUID q2 = UUID.randomUUID();
+        UUID responseId = UUID.randomUUID();
+
+        // Boundary checks: -1 and 5 must fail validation; 0 and 4 must succeed (REQ-SM-02).
+        assertThatThrownBy(() -> service.overrideEvaluation(
+                responseId, new EvaluationDtos.OverrideEvaluationRequest(-1, "Too low")))
+                .isInstanceOf(FieldValidationException.class);
+        assertThatThrownBy(() -> service.overrideEvaluation(
+                responseId, new EvaluationDtos.OverrideEvaluationRequest(5, "Too high")))
+                .isInstanceOf(FieldValidationException.class);
 
         when(authContextService.currentProfessorId()).thenReturn(professorId);
         when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
-
-        FormulaVersionEntity formula = new FormulaVersionEntity(
-                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
-        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k1");
-        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
-                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
-                new BigDecimal("2.50"), BigDecimal.ONE, 1, "flagged", null);
-        ResponseEvaluationEntity pending = new ResponseEvaluationEntity(
-                run, summary, UUID.randomUUID(), q1, skillId, "core", new BigDecimal("1.00"),
-                3, 3, "good quote text", "good quote text", true, "good quote text", "clear",
-                3, new BigDecimal("0.9200"), null, "pending", 3);
-        ResponseEvaluationEntity flagged = new ResponseEvaluationEntity(
-                run, summary, UUID.randomUUID(), q1, skillId, "core", new BigDecimal("1.00"),
-                1, 3, "some quote text", "some quote text", true, "some quote text", "disagreement",
-                1, new BigDecimal("0.5000"), "JUDGE_DISAGREEMENT", "flagged", 1);
-
-        when(summaryRepository.findLatestCompletedPerInvite(configId)).thenReturn(List.of(summary));
-        when(responseEvaluationRepository.findBySummaryIdIn(any())).thenReturn(List.of(pending, flagged));
-        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(pending, flagged));
         when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
                 configId,
                 List.of(new EvaluatorSkill(skillId, "Spring Boot", RUBRIC)),
                 List.of(new EvaluatorQuestion(q1, "Explain transactions.", List.of(skillId)))));
-        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
-                configId, new BigDecimal("0.5000"),
-                List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.6000"), List.of(skillId)))));
 
-        EvaluationDtos.BulkApproveResponse res = service.bulkApprove(
-                new EvaluationDtos.BulkApproveRequest(configId, null));
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"),
+                Map.of(q1.toString(), BigDecimal.ONE, q2.toString(), BigDecimal.ONE), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-rel");
+        CandidateEvaluationSummaryEntity releasedSummary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("3.00"), new BigDecimal("0.5000"), 0, "auto_released", java.time.Instant.now());
 
-        assertThat(res.approvedCount()).isEqualTo(1);
-        assertThat(res.skippedFlaggedCount()).isEqualTo(1);
-        assertThat(pending.getReviewStatus()).isEqualTo("approved");
-        assertThat(flagged.getReviewStatus()).isEqualTo("flagged");
+        // Unverified quote overridden to 4 stays SCORED via overriddenBy != null; INVENTED entry stays out of coverage.
+        ResponseEvaluationEntity unverified = new ResponseEvaluationEntity(
+                run, releasedSummary, UUID.randomUUID(), q1, skillId, "core", BigDecimal.ONE,
+                null, null, "bad quote", null, false, null, null, null,
+                new BigDecimal("0.2000"), "UNVERIFIED_QUOTE", "auto_released", null);
+        ResponseEvaluationEntity invented = new ResponseEvaluationEntity(
+                run, releasedSummary, UUID.randomUUID(), q2, skillId, "invented", BigDecimal.ONE,
+                4, 4, "invented verified quote", "invented verified quote", true, "invented verified quote", "ok",
+                4, new BigDecimal("0.9000"), null, "auto_released", 4);
+
+        when(responseEvaluationRepository.findWithSummaryById(responseId)).thenReturn(Optional.of(unverified));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(unverified, invented));
+
+        EvaluationDtos.OverrideEvaluationResponse res = service.overrideEvaluation(
+                responseId, new EvaluationDtos.OverrideEvaluationRequest(4, "Verified during oral check"));
+
+        assertThat(res.effectiveLevel()).isEqualTo(4);
+        assertThat(releasedSummary.getReleaseStatus()).isEqualTo("overridden");
+        // q1 (core, overridden without verified quote) counts -> 0.5000; q2 (invented) does NOT count toward coverage!
+        assertThat(res.updatedCoverage()).isEqualByComparingTo("0.5000");
+        assertThat(res.updatedFitScore()).isEqualByComparingTo("4.00");
+        verify(skillScoreRepository).deleteBySummaryId(releasedSummary.getId());
+        verify(skillScoreRepository).saveAll(any());
+
+        // Entity-level immutability guard: approve() must reject an already-overridden response (Decision 2.10).
+        assertThatThrownBy(() -> unverified.approve(java.time.Instant.now()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void approvingOneOfTwoFlaggedResponsesKeepsSummaryFlaggedAndRefreshesSkillScores() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+        UUID resp1Id = UUID.randomUUID();
+
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId, List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)), List.of()));
+
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(q1.toString(), BigDecimal.ONE), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "COMPLETED", "k-two");
+        CandidateEvaluationSummaryEntity summary = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                new BigDecimal("2.00"), BigDecimal.ONE, 2, "flagged", null);
+        ResponseEvaluationEntity f1 = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
+        ResponseEvaluationEntity f2 = verifiedResponse(run, summary, q1, skillId, 2, "flagged");
+
+        when(responseEvaluationRepository.findWithSummaryById(resp1Id)).thenReturn(Optional.of(f1));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(f1, f2));
+
+        EvaluationDtos.ApproveEvaluationResponse approved = service.approveEvaluation(resp1Id);
+
+        assertThat(approved.remainingFlaggedCount()).isEqualTo(1);
+        assertThat(summary.getReleaseStatus()).isEqualTo("flagged");
+        verify(skillScoreRepository).deleteBySummaryId(summary.getId());
         verify(skillScoreRepository).saveAll(any());
     }
 
@@ -212,7 +261,7 @@ class EvaluationReviewServiceTest {
                 new BigDecimal("1.00"), 1, 3, "q", "q", true, "q", "r",
                 1, new BigDecimal("0.4000"), "JUDGE_DISAGREEMENT", "flagged", 1);
 
-        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(summary));
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(stillFlagged));
 
         assertThatThrownBy(() -> service.releaseAttempt(attemptId))
@@ -315,9 +364,13 @@ class EvaluationReviewServiceTest {
                 run, summary, entryId, q1, skillId, "core", new BigDecimal("1.00"),
                 2, 2, "FABRICATED_HALLUCINATED_QUOTE", "FABRICATED_HALLUCINATED_QUOTE",
                 false, null, "bad", null, new BigDecimal("0.3000"), "UNVERIFIED_QUOTE", "flagged", null);
+        ResponseEvaluationEntity verified = new ResponseEvaluationEntity(
+                run, summary, entryId, q1, skillId, "core", new BigDecimal("1.00"),
+                3, 3, "exact verified quote", "exact verified quote",
+                true, "exact verified quote", "good", 3, new BigDecimal("0.9200"), null, "approved", 3);
 
         when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
-        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(unverified));
+        when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(unverified, verified));
         when(assessmentQueryService.getTranscriptForAttempt(attemptId)).thenReturn(
                 new de.fhdortmund.nifty.assessment.service.ImmutableTranscriptView(
                         attemptId, configId, summary.getInviteId(), "v1", 1,
@@ -333,9 +386,11 @@ class EvaluationReviewServiceTest {
         assertThat(export.format()).isEqualTo("assessment-transcript/v1");
         assertThat(export.entries()).hasSize(1);
         assertThat(export.entries().getFirst().answer().pasteSuspected()).isTrue();
-        assertThat(export.evidence()).hasSize(1);
-        assertThat(export.evidence().getFirst().quoteVerified()).isFalse();
-        assertThat(export.evidence().getFirst().quote()).isNull();
+        assertThat(export.evidence()).hasSize(2);
+        assertThat(export.evidence().get(0).quoteVerified()).isFalse();
+        assertThat(export.evidence().get(0).quote()).isNull();
+        assertThat(export.evidence().get(1).quoteVerified()).isTrue();
+        assertThat(export.evidence().get(1).quote()).isEqualTo("exact verified quote");
     }
 
     @Test
@@ -370,6 +425,7 @@ class EvaluationReviewServiceTest {
         when(formulaVersionRepository.findTopByConfigIdOrderByVersionNumberDesc(configId)).thenReturn(Optional.of(formula));
         when(summaryRepository.findLatestPerInvite(configId)).thenReturn(List.of(summary));
         when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(summary));
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(summary));
         when(responseEvaluationRepository.findBySummaryIdOrderByIdAsc(any())).thenReturn(List.of(pending));
         when(skillScoreRepository.findBySummaryIdIn(any())).thenReturn(List.of());
         when(skillScoreRepository.findBySummaryId(any())).thenReturn(List.of());
@@ -386,6 +442,8 @@ class EvaluationReviewServiceTest {
         assertThat(released.releaseStatus()).isEqualTo(ReleaseStatus.APPROVED);
         assertThat(summary.getReleaseStatus()).isEqualTo("approved");
         assertThat(pending.getReviewStatus()).isEqualTo("approved");
+        verify(skillScoreRepository).deleteBySummaryId(summary.getId());
+        verify(skillScoreRepository).saveAll(any());
         verify(auditService).record(
                 eq(professorId.toString()),
                 eq(AuditActorRole.PROFESSOR),
@@ -450,13 +508,63 @@ class EvaluationReviewServiceTest {
         EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-q");
         CandidateEvaluationSummaryEntity queued = CandidateEvaluationSummaryEntity.queued(
                 attemptId, configId, UUID.randomUUID(), 1, formula, run);
-        when(summaryRepository.findByAttemptId(attemptId)).thenReturn(Optional.of(queued));
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(queued));
 
         assertThatThrownBy(() -> service.releaseAttempt(attemptId))
                 .isInstanceOf(DomainException.class)
                 .extracting(ex -> ((DomainException) ex).getStatus())
                 .isEqualTo(HttpStatus.CONFLICT);
         assertThat(queued.getReleaseStatus()).isEqualTo("pending");
+        verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void releaseReadsTheSummaryThroughTheRowLock() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, null, "QUEUED", "k-lock");
+        CandidateEvaluationSummaryEntity queued = CandidateEvaluationSummaryEntity.queued(
+                attemptId, configId, UUID.randomUUID(), 1, formula, run);
+        when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(queued));
+
+        assertThatThrownBy(() -> service.releaseAttempt(attemptId)).isInstanceOf(DomainException.class);
+
+        // Decision 2.10: the row lock makes two concurrent releases write one audit row (see EvaluationReleaseRaceTest).
+        verify(summaryRepository).findByAttemptIdForUpdate(attemptId);
+        verify(summaryRepository, never()).findByAttemptId(attemptId);
+    }
+
+    @Test
+    void releaseRefusesAlreadyReleasedAttemptWithConflict() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+
+        for (String releasedStatus : List.of("auto_released", "approved", "overridden")) {
+            UUID attemptId = UUID.randomUUID();
+            FormulaVersionEntity formula = new FormulaVersionEntity(
+                    configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+            EvaluationRunEntity run = new EvaluationRunEntity(
+                    attemptId, configId, formula, "v1", "COMPLETED", "k-" + releasedStatus);
+            java.time.Instant originalReleasedAt = java.time.Instant.parse("2026-11-26T10:00:00Z");
+            CandidateEvaluationSummaryEntity released = new CandidateEvaluationSummaryEntity(
+                    attemptId, configId, UUID.randomUUID(), 1, formula, run, "COMPLETED",
+                    new BigDecimal("3.00"), BigDecimal.ONE, 0, releasedStatus, originalReleasedAt);
+            when(summaryRepository.findByAttemptIdForUpdate(attemptId)).thenReturn(Optional.of(released));
+
+            assertThatThrownBy(() -> service.releaseAttempt(attemptId))
+                    .isInstanceOf(DomainException.class)
+                    .extracting(ex -> ((DomainException) ex).getStatus())
+                    .isEqualTo(HttpStatus.CONFLICT);
+            assertThat(released.getReleaseStatus()).isEqualTo(releasedStatus);
+            assertThat(released.getReleasedAt()).isEqualTo(originalReleasedAt);
+        }
         verify(auditService, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
     }
 

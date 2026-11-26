@@ -719,6 +719,29 @@ class EvaluationSpecInvariantPropertyTest {
     }
 
     @Test
+    @DisplayName("REQ-EP-01 / REQ-SM-01 shouldFlagSubstantiveAnswerWhenOneRunQuoteFailsVerification")
+    void shouldFlagSubstantiveAnswerWhenOneRunQuoteFailsVerification() {
+        Random rnd = new Random(SEED + 15);
+        for (int r = 0; r < ROUNDS; r++) {
+            int level = rnd.nextInt(5);
+            BigDecimal thr = unit(rnd);
+            BigDecimal conf = thr; // meets threshold so only quote verification can flag
+            // quoteVerified = true (run 1 verified) but allQuotesVerified = false (run 2 hallucinated)
+            var substantive = gate.evaluateResponseFlags(
+                    true, true, false, level, level, conf, thr, false, false, false);
+            assertThat(substantive.reviewStatus())
+                    .as("substantive answer with any unverified run quote must be flagged")
+                    .isEqualTo(ReleaseStatus.FLAGGED);
+            assertThat(substantive.flagReasons()).contains("UNVERIFIED_QUOTE");
+
+            // non-substantive (<8 chars) answer is NOT flagged solely for UNVERIFIED_QUOTE
+            var nonSubstantive = gate.evaluateResponseFlags(
+                    false, true, false, level, level, conf, thr, false, false, false);
+            assertThat(nonSubstantive.reviewStatus()).isEqualTo(ReleaseStatus.PENDING);
+        }
+    }
+
+    @Test
     @DisplayName("REQ-SM-01 shouldNotFailConfidenceThresholdForNAScore")
     void shouldNotFailConfidenceThresholdForNAScore() {
         Random rnd = new Random(SEED + 13);

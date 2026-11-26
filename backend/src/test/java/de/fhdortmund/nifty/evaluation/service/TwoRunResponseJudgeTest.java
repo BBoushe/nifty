@@ -36,7 +36,7 @@ class TwoRunResponseJudgeTest {
 
     @Test
     void judgeRunsOutsideAnyTransactionSoNoDbConnectionIsHeldAcrossLlmCalls() throws NoSuchMethodException {
-        // Decision 2.24: the class default is readOnly; judge() must opt out, because it blocks on two LLM calls.
+        // Decision 2.28: the class default is readOnly; judge() must opt out, because it blocks on two LLM calls.
         var attribute = new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()
                 .getTransactionAttribute(
                         TwoRunResponseJudge.class.getMethod("judge", JudgeContextInput.class), TwoRunResponseJudge.class);

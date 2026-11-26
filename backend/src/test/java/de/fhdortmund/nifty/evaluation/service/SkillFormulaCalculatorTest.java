@@ -249,6 +249,24 @@ class SkillFormulaCalculatorTest {
         assertThat(result.coverage()).isEqualByComparingTo("0.5000");
     }
 
+    @Test
+    void unknownReviewStatusFailsClosedToPendingNeverAutoReleased() {
+        UUID skill = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+
+        SkillFormulaCalculator.FormulaResult result = calculator.calculate(
+                List.of(skill),
+                List.of(new SkillFormulaCalculator.QuestionWeight(q1, new BigDecimal("1.00"))),
+                List.of(new SkillFormulaCalculator.ScoredEntryInput(
+                        UUID.randomUUID(), q1, skill, EntryOrigin.CORE,
+                        new BigDecimal("1.00"), 3, new BigDecimal("0.9000"), true, false, "unexpected_status")),
+                Set.of(q1),
+                new BigDecimal("0.5000"));
+
+        // Decision 2.10: fail closed to pending on unknown status literals.
+        assertThat(result.skillScores().getFirst().reviewStatus()).isEqualTo("pending");
+    }
+
     private static SkillFormulaCalculator.ScoredEntryInput scored(
             UUID coreQuestionId, UUID skillId, EntryOrigin origin, String weight, int level) {
         return new SkillFormulaCalculator.ScoredEntryInput(

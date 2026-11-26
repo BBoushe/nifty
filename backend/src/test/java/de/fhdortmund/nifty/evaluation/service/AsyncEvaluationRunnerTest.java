@@ -150,6 +150,83 @@ class AsyncEvaluationRunnerTest {
         assertThat(queued.summary().getCoverage()).isEqualByComparingTo("0.5000");
         assertThat(queued.summary().getReleaseStatus()).isEqualTo("auto_released");
         assertThat(queued.run().getStatus()).isEqualTo("COMPLETED");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<de.fhdortmund.nifty.evaluation.repository.ResponseEvaluationEntity>> respCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(responseEvaluationRepository).saveAll(respCaptor.capture());
+        assertThat(respCaptor.getValue()).hasSize(1);
+        assertThat(respCaptor.getValue().getFirst().getReviewStatus()).isEqualTo("auto_released");
+        assertThat(respCaptor.getValue().getFirst().getEffectiveLevel()).isEqualTo(3);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<de.fhdortmund.nifty.evaluation.repository.SkillScoreEntity>> scoreCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(skillScoreRepository).saveAll(scoreCaptor.capture());
+        assertThat(scoreCaptor.getValue()).hasSize(1);
+        assertThat(scoreCaptor.getValue().getFirst().getReviewStatus()).isEqualTo("auto_released");
+        assertThat(scoreCaptor.getValue().getFirst().getScore()).isEqualByComparingTo("3.00");
+    }
+
+    @Test
+    void disagreeingVerifiedRunsUseMinLevelFlagAttemptAndDeduplicateTargetSkills() {
+        UUID configId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID q1 = UUID.randomUUID();
+
+        FormulaVersionEntity formula = formulaWithId(configId, q1);
+        Queued queued = givenQueuedRun(configId, attemptId, inviteId, formula);
+
+        when(studioQueryService.evaluatorView(configId)).thenReturn(new EvaluatorView(
+                configId,
+                List.of(new EvaluatorSkill(skillId, "SQL", RUBRIC)),
+                List.of(new EvaluatorQuestion(q1, "Explain indexes.", List.of(skillId)))));
+        when(studioQueryService.scoringView(configId)).thenReturn(new ScoringView(
+                configId,
+                new BigDecimal("0.5000"),
+                List.of(new ScoringQuestion(q1, new BigDecimal("1.00"), new BigDecimal("0.5000"), List.of(skillId)))));
+
+        // Duplicate skillId in targetSkillIds MUST be deduplicated so judge runs once per (entry, skill).
+        TranscriptEntryView entry = new TranscriptEntryView(
+                UUID.randomUUID(), 1, q1, EntryOrigin.CORE, "Explain indexes.",
+                "B-tree indexes speed up equality and range lookups on email.", List.of(skillId, skillId),
+                Instant.now().minusSeconds(60), Instant.now(), Instant.now(), 30, false, false, false);
+        when(assessmentQueryService.getTranscriptForAttempt(attemptId)).thenReturn(new ImmutableTranscriptView(
+                attemptId, configId, inviteId, "v1", 1,
+                Instant.now().minusSeconds(60), Instant.now(), List.of(entry)));
+
+        TwoRunResponseJudge.ParsedRun run1 = new TwoRunResponseJudge.ParsedRun(
+                true, 1, "B-tree indexes speed up", "conservative", null);
+        TwoRunResponseJudge.ParsedRun run2 = new TwoRunResponseJudge.ParsedRun(
+                true, 4, "equality and range lookups", "optimistic", null);
+        when(judge.judge(any())).thenReturn(new TwoRunResponseJudge.TwoRunResult("evaluator-judge-v1", run1, run2));
+
+        runner.executeRun(queued.runId());
+
+        verify(judge, times(1)).judge(any());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<de.fhdortmund.nifty.evaluation.repository.ResponseEvaluationEntity>> respCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(responseEvaluationRepository).saveAll(respCaptor.capture());
+        assertThat(respCaptor.getValue()).hasSize(1);
+        assertThat(respCaptor.getValue().getFirst().getEffectiveLevel()).isEqualTo(1);
+        assertThat(respCaptor.getValue().getFirst().getReviewStatus()).isEqualTo("flagged");
+        assertThat(queued.summary().getReleaseStatus()).isEqualTo("flagged");
+    }
+
+    @Test
+    void countsPromptedAndUnpromptedContentTermsDeterministically() {
+        int[] counts = AsyncEvaluationRunner.countPromptedAndUnpromptedTerms(
+                "How does PostgreSQL handle index scans?",
+                "PostgreSQL uses B-tree index structures with MVCC snapshots.");
+        // Prompted (>=4 chars in both): postgresql, index -> 2; Unprompted: uses, tree, structures, with, mvcc, snapshots -> 6
+        assertThat(counts[0]).isEqualTo(2);
+        assertThat(counts[1]).isEqualTo(6);
+
+        int[] empty = AsyncEvaluationRunner.countPromptedAndUnpromptedTerms(null, "a b c");
+        assertThat(empty).containsExactly(0, 0);
     }
 
     @Test

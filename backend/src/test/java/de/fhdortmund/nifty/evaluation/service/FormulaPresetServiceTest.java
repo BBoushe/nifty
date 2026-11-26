@@ -124,10 +124,21 @@ class FormulaPresetServiceTest {
         assertThat(result.versionNumber()).isEqualTo(2);
         assertThat(result.preset()).isEqualTo("WEIGHTED_MEAN");
         assertThat(result.recomputedCandidates()).isEqualTo(1);
+        assertThat(result.questionWeights()).containsEntry(q1.toString(), new BigDecimal("2.00"));
         assertThat(summary.getFormulaVersion().getVersionNumber()).isEqualTo(2);
         assertThat(summary.getFitScore()).isEqualByComparingTo("3.00");
         verify(formulaVersionRepository).saveAndFlush(any());
+        verify(skillScoreRepository).deleteBySummaryId(summary.getId());
         verify(skillScoreRepository).saveAll(any());
+        verify(auditService).record(
+                org.mockito.ArgumentMatchers.eq(professorId.toString()),
+                org.mockito.ArgumentMatchers.eq(de.fhdortmund.nifty.audit.service.AuditActorRole.PROFESSOR),
+                org.mockito.ArgumentMatchers.eq("FORMULA_VERSION"),
+                any(),
+                org.mockito.ArgumentMatchers.eq("FORMULA_VERSION_CREATED"),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("WEIGHTED_MEAN:v2"),
+                org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test

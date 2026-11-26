@@ -507,10 +507,21 @@ public class AsyncEvaluationRunner {
     }
 
     private static List<UUID> resolveTargetSkills(TranscriptEntryView entry, EvaluatorQuestion evalQ) {
-        if (entry.targetSkillIds() != null && !entry.targetSkillIds().isEmpty()) {
-            return entry.targetSkillIds();
+        List<UUID> raw = (entry.targetSkillIds() != null && !entry.targetSkillIds().isEmpty())
+                ? entry.targetSkillIds()
+                : (evalQ == null ? List.of() : evalQ.skillIds());
+        if (raw == null || raw.size() <= 1) {
+            return raw == null ? List.of() : raw;
         }
-        return evalQ == null ? List.of() : evalQ.skillIds();
+        List<UUID> unique = new ArrayList<>(raw.size());
+        Set<UUID> seen = new HashSet<>(raw.size());
+        for (int i = 0; i < raw.size(); i++) {
+            UUID id = raw.get(i);
+            if (id != null && seen.add(id)) {
+                unique.add(id);
+            }
+        }
+        return unique;
     }
 
     private static Map<UUID, EvaluatorSkill> indexSkills(List<EvaluatorSkill> skills) {

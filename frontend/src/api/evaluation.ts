@@ -84,11 +84,6 @@ export interface AttemptEvaluationDrilldownResponse {
   skillScores: MatrixCell[]
 }
 
-export interface BulkApproveResponse {
-  approvedCount: number
-  skippedFlaggedCount: number
-}
-
 export interface ApproveEvaluationResponse {
   responseEvaluationId: string
   attemptId: string
@@ -221,6 +216,62 @@ export interface CandidateResultsResponse {
   softSkillTraits?: CandidateTraitScore[] | null
 }
 
+export interface TranscriptQuestionBlock {
+  text: string
+  origin: string
+  coreQuestionId: string | null
+  weight: number
+  targetSkills: string[]
+  askedAt: string
+  expiresAt: string | null
+}
+
+export interface TranscriptAnswerBlock {
+  text: string | null
+  submittedAt: string | null
+  durationSec: number
+  timedOut: boolean
+  pasteSuspected: boolean
+  injectionSuspected: boolean
+}
+
+export interface TranscriptEntryMetadata {
+  promptedTerms: string[]
+  unpromptedTerms: string[]
+}
+
+export interface TranscriptExportEntry {
+  entryId: string
+  turn: number
+  question: TranscriptQuestionBlock
+  answer: TranscriptAnswerBlock
+  metadata: TranscriptEntryMetadata
+}
+
+export interface TranscriptExportEvidence {
+  evidenceId: string
+  entryId: string
+  skillId: string
+  skillName: string
+  quote: string | null
+  quoteVerified: boolean
+  suggestedLevel: number | null
+  judgeRuns: number[]
+  rationale: string | null
+}
+
+export interface TranscriptExportResponse {
+  format: string
+  transcriptId: string
+  candidateId: string
+  configId: string
+  configVersion: string
+  attempt: number
+  startedAt: string
+  entries: TranscriptExportEntry[]
+  evidence: TranscriptExportEvidence[]
+}
+
 const RANKING_BASE = '/api/v1/ranking'
 
 export function getSkillsMatrix(configId: string): Promise<MatrixResponse> {
@@ -231,17 +282,6 @@ export function getAttemptEvaluations(attemptId: string): Promise<AttemptEvaluat
   return apiFetch<AttemptEvaluationDrilldownResponse>(
     `${RANKING_BASE}/attempts/${encodeURIComponent(attemptId)}/evaluations`,
   )
-}
-
-export function bulkApproveEvaluations(
-  configId: string,
-  responseEvaluationIds?: string[],
-): Promise<BulkApproveResponse> {
-  return apiFetch<BulkApproveResponse>(`${RANKING_BASE}/evaluations/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ configId, responseEvaluationIds }),
-  })
 }
 
 export function approveEvaluation(responseEvalId: string): Promise<ApproveEvaluationResponse> {
@@ -277,8 +317,8 @@ export function getCohortGaps(configId: string): Promise<CohortGapsResponse> {
   return apiFetch<CohortGapsResponse>(`${RANKING_BASE}/configs/${encodeURIComponent(configId)}/cohort-gaps`)
 }
 
-export function getTranscriptExport(attemptId: string): Promise<Record<string, unknown>> {
-  return apiFetch<Record<string, unknown>>(`${RANKING_BASE}/transcripts/${encodeURIComponent(attemptId)}`)
+export function getTranscriptExport(attemptId: string): Promise<TranscriptExportResponse> {
+  return apiFetch<TranscriptExportResponse>(`${RANKING_BASE}/transcripts/${encodeURIComponent(attemptId)}`)
 }
 
 export function listFormulaPresets(): Promise<FormulaPresetInfo[]> {

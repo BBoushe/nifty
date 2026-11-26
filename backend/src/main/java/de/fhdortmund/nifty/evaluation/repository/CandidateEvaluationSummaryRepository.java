@@ -1,15 +1,22 @@
 package de.fhdortmund.nifty.evaluation.repository;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface CandidateEvaluationSummaryRepository extends JpaRepository<CandidateEvaluationSummaryEntity, UUID> {
 
     Optional<CandidateEvaluationSummaryEntity> findByAttemptId(UUID attemptId);
+
+    /** Row lock for release: one writer at a time decides on the unreleased status (Decision 2.10). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM CandidateEvaluationSummaryEntity s WHERE s.attemptId = :attemptId")
+    Optional<CandidateEvaluationSummaryEntity> findByAttemptIdForUpdate(UUID attemptId);
 
     Optional<CandidateEvaluationSummaryEntity> findTopByConfigIdAndInviteIdOrderByAttemptNoDescCreatedAtDesc(
             UUID configId, UUID inviteId);

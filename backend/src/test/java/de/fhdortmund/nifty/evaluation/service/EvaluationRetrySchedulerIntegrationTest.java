@@ -35,7 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Decision 2.24: the real chain on PostgreSQL. A committed attempt is enqueued and evaluated asynchronously,
+ * Decision 2.28: the real chain on PostgreSQL. A committed attempt is enqueued and evaluated asynchronously,
  * and the scheduled retry pass (switched on here with a short delay) finishes a run whose first try failed.
  */
 @SpringBootTest(properties = {

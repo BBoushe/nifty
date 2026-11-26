@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — evaluation-review-hardening
+- **What:** The professor approves, overrides and releases one by one, and bulk approval is gone (Decision 2.30). A second release of an attempt answers `409` with no audit row. An unknown review status falls back to `pending`. The Evidence Drawer shows the full conversation ledger. REQ-SM-03 now applies only where an attempt is not auto-released, which removes its clash with REQ-SM-05. Release locks the summary row (`PESSIMISTIC_WRITE`), so two concurrent releases write one `ATTEMPT_RELEASED` audit row.
+- **Why:** Bulk approval invited rubber-stamping in human review. PR #33 also edited the main spec without a change, left REQ-SM-03 in conflict with auto-release, and left a release race.
+- **PR/MR:** GitHub #33
+- **Specs:** REQ-SM-03 (modified in `skills-matrix-review`)   **Decisions:** 2.30, applies 2.10, 2.28
+
 ## 2026-11-26 — local-run-fixes
 - **What:** ki:connect model IDs (`GPT-OSS-120B`, `Qwen3.8 27B`, `mistralai-mistral-small-4`) instead of display names in config and docs; `docker-compose.yml` passes `NIFTY_FRONTEND_BASE_URL` (default `http://localhost:3000`); the route guard sends a signed-in user of the other role to their start page (REQ-NAV-09); the `tests-only` agent guard accepts worktree paths.
 - **Why:** The first manual run found every evaluation failing with `404 model does not exist`, invite links on port 5173, and reloads that looked like logouts because one browser held one session for both roles.
