@@ -28,8 +28,8 @@
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev`
-- [ ] `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all --strict`, `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`
+- [x] `git fetch origin && git merge origin/dev` (dev unchanged since the branch point e54f67a)
+- [x] `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all --strict`, `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs`
 - [ ] Archive, `docs/feature_history.md` entry, push, PR/MR, review, human merge approval, `forge.mjs sync dev`
 
 ## Handoff Log
@@ -48,8 +48,8 @@
 - Decisions: none (design deviation: `beforeEnter` guard instead of a redirect function, because vue-router 4 does not await redirect functions)
 - Open Questions: none
 
-### US-NAV-03 (feat(frontend): link studio, ranking, teams and results pages)
-- Commits: see `git log` (feat(frontend): link studio, ranking, teams and results pages)
+### US-NAV-03 (1d46dd7 feat(frontend): link studio, ranking, teams and results pages)
+- Commits: 1d46dd7 feat(frontend): link studio, ranking, teams and results pages
 - Verification: RED: `npm run test -- src/views/studio src/views/ranking src/views/assessment` → FAIL (3 failed: no open-ranking, build-teams, empty-state or results link); GREEN: `npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (111 run)
 - Contracts/Migrations added: none
 - Decisions: none (chat results link reads `configId` from the auth store; chat test now mounts pinia and router)
