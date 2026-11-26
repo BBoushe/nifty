@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { after, describe, it } from 'node:test';
 
 import { evaluateAgentAction, isAllowedTestPath } from './guard-agent.mjs';
 import { evaluateBashCommand, evaluatePreCommit } from './guard-bash.mjs';
@@ -569,5 +569,45 @@ describe('archive gate', () => {
 
   it('repo invariant: no completed change is left unarchived', () => {
     assert.deepEqual(findCompletedUnarchivedChanges(getRepoRoot()), []);
+  });
+});
+
+describe('guard-agent.mjs worktrees', () => {
+  // Hooks run with the main checkout as cwd; agents write into ../nifty-<change> worktrees.
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-agent-wt-'));
+  const main = path.join(base, 'nifty');
+  const worktree = path.join(base, 'nifty-change');
+  const foreign = path.join(base, 'other-repo');
+  const fake = path.join(base, 'nifty-fake');
+  fs.mkdirSync(path.join(main, '.git', 'worktrees', 'nifty-change'), { recursive: true });
+  fs.mkdirSync(worktree, { recursive: true });
+  fs.writeFileSync(path.join(worktree, '.git'), `gitdir: ${path.join(main, '.git', 'worktrees', 'nifty-change')}\n`);
+  fs.mkdirSync(path.join(foreign, '.git'), { recursive: true });
+  fs.mkdirSync(fake, { recursive: true });
+  fs.writeFileSync(path.join(fake, '.git'), `gitdir: ${path.join(foreign, '.git', 'worktrees', 'x')}\n`);
+  after(() => fs.rmSync(base, { recursive: true, force: true }));
+
+  it('allows test paths inside a worktree of the main checkout', () => {
+    assert.equal(isAllowedTestPath(path.join(worktree, 'backend/src/test/java/AppTest.java'), main), true);
+    assert.equal(isAllowedTestPath(path.join(worktree, 'frontend/src/views/X.test.ts'), main), true);
+    assert.equal(
+      evaluateAgentAction(
+        { tool_name: 'Write', tool_input: { file_path: path.join(worktree, 'backend/src/test/java/AppTest.java') } },
+        'tests-only',
+        { repoRoot: main }
+      ).blocked,
+      false
+    );
+  });
+
+  it('still blocks production paths, env files and traversal inside a worktree', () => {
+    assert.equal(isAllowedTestPath(path.join(worktree, 'backend/src/main/java/App.java'), main), false);
+    assert.equal(isAllowedTestPath(path.join(worktree, '.env'), main), false);
+    assert.equal(isAllowedTestPath(path.join(worktree, 'backend/src/test/../../main/App.java'), main), false);
+  });
+
+  it('blocks repositories that are not worktrees of the main checkout', () => {
+    assert.equal(isAllowedTestPath(path.join(foreign, 'backend/src/test/java/AppTest.java'), main), false);
+    assert.equal(isAllowedTestPath(path.join(fake, 'backend/src/test/java/AppTest.java'), main), false);
   });
 });

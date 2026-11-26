@@ -9,7 +9,7 @@ Use this skill before committing or reviewing any change under `backend/`.
 
 ## Team Settings (Update via First-Run Bootstrap once resolved)
 
-- **LLM Evaluator Provider & EU Region:** **ki:connect NRW / FH AI** (`https://chat.kiconnect.nrw/api/v1`, hosted in Aachen / NRW, free for students; models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B`; key via `KICONNECT_API_KEY`; must still boot cleanly with blank/placeholder key). See `docs/decisions/index.md` Decision 1.6.
+- **LLM Evaluator Provider & EU Region:** **ki:connect NRW / FH AI** (`https://chat.kiconnect.nrw/api/v1`, hosted in Aachen / NRW, free for students; model IDs: `GPT-OSS-120B`, `Qwen3.8 27B`, `mistralai-mistral-small-4`; key via `KICONNECT_API_KEY`; must still boot cleanly with blank/placeholder key). See `docs/decisions/index.md` Decision 1.6.
 - **Interviewer LLM Provider:** ki:connect NRW, streamed through Spring AI `ChatClient` (Decision 1.13)
 - **Java Version:** Java 21 (`backend/pom.xml`)
 

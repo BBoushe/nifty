@@ -83,9 +83,13 @@ For the **LLM evaluator** (evidence extraction & constrained judging only), we c
 2. Configure your personal AI Connect (`ki:connect` / FH AI) API key in `.env` under `KICONNECT_API_KEY=`.
 3. Endpoint: `https://chat.kiconnect.nrw/api/v1` (`AI_EVALUATOR_BASE_URL`).
 4. Set `AI_EVALUATOR_MODEL` to one of the 3 available evaluator models:
-   - `OpenAI GPT OSS 120B` *(default)*
-   - `Qwen 3.8 27B`
-   - `Mistral Small 4 119B`
+   - `GPT-OSS-120B` *(default)*
+   - `Qwen3.8 27B`
+   - `mistralai-mistral-small-4`
+
+   Use the model **ID** from `GET https://chat.kiconnect.nrw/api/v1/models`, not the display name. A display name such as `OpenAI GPT OSS 120B` fails with `404 The model ... does not exist`.
+5. Invite links use `NIFTY_FRONTEND_BASE_URL`: `http://localhost:3000` for Docker (the default), `http://localhost:5173` for Vite dev.
+6. One browser holds one session. To try the candidate side while signed in as a professor, open the invite link in a private window or another browser.
 
 ### 3. Run Backend & Frontend Locally (Fast Inner Loop)
 

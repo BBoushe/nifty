@@ -28,7 +28,7 @@ spring.ai.openai:
   api-key: ${KICONNECT_API_KEY}
   base-url: https://chat.kiconnect.nrw/api/v1
   chat:
-    model: OpenAI GPT OSS 120B
+    model: GPT-OSS-120B
     temperature: 0.0
 ```
 
@@ -129,8 +129,8 @@ ChatClient client = ChatClient.create(model);
 ## ki:connect NRW
 - Base URL: `https://chat.kiconnect.nrw/api/v1`. Env var: `AI_EVALUATOR_BASE_URL`. [7]
 - API key env var: `KICONNECT_API_KEY`. The app starts with the placeholder `not-configured` when it is unset. [7]
-- Model env var: `AI_EVALUATOR_MODEL`. Default: `OpenAI GPT OSS 120B`. [7]
-- Allowed models: `OpenAI GPT OSS 120B`, `Qwen 3.8 27B`, `Mistral Small 4 119B`. [7]
+- Model env var: `AI_EVALUATOR_MODEL`. Default: `GPT-OSS-120B`. [7]
+- Allowed models: `GPT-OSS-120B`, `Qwen3.8 27B`, `mistralai-mistral-small-4`. [7]
 - The provider is an EU host in Aachen, NRW. Use it only for the LLM evaluator. [7]
 - Decision 1.6: do not build an offline stub gateway. Mock or replay Spring AI `ChatClient` in tests. [7]
 - LLMs never compute scores, totals, or rankings. See AGENTS.md section 2 and `.agents/rules/spec-driven.md`.
