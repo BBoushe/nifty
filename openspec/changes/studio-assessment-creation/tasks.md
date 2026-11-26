@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** US-ST-03 done
-- **Next action:** US-ST-04
+- **Current:** US-ST-04 done
+- **Next action:** US-ST-05
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -29,11 +29,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(studio): implement pure configuration validators with SOFT_SKILLS exemption`
 
-- [ ] **US-ST-04: One-shot idempotent creation, `AuditService` (`CONFIG_CREATED`), and `StudioQueryServiceImpl`**
-  - [ ] Write RED tests for `201` create, `200` idempotent replay (single audit row), other-professor key collision (`400`), `400` `FieldValidationException` rollback (zero rows, zero audit), `StudioQueryServiceImpl.ownedBy(configId, professorId)` (true only for the owner; used by `invite-links`, REQ-AA-09), and `StudioQueryServiceImpl` `JOIN FETCH` queries matching all 4 fixtures.
-  - [ ] Add `boolean ownedBy(UUID configId, UUID professorId)` to `StudioQueryService` and its placeholder. Implement `ConfigCreationService` and `StudioQueryServiceImpl` (`@Transactional(readOnly = true)` class default). Delete `StudioQueryServicePlaceholder`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(studio): implement idempotent assessment creation and StudioQueryServiceImpl`
+- [x] **US-ST-04: One-shot idempotent creation, `AuditService` (`CONFIG_CREATED`), and `StudioQueryServiceImpl`**
+  - [x] Write RED tests for `201` create, `200` idempotent replay (single audit row), other-professor key collision (`400`), `400` `FieldValidationException` rollback (zero rows, zero audit), `StudioQueryServiceImpl.ownedBy(configId, professorId)` (true only for the owner; used by `invite-links`, REQ-AA-09), and `StudioQueryServiceImpl` `JOIN FETCH` queries matching all 4 fixtures.
+  - [x] Add `boolean ownedBy(UUID configId, UUID professorId)` to `StudioQueryService` and its placeholder. Implement `ConfigCreationService` and `StudioQueryServiceImpl` (`@Transactional(readOnly = true)` class default). Delete `StudioQueryServicePlaceholder`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(studio): implement idempotent assessment creation and StudioQueryServiceImpl`
 
 - [ ] **US-ST-05: Professor read endpoints, GDPR `DELETE`, and `StudioConfigController`**
   - [ ] Write RED `@WebMvcTest` tests for `POST /api/v1/ranking/studio/configs` (`201`/`200`/`400`/`403`), `GET` list & detail (professor scoping, `404` for other professor), `PUT`/`PATCH` → `405`, and `DELETE` (`204`, emits `AssessmentDeletedEvent`, writes `CONFIG_DELETED` via `AuditService`).
@@ -77,4 +77,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=ConfigValidatorTest` → FAIL (compile: validator & input records missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (42 run, 0 failed)
 - Contracts/Migrations added: `CreateAssessmentRequest`, `SettingsInput`, `SkillInput`, `QuestionInput`, `ConfigValidator`, `SettingsRules`, `SkillRules`, `QuestionRules` (zero Streams)
 - Decisions: applies 1.19, 2.22, 2.23
+- Open Questions: none
+
+### US-ST-04 (REQ-IS-01, REQ-IS-09, REQ-IS-12)
+- Commits: `feat(studio): implement idempotent assessment creation and StudioQueryServiceImpl`
+- Verification: RED: `./mvnw -B test -Dtest=ConfigCreationAndQueryIntegrationTest` → FAIL (compile: `ConfigCreationService`, `CreatedAssessment`, `ownedBy` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (46 run, 0 failed, 1 skipped by design: `StudioQueryServicePlaceholder` deleted)
+- Contracts/Migrations added: `StudioQueryService.ownedBy(configId, professorId)`, `ConfigCreationService`, `CreatedAssessment`, `StudioQueryServiceImpl` (`StudioQueryServicePlaceholder` deleted)
+- Decisions: applies 1.12, 1.19, 2.21
 - Open Questions: none
