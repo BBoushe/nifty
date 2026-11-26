@@ -86,7 +86,7 @@ The start and answer endpoints send `text/event-stream` with `X-Accel-Buffering:
 | Event | `data` | Meaning |
 |---|---|---|
 | `delta` | `{ text }` | One part of the interviewer reply. Append the parts in order. |
-| `question` | `{ entryId, origin, expiresAt, questionsRemaining }` | Last event: the reply is complete, and the question is open until `expiresAt`. `origin` is `core` or `follow_up`. |
+| `question` | `{ attemptId, entryId, origin, expiresAt, questionsRemaining }` | Last event: the reply is complete, and the question is open until `expiresAt`. `origin` is `core` or `follow_up`. After a streamed start, `attemptId` is the only source of the attempt ID. |
 | `done` | `{ status }` | Last event: the interview ended. `status` is `BFI10` (show the form) or `COMPLETED`. |
 
 If the interviewer LLM fails or sends no text, the stream sends the configured question text as one `delta`.

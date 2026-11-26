@@ -120,6 +120,7 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         assertThat(events.get(1)).containsExactly("delta", new Delta("What is ACID?"));
         Question question = (Question) events.get(2)[1];
         assertThat(events.get(2)[0]).isEqualTo("question");
+        assertThat(question.attemptId()).isEqualTo(attemptId); // the browser learns its attempt from this event
         assertThat(question.origin()).isEqualTo(EntryOrigin.CORE);
         assertThat(question.questionsRemaining()).isEqualTo(1);
         assertThat(question.expiresAt()).isBetween(Instant.now().plusSeconds(170), Instant.now().plusSeconds(181));

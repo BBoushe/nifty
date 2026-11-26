@@ -65,7 +65,7 @@ class AssessmentSessionControllerTest {
         UUID entryId = UUID.randomUUID();
         when(sessions.start()).thenReturn(new SessionReply.Stream(sink -> {
             sink.send("delta", new SessionReply.Delta("Hello.\nQuestion 1?"));
-            sink.send("question", new SessionReply.Question(entryId, EntryOrigin.CORE, EXPIRES, 1));
+            sink.send("question", new SessionReply.Question(ATTEMPT, entryId, EntryOrigin.CORE, EXPIRES, 1));
         }));
 
         dispatch(candidate(post(BASE)))
@@ -73,7 +73,8 @@ class AssessmentSessionControllerTest {
                 .andExpect(header().string("Content-Type", containsString(MediaType.TEXT_EVENT_STREAM_VALUE)))
                 .andExpect(header().string("X-Accel-Buffering", "no"))
                 .andExpect(content().string(containsString("event: delta\ndata: {\"text\":\"Hello.\\nQuestion 1?\"}\n\n")))
-                .andExpect(content().string(containsString("event: question\ndata: {\"entryId\":\"" + entryId
+                .andExpect(content().string(containsString("event: question\ndata: {\"attemptId\":\"" + ATTEMPT
+                        + "\",\"entryId\":\"" + entryId
                         + "\",\"origin\":\"core\",\"expiresAt\":\"2026-11-26T10:03:00Z\",\"questionsRemaining\":1}\n\n")));
     }
 

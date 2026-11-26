@@ -21,8 +21,11 @@ public sealed interface SessionReply {
     record Delta(String text) {
     }
 
-    /** SSE {@code question}: the reply is complete and the question is open until {@code expiresAt}. */
-    record Question(UUID entryId, EntryOrigin origin, Instant expiresAt, int questionsRemaining) {
+    /**
+     * SSE {@code question}: the reply is complete and the question is open until {@code expiresAt}. It carries
+     * {@code attemptId}, because after a streamed start the browser has no other way to learn it.
+     */
+    record Question(UUID attemptId, UUID entryId, EntryOrigin origin, Instant expiresAt, int questionsRemaining) {
     }
 
     /** SSE {@code done}: the interview ended; {@code status} is BFI10 or COMPLETED. */

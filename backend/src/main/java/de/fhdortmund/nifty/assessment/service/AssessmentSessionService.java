@@ -98,7 +98,8 @@ public class AssessmentSessionService {
             if (!q.content().equals(streamed)) {
                 sink.send("delta", new Delta(q.content()));
             }
-            sink.send("question", new Question(q.id(), q.origin(), q.expiresAt(), asked.questionsRemaining()));
+            sink.send("question", new Question(asked.attemptId(), q.id(), q.origin(), q.expiresAt(),
+                    asked.questionsRemaining()));
         } else if (outcome instanceof Finished finished) {
             sink.send("done", new Done(finished.status()));
         }

@@ -56,7 +56,7 @@ class AttemptService {
     }
 
     /** A question is stored and open. */
-    record Asked(LedgerEntry question, int questionsRemaining) implements TurnOutcome {
+    record Asked(UUID attemptId, LedgerEntry question, int questionsRemaining) implements TurnOutcome {
     }
 
     record Finished(AttemptStatus status) implements TurnOutcome {
@@ -224,10 +224,10 @@ class AttemptService {
         EntryOrigin origin = step instanceof AskFollowUp ? EntryOrigin.FOLLOW_UP : EntryOrigin.CORE;
         // REQ-AC-07: a follow-up uses the time limits of its core question.
         LedgerEntry question = LedgerEntry.of(entries.save(new ConversationEntryEntity(attempt.getId(),
-                ledger.size() + 1, LedgerEntry.INTERVIEWER, q.coreQuestionId(), origin.literal(), text, q.targetSkillIds(), now,
-                now.plusSeconds(q.maxTimeSec()), false, false, false)));
+                ledger.size() + 1, LedgerEntry.INTERVIEWER, q.coreQuestionId(), origin.literal(), text,
+                q.targetSkillIds(), now, now.plusSeconds(q.maxTimeSec()), false, false, false)));
         ledger.add(question);
-        return new Asked(question, AttemptStateMachine.questionsRemaining(view, ledger));
+        return new Asked(attempt.getId(), question, AttemptStateMachine.questionsRemaining(view, ledger));
     }
 
     private Finished finishInterview(AssessmentAttemptEntity attempt, InterviewerView view, Instant now) {
@@ -249,7 +249,7 @@ class AttemptService {
     private TurnOutcome outcomeOf(AssessmentAttemptEntity attempt, InterviewerView view, List<LedgerEntry> ledger) {
         Optional<LedgerEntry> open = AttemptStateMachine.openQuestion(ledger);
         if (open.isPresent() && AttemptStatus.IN_PROGRESS.name().equals(attempt.getStatus())) {
-            return new Asked(open.get(), AttemptStateMachine.questionsRemaining(view, ledger));
+            return new Asked(attempt.getId(), open.get(), AttemptStateMachine.questionsRemaining(view, ledger));
         }
         return new Finished(AttemptStatus.valueOf(attempt.getStatus()));
     }
