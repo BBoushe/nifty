@@ -3,19 +3,19 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** Ready to start in parallel against mocked `StudioQueryService`, `ContextCreationService`, `AssessmentQueryService`, and `AuditService`
-- **Next action:** Start US-EV-01
+- **Current:** US-EV-01 complete (V7 UUID schema, private repositories, EvaluationCleanupListener verified on PostgreSQL Testcontainers)
+- **Next action:** Start US-EV-02 (pure zero-Stream deterministic core)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
 
 ## Tasks
 
-- [ ] **US-EV-01: Flyway `V7__evaluation.sql` (`UUID` schema), private repositories, and `EvaluationCleanupListener`**
-  - [ ] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) proving `V7` applies cleanly, `chk_na_score_null` blocks `status = 'N/A'` with non-null score, multiple attempts per candidate coexist (`UNIQUE(attempt_id)`), and `AssessmentDeletedEvent` purges all 5 tables for `configId`.
-  - [ ] Implement `V7__evaluation.sql`, entities/repositories in `evaluation/repository/`, and `EvaluationCleanupListener`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(evaluation): add V7 UUID evaluation schema, repositories, and GDPR cleanup`
+- [x] **US-EV-01: Flyway `V7__evaluation.sql` (`UUID` schema), private repositories, and `EvaluationCleanupListener`**
+  - [x] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) proving `V7` applies cleanly, `chk_na_score_null` blocks `status = 'N/A'` with non-null score, multiple attempts per candidate coexist (`UNIQUE(attempt_id)`), and `AssessmentDeletedEvent` purges all 5 tables for `configId`.
+  - [x] Implement `V7__evaluation.sql`, entities/repositories in `evaluation/repository/`, and `EvaluationCleanupListener`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(evaluation): add V7 UUID evaluation schema, repositories, and GDPR cleanup`
 
 - [ ] **US-EV-02: Pure deterministic core (`VerbatimQuoteVerifier`, `ConfidenceCalculator`, `SkillFormulaCalculator`, `ReleaseGateEvaluator`)**
   - [ ] Write RED pure-JVM unit tests (zero Streams): verbatim quote check (`>= 8` chars, hallucinated discarded), confidence calculation + judge disagreement, question-weighted Formula B (`1.0` follow-up inheritance, `D2` `0.50` cap, explicit `N/A`, unweighted `fit`, question-weighted `coverage`), `pasteSuspected || injectionSuspected` → `flagged`, `N/A` does not fail question threshold, and threshold-gated `auto_released` vs professor review queue.
@@ -62,3 +62,10 @@
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log
+
+### US-EV-01
+- Commits: `feat(evaluation): add V7 UUID evaluation schema, repositories, and GDPR cleanup`
+- Verification: `RED: ./mvnw -B test -Dtest=EvaluationSchemaAndCleanupTest → FAIL (cannot find symbol EvaluationCleanupListener/evaluation repositories; later caught SQL 3-valued logic bug in chk_na_score_null); GREEN: cd backend && ./mvnw -B test → exit 0 (192 tests)`
+- Contracts/Migrations added: `V7__evaluation.sql`, `evaluation/repository/{FormulaVersion,EvaluationRun,CandidateEvaluationSummary,ResponseEvaluation,SkillScore}{Entity,Repository}.java`, `EvaluationCleanupListener.java`
+- Decisions: 1.10, 1.19, 2.13, 4.4
+- Open Questions: none
