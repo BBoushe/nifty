@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-03 complete (TwoRunResponseJudge, AsyncEvaluationRunner, EvaluationEventListener AFTER_COMMIT, EvaluationAsyncConfig)
-- **Next action:** Start US-EV-04 (review queue, audited overrides, SQL cohort gaps, EvaluationQueryServiceImpl)
+- **Current:** US-EV-04 complete (EvaluationReviewService, CohortGapQueryService SQL-only, EvaluationQueryServiceImpl replacing placeholder)
+- **Next action:** Start US-EV-04b (FormulaPresetService, formula presets/versions/preview endpoints)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -29,11 +29,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(evaluation): add async two-run judge and AFTER_COMMIT event runner`
 
-- [ ] **US-EV-04: Review queue, `AuditService` overrides, SQL Cohort Gaps, and `EvaluationQueryService`**
-  - [ ] Write RED tests: bulk-approve skips `flagged`, override requires non-blank `reason` + calls `AuditService.record(...)` + preserves `ai_level` + recalculates Formula B with zero LLM calls, explicit release requires zero remaining `flagged` items, latest-attempt-only matrix/cohort SQL, and `EvaluationQueryService.getCandidateProfilesForConfig` returns explicit `N/A`, returns released attempts only, and lists unreleased candidates in `pendingInviteIds` (REQ-EV-01).
-  - [ ] Implement `EvaluationReviewService`, `CohortGapQueryService`, and `EvaluationQueryServiceImpl`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(evaluation): implement review queue, audited overrides, cohort gaps, and query API`
+- [x] **US-EV-04: Review queue, `AuditService` overrides, SQL Cohort Gaps, and `EvaluationQueryService`**
+  - [x] Write RED tests: bulk-approve skips `flagged`, override requires non-blank `reason` + calls `AuditService.record(...)` + preserves `ai_level` + recalculates Formula B with zero LLM calls, explicit release requires zero remaining `flagged` items, latest-attempt-only matrix/cohort SQL, and `EvaluationQueryService.getCandidateProfilesForConfig` returns explicit `N/A`, returns released attempts only, and lists unreleased candidates in `pendingInviteIds` (REQ-EV-01).
+  - [x] Implement `EvaluationReviewService`, `CohortGapQueryService`, and `EvaluationQueryServiceImpl`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(evaluation): implement review queue, audited overrides, cohort gaps, and query API`
 
 - [ ] **US-EV-04b: Formula presets, formula versions and what-if preview (REQ-FE-02, REQ-FE-05)**
   - [ ] Write RED tests: preset list holds `WEIGHTED_MEAN`; selecting a preset stores a new immutable `formula_version`, tags recomputed scores with it and makes zero `ChatClient` calls; preview returns scores and stores nothing; an unknown preset or a free-form expression field → `400` ProblemDetail with no version stored.
@@ -78,8 +78,15 @@
 - Open Questions: none
 
 ### US-EV-03
-- Commits: `feat(evaluation): add async two-run judge and AFTER_COMMIT event runner`
+- Commits: `721f64a feat(evaluation): add async two-run judge and AFTER_COMMIT event runner`
 - Verification: `RED: ./mvnw -B test -Dtest=TwoRunResponseJudgeTest,AsyncEvaluationRunnerTest,EvaluationEventListenerRollbackTest → FAIL (cannot find symbol TwoRunResponseJudge/AsyncEvaluationRunner); GREEN: ./mvnw -B test -Dtest=TwoRunResponseJudgeTest,AsyncEvaluationRunnerTest,EvaluationEventListenerRollbackTest → exit 0 (7/7 tests; 216/216 total)`
 - Contracts/Migrations added: `EvaluationAsyncConfig.java`, `TwoRunResponseJudge.java`, `AsyncEvaluationRunner.java`, `EvaluationEventListener.java`
 - Decisions: 1.12, 1.18, 2.10, 2.20, 2.24, 2.25
+- Open Questions: none
+
+### US-EV-04
+- Commits: `feat(evaluation): implement review queue, audited overrides, cohort gaps, and query API`
+- Verification: `RED: ./mvnw -B test -Dtest=EvaluationReviewServiceTest,CohortGapAndQueryIntegrationTest → FAIL (cannot find symbol EvaluationReviewService/CohortGapQueryService/EvaluationDtos); GREEN: ./mvnw -B test -Dtest=EvaluationReviewServiceTest,CohortGapAndQueryIntegrationTest,ContractStubsTest,ArchitectureTest → exit 0 (21/21 tests)`
+- Contracts/Migrations added: `EvaluationDtos.java`, `FormulaRecalculationHelper.java`, `EvaluationReviewService.java`, `CohortGapQueryService.java`, `EvaluationQueryServiceImpl.java` (removed `EvaluationQueryServicePlaceholder.java`)
+- Decisions: 1.18, 2.10, 2.13, 2.15, 2.22, 2.24
 - Open Questions: none
