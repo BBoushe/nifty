@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-04 done, committed
-- **Next action:** US-TB-05 (TeamBuilderController and docs/api.md)
+- **Current:** US-TB-05 done, committed
+- **Next action:** US-TB-06 (Team Builder Vue UI)
 - **Uncommitted changes:** none (after the task commit)
 - **PR / MR:** — (orchestrator opens it)
 - **Open review findings:** —
@@ -35,11 +35,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(teams): implement team generation, live recalculation, and audited publish`
 
-- [ ] **US-TB-05: `TeamBuilderController` (`PROFESSOR` only) and `docs/api.md` sync**
-  - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `POST .../teams/generate` (`201`), `POST .../recalculate` (`200`), `POST .../publish` (`200`), `GET .../teams` (`200` with professor-only traits), invalid request → `400` RFC 9457 `ProblemDetail`, `CANDIDATE` → `403`.
-  - [ ] Implement `TeamBuilderController` and sync `docs/api.md`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
-  - [ ] Commit: `feat(teams): add professor team builder endpoints and update api docs`
+- [x] **US-TB-05: `TeamBuilderController` (`PROFESSOR` only) and `docs/api.md` sync**
+  - [x] Write RED `@WebMvcTest` + `@MockitoBean` tests: `POST .../teams/generate` (`201`), `POST .../recalculate` (`200`), `POST .../publish` (`200`), `GET .../teams` (`200` with professor-only traits), invalid request → `400` RFC 9457 `ProblemDetail`, `CANDIDATE` → `403`.
+  - [x] Implement `TeamBuilderController` and sync `docs/api.md`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
+  - [x] Commit: `feat(teams): add professor team builder endpoints and update api docs`
 
 - [ ] **US-TB-06: Vue 3.5 + PrimeVue + ECharts Team Builder UI (`frontend/src/views/teams/`)**
   - [ ] Write RED Vitest tests: team cards show per-skill averages, `N/A` counts, balance/diversity diagnostics, and professor-only BFI-10 trait summaries; dragging a member calls `/recalculate` and updates cards live; Publish button calls `/publish` and locks UI.
@@ -79,8 +79,15 @@
 - Open Questions: none
 
 ### US-TB-04 TeamBuilderService
-- Commits: <sha-us-tb-04> feat(teams): implement team generation, live recalculation, and audited publish
+- Commits: 2392de2 feat(teams): implement team generation, live recalculation, and audited publish
 - Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamBuilderServiceTest` → FAIL (compile error: service absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (223 run, 12 in the new class)
 - Contracts/Migrations added: `TeamBuilderService` (`generate`, `recalculate`, `publish`, `list`), `GenerateTeamsRequest`, `RecalculateTeamsRequest`, `TeamProposalResponse` in `teams/service/`; migrations none. Deviation: DTO records live in `service/` (studio pattern), `design.md` updated. Extra optional request fields `combinedHardWeight`, `traitWeights` (REQ-TB-08 names custom weights). `candidateRef` comes from `InviteService.listInvites`.
 - Decisions: 1.20, 2.27 (400 without BFI-10, no fallback), 4.3 (traits read, never re-inverted), 2.10/2.13 (released only)
+- Open Questions: none
+
+### US-TB-05 TeamBuilderController and docs/api.md
+- Commits: <sha-us-tb-05> feat(teams): add professor team builder endpoints and update api docs
+- Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamBuilderControllerTest` → FAIL (compile error: controller absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (229 run, 6 in the new class, ArchitectureTest included)
+- Contracts/Migrations added: `teams/web/TeamBuilderController` (4 PROFESSOR-only endpoints); `docs/api.md` §4 rows added and §5 Team Builder block marked implemented; migrations none
+- Decisions: 1.20, 2.23, 2.27, 4.3
 - Open Questions: none
