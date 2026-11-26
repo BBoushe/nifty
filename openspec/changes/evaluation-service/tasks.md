@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-01 complete (V7 UUID schema, private repositories, EvaluationCleanupListener verified on PostgreSQL Testcontainers)
-- **Next action:** Start US-EV-02 (pure zero-Stream deterministic core)
+- **Current:** US-EV-02 complete (zero-Stream VerbatimQuoteVerifier, ConfidenceCalculator, SkillFormulaCalculator, ReleaseGateEvaluator)
+- **Next action:** Start US-EV-03 (TwoRunResponseJudge, AsyncEvaluationRunner, AFTER_COMMIT EvaluationEventListener)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -17,11 +17,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(evaluation): add V7 UUID evaluation schema, repositories, and GDPR cleanup`
 
-- [ ] **US-EV-02: Pure deterministic core (`VerbatimQuoteVerifier`, `ConfidenceCalculator`, `SkillFormulaCalculator`, `ReleaseGateEvaluator`)**
-  - [ ] Write RED pure-JVM unit tests (zero Streams): verbatim quote check (`>= 8` chars, hallucinated discarded), confidence calculation + judge disagreement, question-weighted Formula B (`1.0` follow-up inheritance, `D2` `0.50` cap, explicit `N/A`, unweighted `fit`, question-weighted `coverage`), `pasteSuspected || injectionSuspected` → `flagged`, `N/A` does not fail question threshold, and threshold-gated `auto_released` vs professor review queue.
-  - [ ] Implement zero-Stream calculators.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(evaluation): implement deterministic verifier, confidence, Formula B, and release gate`
+- [x] **US-EV-02: Pure deterministic core (`VerbatimQuoteVerifier`, `ConfidenceCalculator`, `SkillFormulaCalculator`, `ReleaseGateEvaluator`)**
+  - [x] Write RED pure-JVM unit tests (zero Streams): verbatim quote check (`>= 8` chars, hallucinated discarded), confidence calculation + judge disagreement, question-weighted Formula B (`1.0` follow-up inheritance, `D2` `0.50` cap, explicit `N/A`, unweighted `fit`, question-weighted `coverage`), `pasteSuspected || injectionSuspected` → `flagged`, `N/A` does not fail question threshold, and threshold-gated `auto_released` vs professor review queue.
+  - [x] Implement zero-Stream calculators.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(evaluation): implement deterministic verifier, confidence, Formula B, and release gate`
 
 - [ ] **US-EV-03: `TwoRunResponseJudge`, `AsyncEvaluationRunner`, and `AFTER_COMMIT` `AttemptCompletedEvent` listener**
   - [ ] Write RED unit tests with mocked `ChatClient`, `ContextCreationService`, `StudioQueryService`, and `AssessmentQueryService`: 2 fresh-context calls per `(entryId, skillId)`, non-blank `timedOut = true` evaluated (Decision 2.20), blank entry skipped, duplicate event idempotency, failure isolation (no partial `skill_score` rows), rollback does not trigger run.
@@ -64,8 +64,15 @@
 ## Handoff Log
 
 ### US-EV-01
-- Commits: `feat(evaluation): add V7 UUID evaluation schema, repositories, and GDPR cleanup`
+- Commits: `f70f563 feat(evaluation): add V7 UUID evaluation schema, repositories, and GDPR cleanup`
 - Verification: `RED: ./mvnw -B test -Dtest=EvaluationSchemaAndCleanupTest → FAIL (cannot find symbol EvaluationCleanupListener/evaluation repositories; later caught SQL 3-valued logic bug in chk_na_score_null); GREEN: cd backend && ./mvnw -B test → exit 0 (192 tests)`
 - Contracts/Migrations added: `V7__evaluation.sql`, `evaluation/repository/{FormulaVersion,EvaluationRun,CandidateEvaluationSummary,ResponseEvaluation,SkillScore}{Entity,Repository}.java`, `EvaluationCleanupListener.java`
 - Decisions: 1.10, 1.19, 2.13, 4.4
+- Open Questions: none
+
+### US-EV-02
+- Commits: `feat(evaluation): implement deterministic verifier, confidence, Formula B, and release gate`
+- Verification: `RED: ./mvnw -B test -Dtest=VerbatimQuoteVerifierTest,ConfidenceCalculatorTest,SkillFormulaCalculatorTest,ReleaseGateEvaluatorTest → FAIL (cannot find symbol VerbatimQuoteVerifier/ConfidenceCalculator/SkillFormulaCalculator/ReleaseGateEvaluator); GREEN: cd backend && ./mvnw -B test → exit 0 (209 tests)`
+- Contracts/Migrations added: `VerbatimQuoteVerifier.java`, `ConfidenceCalculator.java`, `SkillFormulaCalculator.java`, `ReleaseGateEvaluator.java`
+- Decisions: 2.2, 2.4, 2.10, 2.11, 2.12, 2.20, 2.22, 2.24
 - Open Questions: none
