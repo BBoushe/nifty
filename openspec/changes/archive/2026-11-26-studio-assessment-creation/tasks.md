@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** US-ST-06 done
-- **Next action:** Delivery (merge origin/dev, validate, archive, ask human before push/PR)
+- **Current:** all tasks done; archived; waiting for the human to approve push and PR/MR
+- **Next action:** after approval, `node scripts/forge.mjs push`, then `node scripts/forge.mjs pr ... --base dev`; fill the PR/MR numbers into `docs/feature_history.md`
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -49,9 +49,9 @@
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
-- [ ] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
-- [ ] Archive: `OPENSPEC_TELEMETRY=0 openspec archive studio-assessment-creation -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive studio-assessment-creation`.
+- [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
+- [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
+- [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive studio-assessment-creation -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive studio-assessment-creation`.
 - [ ] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
