@@ -33,7 +33,7 @@ function createTestPlugins() {
       { path: '/ranking/studio', component: AssessmentListView },
       { path: '/ranking/studio/new', component: { template: '<div>new</div>' } },
       { path: '/ranking/studio/:configId', component: AssessmentDetailView },
-      { path: '/ranking/studio/:configId/invites', component: { template: '<div>invites</div>' } },
+      { path: '/ranking/studio/:configId/invites', name: 'studio-invites', component: { template: '<div>invites</div>' } },
       { path: '/ranking/configs/:configId', component: { template: '<div>ranking</div>' } },
       { path: '/ranking/teams/:configId', component: { template: '<div>teams</div>' } },
     ],
@@ -378,5 +378,42 @@ describe('Studio Views (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
     })
     await flushPromises()
     expect(errWrapper.text()).toContain('DB down')
+  })
+
+  it('AssessmentDetailView scrolls #invites into view on the studio-invites route only (REQ-NAV-12)', async () => {
+    const id = '77777777-7777-7777-7777-777777777777'
+    const detail = {
+      configId: id, title: 'Scroll', vision: 'V', minCoverage: 0.5, maxAttempts: 1, inventedQuestions: false,
+      bfi10Enabled: false, teamSize: 4, groupingMode: 'HARD_SKILLS', softPreset: 'ENGINEERING_DEFAULT',
+      combinedHardWeight: 0.5, alpha: 0.5, constraintWeights: {}, status: 'PUBLISHED', version: 1,
+      createdAt: '2026-11-26T08:00:00Z', skills: [], questions: [],
+    }
+    // jsdom has no scrollIntoView.
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { value: scrollIntoView, configurable: true })
+    try {
+      for (const [path, expected] of [[`/ranking/studio/${id}`, 0], [`/ranking/studio/${id}/invites`, 1]] as const) {
+        scrollIntoView.mockClear()
+        const { pinia, queryClient, router } = createTestPlugins()
+        await router.push(path)
+        await router.isReady()
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockImplementation((input: RequestInfo | URL) =>
+            Promise.resolve(jsonResponse(String(input).endsWith('/invites') ? [] : detail)),
+          ),
+        )
+
+        mount(AssessmentDetailView, {
+          global: { plugins: [pinia, router, [VueQueryPlugin, { queryClient }], PrimeVue] },
+        })
+        await flushPromises()
+
+        expect(scrollIntoView).toHaveBeenCalledTimes(expected)
+        if (expected) expect((scrollIntoView.mock.contexts[0] as HTMLElement).id).toBe('invites')
+      }
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+    }
   })
 })

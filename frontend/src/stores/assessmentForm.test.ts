@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASSESSMENT_FORM_STORAGE_KEY, useAssessmentFormStore } from './assessmentForm'
 
 describe('useAssessmentFormStore (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => {
@@ -113,5 +113,32 @@ describe('useAssessmentFormStore (US-ST-06, Decisions 2.21, 2.22, 2.23)', () => 
     ])
     const sum = Object.values(store.settings.constraintWeights).reduce((acc, v) => acc + v, 0)
     expect(sum).toBeCloseTo(1.0, 5)
+  })
+
+  it('keeps the form working when localStorage refuses to write (quota or privacy mode)', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    })
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('Access denied.', 'SecurityError')
+    })
+    try {
+      const store = useAssessmentFormStore()
+
+      expect(() => store.addSkill('Java')).not.toThrow()
+      expect(() => (store.settings.title = 'Still editable')).not.toThrow()
+      expect(() => store.ensureIdempotencyKey()).not.toThrow()
+      expect(store.skills.map((s) => s.name)).toEqual(['Java'])
+      expect(store.settings.title).toBe('Still editable')
+      expect(store.idempotencyKey).toBeTruthy()
+      expect(setItem).toHaveBeenCalled()
+
+      expect(() => store.reset()).not.toThrow()
+      expect(removeItem).toHaveBeenCalled()
+      expect(store.skills).toEqual([])
+    } finally {
+      setItem.mockRestore()
+      removeItem.mockRestore()
+    }
   })
 })

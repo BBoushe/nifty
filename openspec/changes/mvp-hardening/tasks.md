@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 5 done (committed, not pushed).
-- **Next action:** Task 6 (shell errors, 404, invites scroll, `schema.d.ts`, safe `localStorage`).
+- **Current:** Tasks 1 to 6 done (Groups A and B complete, committed, not pushed).
+- **Next action:** Group C, Task 7 (tolerant judge parsing).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -45,11 +45,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] Frontend RED: (1) a stored `COMPLETED` attempt with `attemptsLeft = 1` shows "Start new attempt" and clears the `sessionStorage` key on start; (2) `attemptsLeft = 0` shows "No attempts left" and no start button.
   - [x] GREEN. Commit `fix(assessment): let candidates start a retake`.
 
-- [ ] **Task 6: Shell errors, 404 and invites scroll (REQ-NAV-10, REQ-NAV-12, REQ-NAV-13)**
-  - [ ] RED: (1) an unknown path renders `NotFoundView` with the role start link; (2) a network error in `fetchMe` shows "Server not reachable", and Retry calls it again; (3) a `500` from `logout` shows "Sign-out failed. Try again." and does not navigate; (4) the `studio-invites` route scrolls `#invites` into view (mock `scrollIntoView`).
-  - [ ] GREEN per design §2. Delete `frontend/src/api/schema.d.ts` after `grep -rn "schema" frontend/src` shows no import.
-  - [ ] Safe `localStorage`: RED test where `setItem` throws and the form store still updates. GREEN: `try/catch` in `stores/assessmentForm.ts`.
-  - [ ] Commit `fix(frontend): handle server errors, unknown routes and storage failures`.
+- [x] **Task 6: Shell errors, 404 and invites scroll (REQ-NAV-10, REQ-NAV-12, REQ-NAV-13)**
+  - [x] RED: (1) an unknown path renders `NotFoundView` with the role start link; (2) a network error in `fetchMe` shows "Server not reachable", and Retry calls it again; (3) a `500` from `logout` shows "Sign-out failed. Try again." and does not navigate; (4) the `studio-invites` route scrolls `#invites` into view (mock `scrollIntoView`).
+  - [x] GREEN per design §2. Delete `frontend/src/api/schema.d.ts` after `grep -rn "schema" frontend/src` shows no import.
+  - [x] Safe `localStorage`: RED test where `setItem` throws and the form store still updates. GREEN: `try/catch` in `stores/assessmentForm.ts`.
+  - [x] Commit `fix(frontend): handle server errors, unknown routes and storage failures`.
 
 ## Group C — Evaluation backend
 
@@ -177,3 +177,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Contracts/Migrations added: `docs/api.md` (`SessionStateResponse.attemptsLeft`); no migration
 - Decisions: no new ID. Design differed from code: (1) `attemptsLeft = max(0, maxAttempts - attempts of the invite)` is the pure function `AttemptStateMachine.attemptsLeft`; `AttemptService.stateOf` adds one `countByInviteId` query per state read. (2) The `sessionStorage` key is cleared when the candidate clicks "Start new attempt", not on read, so a reload of a finished attempt still shows the thank-you page. (3) The page cannot know `attemptsLeft` in a new tab (no stored attempt, no session endpoint without an attempt ID). The start button stays there; a `409` on start with no open attempt sets `attemptsLeft = 0` and the page shows "No attempts left" with no button. This meets the "No attempts left" scenario after one click, not on page load. A proactive answer needs a new read endpoint; not added. (4) An attempt that ends inside the page (SSE `done` or BFI-10 submit) fetches the session once to get `attemptsLeft`.
 - Open Questions: none (see Decision 3 if the page-load wording of REQ-AC-22 must hold in a new tab)
+
+### Task 6: Shell errors, 404 and invites scroll
+- Commits: (this commit) fix(frontend): handle server errors, unknown routes and storage failures
+- Verification: RED: `npx vitest run src/App.test.ts src/views/auth/NotFoundView.test.ts src/views/studio/StudioViews.test.ts src/stores/assessmentForm.test.ts` → FAIL (NotFoundView missing; no server-down or sign-out message; no scroll; `setItem` threw); GREEN: `npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (160 tests, 24 files); `grep -rn "schema" frontend/src` (after the delete) → empty
+- Contracts/Migrations added: none (frontend only; `frontend/src/api/schema.d.ts` deleted, no import existed)
+- Decisions: no new ID. Design differed from code: (1) The invites scroll runs from a `watch` on the loaded assessment, not `onMounted`: the `#invites` panel only exists after the query returns, so a mount-time scroll finds nothing. It scrolls through a template ref on `InvitePanel`. (2) `fetchMe` already swallows a `401`, so `App.vue` treats any error it throws as "Server not reachable" (network error or 5xx). (3) The route guard calls `fetchMe` too, so a down server also aborts the first navigation. Retry therefore re-runs the first navigation from the browser URL when the router is still at `START_LOCATION` (covered by a test). (4) `package.json` keeps the `api:generate` script; it recreates `schema.d.ts` on demand and nothing imports the file. (5) `assessmentForm.ts` wraps both `setItem` and `removeItem`, with a `shortcut:` note (no "draft not saved" notice yet).
+- Open Questions: none
