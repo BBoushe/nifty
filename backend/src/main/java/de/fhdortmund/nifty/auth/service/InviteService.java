@@ -2,6 +2,7 @@ package de.fhdortmund.nifty.auth.service;
 
 import de.fhdortmund.nifty.auth.repository.InviteEntity;
 import de.fhdortmund.nifty.auth.repository.InviteRepository;
+import de.fhdortmund.nifty.shared.config.AssessmentDeletedEvent;
 import de.fhdortmund.nifty.shared.exception.DomainException;
 import de.fhdortmund.nifty.shared.exception.FieldErrorDetail;
 import de.fhdortmund.nifty.shared.exception.FieldValidationException;
@@ -12,8 +13,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -84,6 +87,13 @@ public class InviteService {
             invite.revoke();
             inviteRepository.save(invite);
         }
+    }
+
+    /** Decision 4.4: synchronous purge inside the assessment deletion transaction. */
+    @EventListener
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void onAssessmentDeleted(AssessmentDeletedEvent event) {
+        inviteRepository.deleteByConfigId(event.configId());
     }
 
     private UUID requireOwnedConfig(UUID configId) {

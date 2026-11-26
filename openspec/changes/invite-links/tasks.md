@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/invite-links`
 - **Worktree:** `../nifty-invite-links`
-- **Current:** Task 2 done
-- **Next action:** Task 3
+- **Current:** Task 3 done
+- **Next action:** Task 4
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -22,9 +22,9 @@
 - [x] Verify: `cd backend && ./mvnw -B test` → exit 0; commit `feat(auth): candidate sign-in by invite link`
 
 ### Task 3: US-IL-04 Revocation, scope and purge (REQ-AA-05, REQ-AA-08)
-- [ ] RED: revoking ends an open candidate session on the next request (`401`); `AssessmentDeletedEvent` deletes the config's invites in the same transaction; a candidate gets `403` on `/api/v1/ranking/**`.
-- [ ] GREEN: `RevokedInviteFilter`, purge listener.
-- [ ] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; update `docs/api.md`; commit `feat(auth): revocation, candidate scope and invite purge`
+- [x] RED: revoking ends an open candidate session on the next request (`401`); `AssessmentDeletedEvent` deletes the config's invites in the same transaction; a candidate gets `403` on `/api/v1/ranking/**`.
+- [x] GREEN: `RevokedInviteFilter`, purge listener.
+- [x] Verify: `cd backend && ./mvnw -B test` (incl. `ArchitectureTest`) → exit 0; update `docs/api.md`; commit `feat(auth): revocation, candidate scope and invite purge`
 
 ### Task 4: Frontend landing route and studio invite panel
 - [ ] RED: Vitest: `InviteLandingView.test.ts` (success → `/assessment`, `401` → message); invite panel test (CSV of 3 rows posts 3 refs; revoke calls `DELETE`).
@@ -57,4 +57,11 @@
 - Verification: RED: `./mvnw -B test -Dtest=InviteSignInTest` → FAIL (compile: `NiftyPrincipal.candidate(...)` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0 (184 run, 0 failed)
 - Contracts/Migrations added: `POST /api/v1/auth/invite/{token}`, `NiftyPrincipal` candidate fields, `AuthContextServiceImpl.currentCandidate()`, `GET /api/v1/auth/me` candidate fields; capped Hikari test pool size to 3 in `application-test.yml`
 - Decisions: applies 1.17, 1.23
+- Open Questions: none
+
+### Task 3 (US-IL-04, REQ-AA-05, REQ-AA-08)
+- Commits: `feat(auth): revocation, candidate scope and invite purge`
+- Verification: RED: `./mvnw -B test -Dtest=InviteRevocationAndPurgeTest` → FAIL (revoked session returned 200; deleted config left 2 invite rows); GREEN: `cd backend && ./mvnw -B test` → exit 0 (186 run, 0 failed, incl. `ArchitectureTest`)
+- Contracts/Migrations added: `RevokedInviteFilter`, `InviteService.onAssessmentDeleted(AssessmentDeletedEvent)` (`MANDATORY` tx); `docs/api.md` §4/§5 updated
+- Decisions: applies 1.15, 1.23, 4.4
 - Open Questions: none
