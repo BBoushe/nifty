@@ -25,7 +25,7 @@
 > 6. `repository/` never depends on `service/`. Entities store the §3 enum values as `String` columns (the JSON/DB literal). Map them to the enum in the service layer.
 
 > **Shared conventions (all slices):**
-> - **Placeholders:** US-BF-06 ships every §3 interface plus one placeholder `@Service` per interface that throws `UnsupportedOperationException`. `@SpringBootTest` contexts therefore start. Each owner deletes their placeholder when the real implementation lands. Deleted so far: `AuditServicePlaceholder` (`audit-log-service`). `AuditService` writes real rows.
+> - **Placeholders:** US-BF-06 ships every §3 interface plus one placeholder `@Service` per interface that throws `UnsupportedOperationException`. `@SpringBootTest` contexts therefore start. Each owner deletes their placeholder when the real implementation lands. Deleted so far: `AuditServicePlaceholder` (`audit-log-service`), `AssessmentQueryServicePlaceholder` (`assessment-chat`). `AuditService` writes real rows.
 > - **Tests on PostgreSQL:** US-BF-02 moves all Spring tests to Testcontainers through `de.fhdortmund.nifty.PostgresContainerBase`. H2 cannot run JSONB or the triggers. Extend that base class in `@DataJpaTest` and `@SpringBootTest` tests.
 > - **`@WebMvcTest` security:** add `@Import(SecurityConfig.class)` so the `403` tests see the real path rules.
 > - **`AssessmentDeletedEvent`:** listeners are synchronous `@EventListener` methods with `@Transactional(propagation = MANDATORY)`. They run in the deleting transaction, which holds `SET LOCAL nifty.allow_purge = 'on'`. This is the one exception to the AFTER_COMMIT rule. `AttemptCompletedEvent` stays `@TransactionalEventListener(phase = AFTER_COMMIT)`.

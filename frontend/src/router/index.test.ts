@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import AssessmentView from '@/views/assessment/AssessmentView.vue'
+import AssessmentChatView from '@/views/assessment/AssessmentChatView.vue'
 import RankingView from '@/views/ranking/RankingView.vue'
 import router from './index'
 
 describe('router', () => {
   it.each([
     ['/ranking', 'ranking', RankingView],
-    ['/assessment', 'assessment', AssessmentView],
+    ['/assessment', 'assessment', AssessmentChatView],
   ])('keeps %s on the moved view', (path, name, view) => {
     const route = router.resolve(path)
     expect(route.name).toBe(name)

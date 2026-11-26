@@ -91,6 +91,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **2.26** | — | Design | Candidate answers are capped at 4000 characters at the assessment API | Decided | 2026-11-26 | prompter-change | [2-design.md](./2-design.md#226--candidate-answers-are-capped-at-4000-characters-at-the-assessment-api) |
 | **2.27** | — | Design | SOFT_SKILLS and COMBINED grouping require BFI-10 | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#227--soft_skills-and-combined-grouping-require-bfi-10) |
 | **2.28** | — | Design | Durable evaluation queue with bounded retry | Decided | 2026-11-26 | prompter-change | [2-design.md](./2-design.md#228--durable-evaluation-queue-with-bounded-retry) |
+| **2.29** | — | Design | Assessment interview gap-fills: grace, resume, fallbacks, stale recovery, server clock | Decided | 2026-11-26 | team | [2-design.md](./2-design.md#229--assessment-interview-gap-fills-grace-resume-fallbacks-stale-recovery-server-clock) |
 <!-- DECISION_INDEX_END -->
 
 ---

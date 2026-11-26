@@ -92,10 +92,9 @@ function parseSseBlock(block: string): SseEvent | null {
   return data.length ? { event, data: data.join('\n') } : null
 }
 
-/** POST a JSON body and yield each SSE event in order until the stream closes (REQ-FF-03). */
-export async function* postSse(url: string, body?: unknown, init: RequestInit = {}): AsyncGenerator<SseEvent> {
+async function post(url: string, body: unknown, init: RequestInit, accept: string): Promise<Response> {
   const headers = withCsrfHeader('POST', init.headers)
-  headers.set('Accept', 'text/event-stream')
+  headers.set('Accept', accept)
   if (body !== undefined && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   const response = await fetch(url, {
     ...init,
@@ -104,11 +103,35 @@ export async function* postSse(url: string, body?: unknown, init: RequestInit = 
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!response.ok) throw await toApiProblem(response)
-  if (!response.headers.get('Content-Type')?.includes('text/event-stream') || !response.body) {
-    throw new Error('Expected a text/event-stream response')
-  }
+  return response
+}
 
-  const reader = response.body.getReader()
+const isEventStream = (response: Response) =>
+  (response.headers.get('Content-Type')?.includes('text/event-stream') ?? false) && response.body !== null
+
+/** POST a JSON body and yield each SSE event in order until the stream closes (REQ-FF-03). */
+export async function* postSse(url: string, body?: unknown, init: RequestInit = {}): AsyncGenerator<SseEvent> {
+  const response = await post(url, body, init, 'text/event-stream')
+  if (!isEventStream(response)) throw new Error('Expected a text/event-stream response')
+  yield* readSse(response.body as ReadableStream<Uint8Array>)
+}
+
+/**
+ * POST for an endpoint that answers either JSON or SSE, such as the assessment start (REQ-AC-05): a SOFT_SKILLS-only
+ * start or a resumed attempt answers JSON, a new interview streams.
+ */
+export async function postJsonOrSse<T>(
+  url: string,
+  body?: unknown,
+  init: RequestInit = {},
+): Promise<{ json: T } | { events: AsyncGenerator<SseEvent> }> {
+  const response = await post(url, body, init, 'text/event-stream, application/json')
+  if (isEventStream(response)) return { events: readSse(response.body as ReadableStream<Uint8Array>) }
+  return { json: (await response.json()) as T }
+}
+
+async function* readSse(body: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent> {
+  const reader = body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
   try {

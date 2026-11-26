@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiProblem, apiFetch, postSse } from './client'
+import { ApiProblem, apiFetch, postJsonOrSse, postSse } from './client'
 
 const stubFetch = (response: Response) => {
   const fetchMock = vi.fn().mockResolvedValue(response)
@@ -120,6 +120,28 @@ describe('postSse (REQ-FF-03)', () => {
   it('rejects a response that is not an event stream', async () => {
     stubFetch(sseResponse(['{}'], 'application/json'))
     await expect(collect(postSse('/x'))).rejects.toThrow('text/event-stream')
+  })
+})
+
+describe('postJsonOrSse (assessment start, REQ-AC-05)', () => {
+  it('returns the parsed body for a JSON answer', async () => {
+    const fetchMock = stubFetch(
+      new Response(JSON.stringify({ status: 'BFI10' }), { headers: { 'Content-Type': 'application/json' } }),
+    )
+    await expect(postJsonOrSse('/api/v1/assessment/sessions')).resolves.toEqual({ json: { status: 'BFI10' } })
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).get('Accept')).toBe('text/event-stream, application/json')
+  })
+
+  it('returns the events for an SSE answer', async () => {
+    stubFetch(sseResponse(['event: delta\ndata: {"text":"Hi"}\n\n']))
+    const result = await postJsonOrSse('/api/v1/assessment/sessions')
+    if (!('events' in result)) throw new Error('expected events')
+    await expect(collect(result.events)).resolves.toEqual([{ event: 'delta', data: '{"text":"Hi"}' }])
+  })
+
+  it('throws an ApiProblem on a 409', async () => {
+    stubFetch(problem(409, { title: 'Conflict', status: 409, detail: 'You have used all attempts.' }))
+    await expect(postJsonOrSse('/x')).rejects.toMatchObject({ status: 409 })
   })
 })
 

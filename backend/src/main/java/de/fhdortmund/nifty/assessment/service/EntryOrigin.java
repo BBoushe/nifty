@@ -16,4 +16,13 @@ public enum EntryOrigin {
     public String literal() {
         return literal;
     }
+
+    static EntryOrigin fromLiteral(String literal) {
+        for (EntryOrigin origin : values()) {
+            if (origin.literal.equals(literal)) {
+                return origin;
+            }
+        }
+        throw new IllegalArgumentException("Unknown entry origin: " + literal);
+    }
 }

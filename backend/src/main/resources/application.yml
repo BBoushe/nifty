@@ -16,6 +16,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  # assessment-chat: interviewer replies stream through MVC async requests (Tomcat's default timeout is 30 s).
+  mvc:
+    async:
+      request-timeout: 180s
+
   # Spring AI 2.0 OpenAI-compatible client configured for ki:connect NRW / FH AI (LLM Evaluator).
   # Hosted in Aachen / NRW (EU, GDPR-compliant, free for students).
   # Boots cleanly even when KICONNECT_API_KEY is unset or blank.

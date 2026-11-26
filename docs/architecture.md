@@ -143,9 +143,9 @@ erDiagram
 | `CORE_QUESTION` | `studio` | `V3` | `id`, `config_id`, `position`, `text`, `weight` (`> 0`), `confidence_threshold` (`0..1`), `min_time_sec`, `max_time_sec`, `follow_up_limit` (`0..3`) |
 | `CORE_QUESTION_SKILL` | `studio` | `V3` | `core_question_id`, `skill_id` |
 | `INVITE` | `auth` | `V4` | `id`, `config_id`, `candidate_ref`, `token_hash`, `revoked`, `created_at` |
-| `ASSESSMENT_ATTEMPT` | `assessment` | `V6` | `id`, `invite_id`, `config_id`, `config_version`, `attempt_no`, `status`, `started_at`, `completed_at` |
-| `CONVERSATION_ENTRY` | `assessment` | `V6` | §4 ledger columns (`id`, `attempt_id`, `seq`, ..., `timed_out`, `paste_suspected`, `injection_suspected`) |
-| `BFI_RESPONSE` | `assessment` | `V6` | `attempt_id`, `item_1..item_10` (`1..5`), `conscientiousness`, `agreeableness`, `neuroticism`, `extraversion`, `openness` (`1.0..5.0` means) |
+| `ASSESSMENT_ATTEMPT` | `assessment` | `V10` | `id`, `invite_id`, `config_id`, `config_version`, `attempt_no`, `status`, `started_at`, `completed_at` |
+| `CONVERSATION_ENTRY` | `assessment` | `V10` | §4 ledger columns (`id`, `attempt_id`, `seq`, ..., `timed_out`, `paste_suspected`, `injection_suspected`) |
+| `BFI_RESPONSE` | `assessment` | `V10` | `attempt_id`, `item_1..item_10` (`1..5`), `conscientiousness`, `agreeableness`, `neuroticism`, `extraversion`, `openness` (`1.0..5.0` means) |
 | `FORMULA_VERSION` | `evaluation` | `V7` | `id`, `config_id`, `version_number`, `formula_preset` (`WEIGHTED_MEAN`), `max_entry_skill_weight_share` (`0.50`), `question_weights_json`, `created_by`, `created_at` |
 | `EVALUATION_RUN` | `evaluation` | `V7` | `id`, `attempt_id`, `config_id`, `formula_version_id`, `context_template_version`, `status`, `idempotency_key` (`UNIQUE`), `attempt_count`, `error_message`, `started_at`, `completed_at` |
 | `CANDIDATE_EVALUATION_SUMMARY` | `evaluation` | `V7` | `id`, `attempt_id` (`UNIQUE`), `config_id`, `invite_id`, `formula_version_id`, `latest_run_id`, `evaluation_status`, `fit_score`, `coverage`, `flagged_count`, `release_status` (`pending \| flagged \| auto_released \| approved \| overridden`), `released_at` |
@@ -174,11 +174,11 @@ The backend uses package-by-feature (Decision 1.10), enforced by `ArchitectureTe
 | — (cross-cutting) | `audit` | — | `V1` (existing) | `AuditLog` entity and public `AuditService` (sole writer of `audit_log`) |
 | `interviewer-studio` | `studio` | `views/studio/` | `V3` | One-shot immutable assessment config, skills + hidden `0..4` rubrics, core questions, `StudioQueryService` views, GDPR delete trigger |
 | `context-creation` | `context` | — (backend only) | — (stateless) | Sole prompt builder for Agent 1 (rubric-blind) and Agent 2 (hidden rubric), `PromptSanitizer`, `InjectionDetector`, `PROFESSOR` preview endpoint |
-| `assessment-chat` | `assessment` | `views/assessment/` (chat + BFI-10) | `V6` | Attempts, SSE interview streaming, append-only ledger, server timers, `pasteSuspected`/`injectionSuspected`, single-source BFI-10 scoring |
+| `assessment-chat` | `assessment` | `views/assessment/` (chat + BFI-10) | `V10` | Attempts, SSE interview streaming, append-only ledger, server timers, `pasteSuspected`/`injectionSuspected`, single-source BFI-10 scoring |
 | `evidence-pipeline`, `formula-engine`, `skills-matrix-review`, `candidate-results` | `evaluation` | `views/ranking/`, `views/assessment/` (results) | `V7` | Async 2-run judge, quote verifier, confidence, Formula B scorer, release gate, review/override queue, SQL cohort gaps, transcript export, candidate results read API |
 | `team-builder` | `teams` | `views/teams/` | `V8` | Seeded Java Simulated Annealing team optimizer, drag-and-drop recalculation, draft/publish workflow |
 
-> Flyway `V5` stays unused/reserved to keep `V6__assessment.sql` stable across teammate branches.
+> Flyway `V5` and `V6` stay unused. The assessment schema shipped as `V10__assessment.sql` because `V7`–`V9` merged first and Flyway does not run migrations out of order.
 
 ### Backend Test Base and Contract Placeholders
 
@@ -188,6 +188,7 @@ The backend uses package-by-feature (Decision 1.10), enforced by `ArchitectureTe
 - **Sessions and bootstrap (`auth-accounts`):** sign-in creates a server HTTP session with an `HttpOnly`, `SameSite=Lax` cookie (`NIFTY_SESSION_COOKIE_SECURE=false` for local HTTP dev) and SPA CSRF (`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header, Decision 1.23). `ProfessorBootstrap` creates one `PROFESSOR` account at startup when `NIFTY_BOOTSTRAP_PROFESSOR_EMAIL` and `NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD` are set and no account has that email (Decision 1.24). `AuthContextServiceImpl` replaces `AuthContextServicePlaceholder`.
 - **Invite links (`invite-links`):** professors create single or CSV-imported personal invite links (`V4__auth_invites.sql`, 256-bit random tokens stored only as SHA-256 hex, scoped by `StudioQueryService.ownedBy`). `POST /api/v1/auth/invite/{token}` starts a `CANDIDATE` session bound to `(inviteId, configId, candidateRef)` via `AuthContextService.currentCandidate()`. `RevokedInviteFilter` ends revoked candidate sessions with `401` on their next request, and `AssessmentDeletedEvent` purges a config's invites in the deleting transaction (Decisions 1.17, 1.23, 4.4).
 - **Real beans:** `AuditService` is real (`audit-log-service`). `AuditServiceImpl` writes one `audit_log` row in the transaction of the caller. `AuditLogEntity` is `@Immutable`, and `AuditLogRepository` has no update or delete method.
+- **Assessment (`assessment-chat`):** `AssessmentQueryServiceImpl` replaces `AssessmentQueryServicePlaceholder`. `AttemptService` writes each step of an attempt in one short transaction under a row lock. `AssessmentSessionService` then streams the interviewer reply outside any transaction. `AttemptExpiryScheduler` closes expired questions every 15 s (`nifty.assessment.expiry-sweep-cron`).
 - **Shared errors and events:** `FieldValidationException` (`400` with `errors[]`) is in `shared/exception`. `AttemptCompletedEvent` and `AssessmentDeletedEvent` are in `shared/config`.
 
 ## Frontend Structure (`frontend-foundation`)
@@ -196,7 +197,8 @@ Each feature owns one folder under `frontend/src/views/<feature>/`: `auth`, `stu
 
 | Path | Purpose |
 |---|---|
-| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json` and sends `X-XSRF-TOKEN` on state-changing requests. `postSse()` reads an SSE stream from a `POST` with the same CSRF header. |
+| `src/api/client.ts` | `apiFetch<T>()` throws `ApiProblem` (`status`, `title`, `detail`, `errors[]`) on `application/problem+json` and sends `X-XSRF-TOKEN` on state-changing requests. `postSse()` reads an SSE stream from a `POST` with the same CSRF header. `postJsonOrSse()` returns JSON or SSE events, for the assessment start. |
+| `src/views/assessment/` | `AssessmentChatView.vue` (`/assessment`): streamed interview, countdown to the server `expiresAt` with auto-submit at zero, 4000-character answer box. `Bfi10Form.vue`: the 10 BFI-10 items. `ResultsView.vue` belongs to `evaluation`. |
 | `src/stores/auth.ts` | Pinia session store (`me`, `fetchMe`, `login`, `loginWithInvite`, `logout`) backed by `/api/v1/auth/**`. |
 | `src/views/auth/` | `SignInView.vue` (`/sign-in`), `InviteLandingView.vue` (`/invite/:token`), and `guard.ts` (`/ranking/*` needs `PROFESSOR`, `/assessment/*` needs `CANDIDATE`). |
 | `src/views/studio/` | Studio assessment form, list, detail, and `InvitePanel.vue` (single add, CSV import, copy/download links, revoke). |

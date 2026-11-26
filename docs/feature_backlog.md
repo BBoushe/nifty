@@ -5,7 +5,7 @@ Planned features in delivery waves (Decisions 1.18, 3.14). Use this table to pic
 - **Status:** `queued` (ready when dependencies merge), `in progress` (an OpenSpec change exists under `openspec/changes/<change>/`), `blocked` (waiting on an open decision). No feature is blocked.
 - **Wave:** features in the same wave can run in parallel. Teammates in later waves can also start immediately against mocked public `@Service` contracts in [`docs/tickets/00-parallel-waves-and-contracts.md`](tickets/00-parallel-waves-and-contracts.md).
 - **Slice:** backend package and frontend folder from the [Feature Slice Map](architecture.md#feature-slice-map). Each feature edits only its own slice.
-- **Migration:** Flyway versions are reserved here so parallel worktrees never collide. `V5` stays spare so `V6__assessment.sql` stays stable.
+- **Migration:** Flyway versions are reserved here so parallel worktrees never collide. `V5` and `V6` stay unused: the assessment schema shipped as `V10__assessment.sql` because `V7`–`V9` merged first and Flyway does not run migrations out of order.
 - **Stories:** each `US-` story is one RED → GREEN → REFACTOR loop and one commit.
 
 Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in progress` and link the change folder. When you archive it, set its row to `done` (other rows refer to it by number) and add an entry to [`feature_history.md`](feature_history.md).
@@ -21,7 +21,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 | 5 | `context-creation` ([spec](../openspec/specs/context-creation/spec.md), [ticket](tickets/02-context-creation.md)) | 1 | done | Teammate A (`context`) | 1, 4 (mockable) | — (stateless) |
 | 6 | `studio-assessment-creation` ([change](../openspec/changes/archive/2026-11-26-studio-assessment-creation/), [ticket](tickets/01-studio.md)) | 2 | done | Teammate R (`studio`, `views/studio/`) | 1, 2, 3, 4 | `V3__studio.sql` |
 | 7 | `invite-links` ([change](../openspec/changes/archive/2026-11-26-invite-links/), [ticket](tickets/01-studio.md)) | 3 | done | Teammate R (`auth`, `views/auth/` landing, `views/studio/` invite panel) | 3, 6 | `V4__auth_invites.sql` |
-| 8 | `assessment-chat` ([change](../openspec/changes/assessment-chat/), [ticket](tickets/03-assessment-chat.md)) | 4 | in progress | Teammate S (`assessment`, `views/assessment/` chat) | 5, 6, 7 (mockable) | `V6__assessment.sql` |
+| 8 | `assessment-chat` ([change](../openspec/changes/archive/2026-11-26-assessment-chat/), [ticket](tickets/03-assessment-chat.md)) | 4 | done | Teammate S (`assessment`, `views/assessment/` chat) | 5, 6, 7 (mockable) | `V10__assessment.sql` |
 | 9 | `evaluation-service` ([change](../openspec/changes/archive/2026-11-26-evaluation-service/), [ticket](tickets/04-evaluation.md)) | 4 | done | Teammate M (`evaluation`, `views/ranking/`, `views/assessment/` results) | 4, 5, 6, 8 (mockable) | `V7__evaluation.sql`, `V9__evaluation_queue.sql` |
 | 10 | `team-builder` ([change](../openspec/changes/archive/2026-11-26-team-builder/), [ticket](tickets/05-teams.md)) | 5 | done | Teammate C (`teams`, `views/teams/`) | 4, 6, 8, 9 (mockable) | `V8__teams.sql` |
 | 11 | `harness-review-followups` | any | queued | Shared (harness, CI, `shared`) | — | — |
