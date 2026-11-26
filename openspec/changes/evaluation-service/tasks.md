@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-04 complete (EvaluationReviewService, CohortGapQueryService SQL-only, EvaluationQueryServiceImpl replacing placeholder)
-- **Next action:** Start US-EV-04b (FormulaPresetService, formula presets/versions/preview endpoints)
+- **Current:** US-EV-04b complete (FormulaPresetService, FormulaPresetController, immutable versions, preview, free-form expression 400 rejection)
+- **Next action:** Start US-EV-05 (RankingEvaluationController, CandidateResultsController, CandidateResultsService, DeterministicAdviceBuilder, docs/api.md)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -35,11 +35,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(evaluation): implement review queue, audited overrides, cohort gaps, and query API`
 
-- [ ] **US-EV-04b: Formula presets, formula versions and what-if preview (REQ-FE-02, REQ-FE-05)**
-  - [ ] Write RED tests: preset list holds `WEIGHTED_MEAN`; selecting a preset stores a new immutable `formula_version`, tags recomputed scores with it and makes zero `ChatClient` calls; preview returns scores and stores nothing; an unknown preset or a free-form expression field → `400` ProblemDetail with no version stored.
-  - [ ] Implement `FormulaPresetService` and the `/api/v1/ranking/formula-presets` and `/api/v1/ranking/configs/{configId}/formula{,/preview}` endpoints (see `docs/api.md`).
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(evaluation): add formula presets, versions and what-if preview`
+- [x] **US-EV-04b: Formula presets, formula versions and what-if preview (REQ-FE-02, REQ-FE-05)**
+  - [x] Write RED tests: preset list holds `WEIGHTED_MEAN`; selecting a preset stores a new immutable `formula_version`, tags recomputed scores with it and makes zero `ChatClient` calls; preview returns scores and stores nothing; an unknown preset or a free-form expression field → `400` ProblemDetail with no version stored.
+  - [x] Implement `FormulaPresetService` and the `/api/v1/ranking/formula-presets` and `/api/v1/ranking/configs/{configId}/formula{,/preview}` endpoints (see `docs/api.md`).
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(evaluation): add formula presets, versions and what-if preview`
 
 - [ ] **US-EV-05: `RankingEvaluationController`, `CandidateResultsController`, `DeterministicAdviceBuilder`, and `docs/api.md`**
   - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `PROFESSOR` matrix/drilldown/approve/override/release/cohort-gaps/transcript endpoints (`CANDIDATE` → `403`); `CANDIDATE` `/api/v1/assessment/results/{configId}` withholds scores before release, returns released scores + quotes + full conversation log + deterministic strengths/improvements (ignoring `N/A`) + own BFI-10 traits after release, returns `403` on other candidate or `PROFESSOR`.
@@ -85,8 +85,15 @@
 - Open Questions: none
 
 ### US-EV-04
-- Commits: `feat(evaluation): implement review queue, audited overrides, cohort gaps, and query API`
+- Commits: `c38cdf9 feat(evaluation): implement review queue, audited overrides, cohort gaps, and query API`
 - Verification: `RED: ./mvnw -B test -Dtest=EvaluationReviewServiceTest,CohortGapAndQueryIntegrationTest → FAIL (cannot find symbol EvaluationReviewService/CohortGapQueryService/EvaluationDtos); GREEN: ./mvnw -B test -Dtest=EvaluationReviewServiceTest,CohortGapAndQueryIntegrationTest,ContractStubsTest,ArchitectureTest → exit 0 (21/21 tests)`
 - Contracts/Migrations added: `EvaluationDtos.java`, `FormulaRecalculationHelper.java`, `EvaluationReviewService.java`, `CohortGapQueryService.java`, `EvaluationQueryServiceImpl.java` (removed `EvaluationQueryServicePlaceholder.java`)
 - Decisions: 1.18, 2.10, 2.13, 2.15, 2.22, 2.24
+- Open Questions: none
+
+### US-EV-04b
+- Commits: `feat(evaluation): add formula presets, versions and what-if preview`
+- Verification: `RED: ./mvnw -B test -Dtest=FormulaPresetServiceTest,FormulaPresetControllerTest → FAIL (cannot find symbol FormulaPresetService/FormulaPresetController); GREEN: ./mvnw -B test -Dtest=FormulaPresetServiceTest,FormulaPresetControllerTest,ArchitectureTest → exit 0 (19/19 tests)`
+- Contracts/Migrations added: `FormulaPresetService.java`, `FormulaPresetController.java`
+- Decisions: 2.19, 2.22
 - Open Questions: none
