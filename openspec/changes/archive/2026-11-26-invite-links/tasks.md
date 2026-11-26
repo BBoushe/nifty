@@ -74,8 +74,15 @@
 - Open Questions: none
 
 ### Task 5 (Docs)
-- Commits: `docs: record invite-links`, `chore(specs): archive invite-links`, `fix(auth): harden revoked-invite filter, CSV parsing and audit tests`, `docs: record invite-links PR and MR numbers`
+- Commits: `docs: record invite-links`, `chore(specs): archive invite-links`, `docs: record invite-links PR and MR numbers`
 - Verification: `cd backend && ./mvnw -B test` → exit 0 (189 run, 0 failed, incl. `ArchitectureTest`); `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (12 files, 80 passed, 0 lint warnings); `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` → 12 passed; `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → 43 passed
 - Contracts/Migrations added: none (audit hardening: exempted `POST /api/v1/auth/login` in `RevokedInviteFilter`, bulk duplicate lookup in `InviteRepository`, RFC-4180 CSV parsing + formula neutralization in `invites.ts`, `InvitePanel` config-switch reset / form submit / per-row loading)
+- Decisions: applies 1.17, 1.23, 4.4
+- Open Questions: none
+
+### Task 6 (Audit hardening, added by cold review)
+- Commits: `fix(auth): harden revoked-invite filter, CSV parsing and audit tests`
+- Verification: RED (new tests against the pre-fix production files from `fddc256^`): `./mvnw -B test -Dtest='InviteServiceTest,InviteRevocationAndPurgeTest'` → FAIL (`professorCanStillSignInWhenHoldingRevokedCandidateSessionAndInviteSignInRequiresCsrf`: expected 204, got 401); `npx vitest run src/views/studio/InvitePanel.test.ts src/stores/auth.test.ts` → FAIL (5 of 10: single add, blank submit, configId switch reset, RFC-4180 parsing, formula neutralization). The bulk duplicate lookup is a query refactor; its `InviteServiceTest` cases also pass on the old code. GREEN: `cd backend && ./mvnw -B test` → exit 0 (189 run); `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (80 passed)
+- Contracts/Migrations added: none (`RevokedInviteFilter` exempts `POST /api/v1/auth/login`; `InviteRepository` bulk lookup; `invites.ts` RFC-4180 parsing and formula neutralization; `InvitePanel` reset on configId change)
 - Decisions: applies 1.17, 1.23, 4.4
 - Open Questions: none
