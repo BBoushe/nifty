@@ -1,5 +1,6 @@
 package de.fhdortmund.nifty.evaluation.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -275,6 +276,7 @@ public final class EvaluationDtos {
     public record CandidateTraitScore(String trait, double score, String description) {
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record CandidateResultsResponse(
             UUID configId,
             UUID attemptId,

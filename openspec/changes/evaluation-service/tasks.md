@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/evaluation-service` (branch off `dev`)
 - **Worktree:** `../nifty-evaluation-service`
-- **Current:** US-EV-04b complete (FormulaPresetService, FormulaPresetController, immutable versions, preview, free-form expression 400 rejection)
-- **Next action:** Start US-EV-05 (RankingEvaluationController, CandidateResultsController, CandidateResultsService, DeterministicAdviceBuilder, docs/api.md)
+- **Current:** US-EV-05 complete (RankingEvaluationController, CandidateResultsController, CandidateResultsService, DeterministicAdviceBuilder, docs/api.md synced; 234 backend tests GREEN)
+- **Next action:** Start US-EV-06 (Vue 3.5 + PrimeVue + ECharts Ranking Views and Candidate ResultsView.vue)
 - **Uncommitted changes:** none
 - **PR / MR:** —
 - **Open review findings:** —
@@ -41,11 +41,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(evaluation): add formula presets, versions and what-if preview`
 
-- [ ] **US-EV-05: `RankingEvaluationController`, `CandidateResultsController`, `DeterministicAdviceBuilder`, and `docs/api.md`**
-  - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `PROFESSOR` matrix/drilldown/approve/override/release/cohort-gaps/transcript endpoints (`CANDIDATE` → `403`); `CANDIDATE` `/api/v1/assessment/results/{configId}` withholds scores before release, returns released scores + quotes + full conversation log + deterministic strengths/improvements (ignoring `N/A`) + own BFI-10 traits after release, returns `403` on other candidate or `PROFESSOR`.
-  - [ ] Implement controllers, `CandidateResultsService`, `DeterministicAdviceBuilder`, and sync `docs/api.md`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
-  - [ ] Commit: `feat(evaluation): add professor matrix/review and candidate results endpoints`
+- [x] **US-EV-05: `RankingEvaluationController`, `CandidateResultsController`, `DeterministicAdviceBuilder`, and `docs/api.md`**
+  - [x] Write RED `@WebMvcTest` + `@MockitoBean` tests: `PROFESSOR` matrix/drilldown/approve/override/release/cohort-gaps/transcript endpoints (`CANDIDATE` → `403`); `CANDIDATE` `/api/v1/assessment/results/{configId}` withholds scores before release, returns released scores + quotes + full conversation log + deterministic strengths/improvements (ignoring `N/A`) + own BFI-10 traits after release, returns `403` on other candidate or `PROFESSOR`.
+  - [x] Implement controllers, `CandidateResultsService`, `DeterministicAdviceBuilder`, and sync `docs/api.md`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test` (including `ArchitectureTest`).
+  - [x] Commit: `feat(evaluation): add professor matrix/review and candidate results endpoints`
 
 - [ ] **US-EV-06: Vue 3.5 + PrimeVue + ECharts Ranking Views (`views/ranking/`) and Candidate Results (`views/assessment/ResultsView.vue`)**
   - [ ] Write RED Vitest tests: ECharts Skills Matrix renders hatched `N/A` and flagged border (zero client-side math), Evidence Drawer shows quote + override reason form, bulk-approve skips flagged items, Cohort Gaps renders SQL data, and `ResultsView.vue` shows pending state pre-release and full evidence + log + advice + neutral BFI-10 traits post-release.
@@ -92,8 +92,15 @@
 - Open Questions: none
 
 ### US-EV-04b
-- Commits: `feat(evaluation): add formula presets, versions and what-if preview`
+- Commits: `27799d2 feat(evaluation): add formula presets, versions and what-if preview`
 - Verification: `RED: ./mvnw -B test -Dtest=FormulaPresetServiceTest,FormulaPresetControllerTest → FAIL (cannot find symbol FormulaPresetService/FormulaPresetController); GREEN: ./mvnw -B test -Dtest=FormulaPresetServiceTest,FormulaPresetControllerTest,ArchitectureTest → exit 0 (19/19 tests)`
 - Contracts/Migrations added: `FormulaPresetService.java`, `FormulaPresetController.java`
 - Decisions: 2.19, 2.22
+- Open Questions: none
+
+### US-EV-05
+- Commits: `feat(evaluation): add professor matrix/review and candidate results endpoints`
+- Verification: `RED: ./mvnw -B test -Dtest=DeterministicAdviceBuilderTest,CandidateResultsServiceTest,RankingEvaluationControllerTest,CandidateResultsControllerTest → FAIL (cannot find symbol CandidateResultsService/DeterministicAdviceBuilder/RankingEvaluationController/CandidateResultsController); GREEN: cd backend && ./mvnw -B test → exit 0 (234 tests)`
+- Contracts/Migrations added: `DeterministicAdviceBuilder.java`, `CandidateResultsService.java`, `RankingEvaluationController.java`, `CandidateResultsController.java`, `docs/api.md`
+- Decisions: 2.10, 2.15, 2.16, 4.3
 - Open Questions: none
