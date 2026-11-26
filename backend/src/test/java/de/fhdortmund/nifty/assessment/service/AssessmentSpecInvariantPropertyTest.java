@@ -659,7 +659,7 @@ class AssessmentSpecInvariantPropertyTest {
             this.rnd = rnd;
             this.view = view;
             this.configId = view.configId();
-            this.principal = new CandidateSessionPrincipal(inviteId, configId, "cand");
+            this.principal = new CandidateSessionPrincipal(inviteId, configId, "cand", "hash");
             StudioQueryService studio = mock(StudioQueryService.class);
             when(studio.interviewerView(any())).thenReturn(view);
             ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);

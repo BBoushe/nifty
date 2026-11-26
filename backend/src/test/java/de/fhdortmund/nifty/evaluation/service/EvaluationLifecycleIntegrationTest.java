@@ -297,7 +297,7 @@ class EvaluationLifecycleIntegrationTest extends PostgresContainerBase {
         UUID attempt2 = UUID.randomUUID();
         when(authContextService.currentProfessorId()).thenReturn(professorId);
         when(authContextService.currentCandidate())
-                .thenReturn(new CandidateSessionPrincipal(ids.inviteId(), ids.configId(), "ref"));
+                .thenReturn(new CandidateSessionPrincipal(ids.inviteId(), ids.configId(), "ref", "hash"));
         when(studioQueryService.ownedBy(ids.configId(), professorId)).thenReturn(true);
         when(studioQueryService.evaluatorView(ids.configId())).thenReturn(new EvaluatorView(
                 ids.configId(), List.of(new EvaluatorSkill(ids.skillId(), "Java", RUBRIC)), List.of()));

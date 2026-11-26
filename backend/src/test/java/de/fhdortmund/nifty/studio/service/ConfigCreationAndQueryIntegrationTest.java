@@ -91,6 +91,34 @@ class ConfigCreationAndQueryIntegrationTest extends PostgresContainerBase {
                 Long.class, idempotencyKey)).isEqualTo(1L);
     }
 
+    // REQ-IS-14: a double submit with one key saves one configuration, and both responses carry it.
+    @Test
+    void simultaneousCreatesWithOneKeySaveOneConfigurationAndBothReturnIt() throws Exception {
+        UUID professorId = UUID.randomUUID();
+        UUID key = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            java.util.concurrent.Callable<CreatedAssessment> create = () -> {
+                start.await();
+                return creationService.create(key, sampleRequest());
+            };
+            var first = pool.submit(create);
+            var second = pool.submit(create);
+            start.countDown();
+
+            CreatedAssessment a = first.get();
+            CreatedAssessment b = second.get();
+            assertThat(a.configId()).isEqualTo(b.configId());
+            assertThat(a.created() ^ b.created()).isTrue();
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM assessment_config WHERE idempotency_key = ?",
+                Long.class, key)).isEqualTo(1L);
+    }
+
     @Test
     void otherProfessorReusingIdempotencyKeyGets400AndSavesNothing() {
         UUID profA = UUID.randomUUID();

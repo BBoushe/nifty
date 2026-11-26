@@ -61,7 +61,7 @@ class RevokedInviteFilter extends OncePerRequestFilter {
                 && principal != null
                 && principal.role() == Role.CANDIDATE
                 && principal.inviteId() != null
-                && !sessions.isInviteActive(principal.inviteId())) {
+                && !sessions.isInviteActive(principal.inviteId(), principal.tokenHash())) {
             SecurityContextHolder.clearContext();
             HttpSession session = request.getSession(false);
             if (session != null) {

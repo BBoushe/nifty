@@ -92,13 +92,75 @@ class InviteServiceTest extends PostgresContainerBase {
 
         inviteService.createInvites(configId, List.of("existing_1"));
 
+        // REQ-AA-11 / Decision 2.34: an existing, not revoked invite answers 409, and nothing is created.
         assertThatThrownBy(() -> inviteService.createInvites(configId, List.of("new_1", "existing_1")))
-                .isInstanceOf(FieldValidationException.class)
-                .satisfies(ex -> assertThat(((FieldValidationException) ex).getErrors())
-                        .anySatisfy(err -> assertThat(err.message()).contains("existing_1")));
+                .isInstanceOf(DomainException.class)
+                .extracting(e -> ((DomainException) e).getStatus())
+                .isEqualTo(HttpStatus.CONFLICT);
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM invite WHERE config_id = ?", Long.class, configId))
                 .isEqualTo(1L);
+    }
+
+    // REQ-AA-10 / Decision 2.34: the same row gets a new token, so attempts stay linked to the invite.
+    @Test
+    void reinviteOfARevokedCandidateRotatesTheTokenOnTheSameRowAndAudits() {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        CreatedInvite first = inviteService.createInvites(configId, List.of("anna.schmidt")).getFirst();
+        String oldHash = tokenHashOf(first.inviteId());
+        inviteService.revokeInvite(configId, first.inviteId());
+
+        CreatedInvite second = inviteService.createInvites(configId, List.of("anna.schmidt", "ben.meier")).getFirst();
+
+        assertThat(second.inviteId()).isEqualTo(first.inviteId());
+        assertThat(second.link()).isNotEqualTo(first.link());
+        assertThat(tokenHashOf(first.inviteId())).isNotEqualTo(oldHash)
+                .isEqualTo(TokenHasher.sha256Hex(second.link().substring(second.link().lastIndexOf('/') + 1)));
+        assertThat(jdbc.queryForObject("SELECT revoked FROM invite WHERE id = ?", Boolean.class, first.inviteId()))
+                .isFalse();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM invite WHERE config_id = ?", Long.class, configId))
+                .isEqualTo(2L);
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM audit_log WHERE action = 'INVITE_REISSUED' AND entity_id = ?",
+                Long.class, first.inviteId().toString())).isEqualTo(1L);
+    }
+
+    // REQ-AA-11: two simultaneous creates of one candidate give one 201 and one 409, never a 500.
+    @Test
+    void simultaneousCreatesOfOneCandidateGiveOneInviteAndOneConflict() throws Exception {
+        UUID professorId = UUID.randomUUID();
+        UUID configId = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professorId);
+        when(studioQueryService.ownedBy(configId, professorId)).thenReturn(true);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            java.util.concurrent.Callable<Object> create = () -> {
+                start.await();
+                try {
+                    return inviteService.createInvites(configId, List.of("double.click"));
+                } catch (DomainException ex) {
+                    return ex.getStatus();
+                }
+            };
+            var first = pool.submit(create);
+            var second = pool.submit(create);
+            start.countDown();
+
+            assertThat(List.of(first.get(), second.get()))
+                    .filteredOn(HttpStatus.CONFLICT::equals).hasSize(1);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM invite WHERE config_id = ?", Long.class, configId))
+                .isEqualTo(1L);
+    }
+
+    private String tokenHashOf(UUID inviteId) {
+        return jdbc.queryForObject("SELECT token_hash FROM invite WHERE id = ?", String.class, inviteId);
     }
 
     // REQ-SM-12: other slices read candidate names through this public method, never the repository.

@@ -77,7 +77,7 @@ class CandidateResultsServiceTest {
         UUID ownConfig = UUID.randomUUID();
         UUID otherConfig = UUID.randomUUID();
         when(authContextService.currentCandidate())
-                .thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), ownConfig, "cand_1"));
+                .thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), ownConfig, "cand_1", "hash"));
 
         assertThatThrownBy(() -> service.getResultsForCurrentCandidate(otherConfig))
                 .isInstanceOf(DomainException.class)
@@ -91,7 +91,7 @@ class CandidateResultsServiceTest {
         UUID inviteId = UUID.randomUUID();
         UUID attemptId = UUID.randomUUID();
         when(authContextService.currentCandidate())
-                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_1"));
+                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_1", "hash"));
 
         FormulaVersionEntity formula = new FormulaVersionEntity(
                 configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
@@ -123,7 +123,7 @@ class CandidateResultsServiceTest {
         UUID inviteId = UUID.randomUUID();
         UUID attemptId = UUID.randomUUID();
         when(authContextService.currentCandidate())
-                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_2"));
+                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_2", "hash"));
 
         FormulaVersionEntity formula = new FormulaVersionEntity(
                 configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
@@ -154,7 +154,7 @@ class CandidateResultsServiceTest {
         UUID entryId = UUID.randomUUID();
 
         when(authContextService.currentCandidate())
-                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_42"));
+                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_42", "hash"));
 
         FormulaVersionEntity formula = new FormulaVersionEntity(
                 configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"),

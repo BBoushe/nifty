@@ -43,7 +43,7 @@ class AssessmentSessionServiceTest {
     void parallelStartThatLosesTheAttemptNumberRaceIs409NotA500() {
         AttemptService attempts = mock(AttemptService.class);
         AuthContextService auth = mock(AuthContextService.class);
-        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), UUID.randomUUID(), "c"));
+        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), UUID.randomUUID(), "c", "hash"));
         when(attempts.start(any())).thenThrow(new DataIntegrityViolationException("uq_attempt"));
         AssessmentSessionService sessions = new AssessmentSessionService(attempts, auth,
                 mock(ContextCreationService.class), ChatClient.builder(mock(ChatModel.class)), executor(1, 1));
@@ -59,7 +59,7 @@ class AssessmentSessionServiceTest {
         AttemptService attempts = mock(AttemptService.class);
         AuthContextService auth = mock(AuthContextService.class);
         ContextCreationService context = mock(ContextCreationService.class);
-        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), UUID.randomUUID(), "c"));
+        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), UUID.randomUUID(), "c", "hash"));
         InterviewerQuestion q = new InterviewerQuestion(UUID.randomUUID(), 1, "Configured question?", 30, 300, 0,
                 List.of(), List.of());
         Ask step = new AttemptStateMachine.AskCore(q);
@@ -90,7 +90,7 @@ class AssessmentSessionServiceTest {
     void fullStreamPoolAnswers503BeforeAnythingIsStored() throws Exception {
         AttemptService attempts = mock(AttemptService.class);
         AuthContextService auth = mock(AuthContextService.class);
-        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), UUID.randomUUID(), "c"));
+        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(UUID.randomUUID(), UUID.randomUUID(), "c", "hash"));
         ThreadPoolTaskExecutor pool = executor(1, 0);
         CountDownLatch release = new CountDownLatch(1);
         pool.execute(() -> awaitQuietly(release));

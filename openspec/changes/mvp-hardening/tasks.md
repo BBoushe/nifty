@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 13 done (Group D complete, committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group E, Task 14 (re-invite and concurrent creates). Not started.
+- **Current:** Tasks 1 to 14 done (committed, not pushed). Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group E, Task 15 (CSV, CSRF, rate limit, bcrypt). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -89,9 +89,9 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group E — Auth, invites, Studio backend
 
-- [ ] **Task 14: Re-invite and concurrent creates (REQ-AA-10, REQ-AA-11, REQ-IS-14, Decision 2.34)**
-  - [ ] RED. (1) `InviteServiceTest`: re-invite of a revoked candidate rotates the hash, sets `revoked = false`, and audits `INVITE_REISSUED`; the old token's session gets `401` on its next request, because the principal carries `tokenHash`. (2) A duplicate non-revoked invite → `409`. (3) A `DataIntegrityViolationException` from save → `409`, not `500`. (4) Studio: a unique violation on the idempotency key → re-read and replay, or `400` for another professor.
-  - [ ] GREEN per design §5. No migration. Update `docs/api.md` (re-invite behaviour, `409`). Commit `fix(auth): allow re-invite after revoke and answer 409 on concurrent creates`.
+- [x] **Task 14: Re-invite and concurrent creates (REQ-AA-10, REQ-AA-11, REQ-IS-14, Decision 2.34)**
+  - [x] RED. (1) `InviteServiceTest`: re-invite of a revoked candidate rotates the hash, sets `revoked = false`, and audits `INVITE_REISSUED`; the old token's session gets `401` on its next request, because the principal carries `tokenHash`. (2) A duplicate non-revoked invite → `409`. (3) A `DataIntegrityViolationException` from save → `409`, not `500`. (4) Studio: a unique violation on the idempotency key → re-read and replay, or `400` for another professor.
+  - [x] GREEN per design §5. No migration. Update `docs/api.md` (re-invite behaviour, `409`). Commit `fix(auth): allow re-invite after revoke and answer 409 on concurrent creates`.
 
 - [ ] **Task 15: CSV, CSRF, rate limit, bcrypt (REQ-AA-12..15)**
   - [ ] RED. (1) The CSV parser test: a quoted comma, `""` and a line break inside quotes. Find where the CSV is parsed with `grep -rn -i csv frontend/src backend/src/main` and test it there. (2) A MockMvc test: a POST with the pre-login CSRF token after sign-in → `403`, and the new token → OK, for professor and invite login. (3) The 6th failed login in 15 min → `429` with `Retry-After`; a success resets the count (inject a `Clock`). (4) `ProfessorBootstrap` with an 80-byte password fails startup, and the message contains "72" and not the password.
@@ -239,4 +239,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='AttemptExpirySchedulerTest'` → FAIL (2 tests: both attempts stayed `BFI10`, no event); GREEN: `./mvnw -B test -Dtest='AttemptExpirySchedulerTest,AssessmentSessionServiceIntegrationTest,AssessmentSpecInvariantPropertyTest,AssessmentInvariantPropertyTest,ArchitectureTest'` → exit 0 (54 run)
 - Contracts/Migrations added: `docs/api.md` (BFI-10 row: expiry completes the attempt, later submit gets 409); property `nifty.assessment.bfi10-window-seconds` (default 1800, set in `@Value`, like the other assessment timings); no migration
 - Decisions: 2.33 applied (`// Decision 2.33` in `AttemptExpiryScheduler`; the rule lives in `AttemptService.completeWithoutBfi10`, which reuses `complete()` and so publishes `AttemptCompletedEvent` inside the transaction, with listeners after commit). Design differed from code: no BFI-10 deadline exists (no column, no config), so "past its deadline" is a fixed window since the step opened (last ledger row, or `started_at` for a SOFT_SKILLS-only attempt), marked `shortcut:`. The repository query `findIdsAwaitingInterviewerSince` became `findIdsIdleSince(status, cutoff)`, shared by the IN_PROGRESS recovery and the BFI10 sweep (same shape). The test that the SOFT_SKILLS-only result stays `pending` is Task 10's `ReleaseGateEvaluatorTest` (no hard skills and no profile → pending); this test asserts completion and the event, which feed that gate.
+- Open Questions: none
+
+### Task 14: Re-invite and concurrent creates
+- Commits: (this commit) fix(auth): allow re-invite after revoke and answer 409 on concurrent creates
+- Verification: RED: `./mvnw -B test -Dtest='AuthContextServiceImplTest,InviteServiceConflictTest,ConfigCreationRaceTest'` → FAIL (compile: no `tokenHash` on the principals, no `saveAndFlush`, no `TransactionTemplate` constructor argument); GREEN: `./mvnw -B test -Dtest='AuthContextServiceImplTest,InviteServiceConflictTest,ConfigCreationRaceTest,InviteServiceTest,InviteSignInTest,InviteRevocationAndPurgeTest,ConfigCreationAndQueryIntegrationTest,AuthControllerTest,ArchitectureTest'` → exit 0 (53 run)
+- Contracts/Migrations added: `docs/api.md` (invites `409` and re-invite, Studio create race); `InviteEntity.token_hash` is now updatable in JPA only, no migration
+- Decisions: 2.34 applied (`// Decision 2.34` in `AuthContextServiceImpl`, `InviteEntity`, `InviteService`). Design differed from code: (1) a non-revoked duplicate answered `400` `DUPLICATE_CANDIDATE_REF` in the code, not `409`. It now answers `409` (task text and REQ-AA-11 intent); a duplicate inside one request stays `400`. (2) The unique violation of a UUID-keyed insert surfaces at commit, outside the method, so `InviteService` uses `saveAndFlush` inside `try/catch`, and the batch rolls back. (3) Studio `create` is no longer one transaction: it runs `createOnce` in a `TransactionTemplate`, and on `DataIntegrityViolationException` re-reads the key in a fresh transaction (a failed transaction cannot read again). No winner found rethrows the original error. (4) Fail closed: a session whose principal has no `tokenHash` (an old session deserializes it as `null`) gets `401` in `AuthContextServiceImpl` and `RevokedInviteFilter`, with no repository call. Real two-thread tests exercise both races (the logs show the unique-constraint errors). (5) `existsByIdAndRevokedFalse` and `findExistingCandidateRefs` have no caller left and are removed.
 - Open Questions: none

@@ -27,7 +27,8 @@ public class InviteEntity {
     private String candidateRef;
 
     @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(name = "token_hash", nullable = false, unique = true, updatable = false, length = 64)
+    // Decision 2.34: updatable, because a re-invite rotates the token on the same row.
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
     @Column(name = "revoked", nullable = false)
@@ -81,5 +82,11 @@ public class InviteEntity {
 
     public void revoke() {
         this.revoked = true;
+    }
+
+    /** Decision 2.34: a new token for a revoked invite. Old links and sessions stop working. */
+    public void reissue(String newTokenHash) {
+        this.tokenHash = newTokenHash;
+        this.revoked = false;
     }
 }

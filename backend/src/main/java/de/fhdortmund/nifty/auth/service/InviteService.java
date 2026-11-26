@@ -1,5 +1,7 @@
 package de.fhdortmund.nifty.auth.service;
 
+import de.fhdortmund.nifty.audit.service.AuditActorRole;
+import de.fhdortmund.nifty.audit.service.AuditService;
 import de.fhdortmund.nifty.auth.repository.InviteEntity;
 import de.fhdortmund.nifty.auth.repository.InviteRepository;
 import de.fhdortmund.nifty.shared.config.AssessmentDeletedEvent;
@@ -16,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -33,20 +36,24 @@ public class InviteService {
     private static final int MAX_REF_LENGTH = 256;
     private static final String CONFIG_NOT_FOUND = "Assessment configuration not found.";
     private static final String INVITE_NOT_FOUND = "Invite not found.";
+    private static final String ALREADY_INVITED = "This candidate already has an active invite.";
 
     private final InviteRepository inviteRepository;
     private final StudioQueryService studioQueryService;
     private final AuthContextService authContextService;
+    private final AuditService auditService;
     private final String inviteLinkPrefix;
 
     InviteService(
             InviteRepository inviteRepository,
             StudioQueryService studioQueryService,
             AuthContextService authContextService,
+            AuditService auditService,
             @Value("${nifty.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.inviteRepository = inviteRepository;
         this.studioQueryService = studioQueryService;
         this.authContextService = authContextService;
+        this.auditService = auditService;
         String base = frontendBaseUrl.endsWith("/")
                 ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
                 : frontendBaseUrl;
@@ -56,17 +63,50 @@ public class InviteService {
     @Transactional
     public List<CreatedInvite> createInvites(UUID configId, List<String> candidateRefs) {
         UUID professorId = requireOwnedConfig(configId);
-        List<String> trimmedRefs = validateCandidateRefs(configId, candidateRefs);
+        List<String> trimmedRefs = validateCandidateRefs(candidateRefs);
+        Map<String, InviteEntity> revoked = revokedInvitesOrConflict(configId, trimmedRefs);
 
         List<CreatedInvite> created = new ArrayList<>(trimmedRefs.size());
         for (int i = 0; i < trimmedRefs.size(); i++) {
             String ref = trimmedRefs.get(i);
             String plainToken = TokenHasher.generateToken();
             String tokenHash = TokenHasher.sha256Hex(plainToken);
-            InviteEntity saved = inviteRepository.save(new InviteEntity(configId, ref, tokenHash, professorId));
+            InviteEntity invite = revoked.get(ref);
+            if (invite == null) {
+                invite = new InviteEntity(configId, ref, tokenHash, professorId);
+            } else {
+                // Decision 2.34: same row, new token. Attempts and results stay linked to the invite.
+                invite.reissue(tokenHash);
+                auditService.record(professorId.toString(), AuditActorRole.PROFESSOR, "INVITE", invite.getId(),
+                        "INVITE_REISSUED", null, null, null);
+            }
+            InviteEntity saved = saveOrConflict(invite);
             created.add(new CreatedInvite(saved.getId(), saved.getCandidateRef(), inviteLinkPrefix + plainToken));
         }
         return List.copyOf(created);
+    }
+
+    // REQ-AA-11: the unique keys decide a race. The loser answers 409, and the whole batch rolls back.
+    private InviteEntity saveOrConflict(InviteEntity invite) {
+        try {
+            return inviteRepository.saveAndFlush(invite);
+        } catch (DataIntegrityViolationException ex) {
+            throw new DomainException(HttpStatus.CONFLICT, ALREADY_INVITED);
+        }
+    }
+
+    /** The revoked invites of these refs by ref. A ref with an active invite answers 409 (Decision 2.34). */
+    private Map<String, InviteEntity> revokedInvitesOrConflict(UUID configId, List<String> refs) {
+        List<InviteEntity> rows = inviteRepository.findByConfigIdAndCandidateRefIn(configId, refs);
+        Map<String, InviteEntity> revoked = new HashMap<>(rows.size() * 2);
+        for (int i = 0; i < rows.size(); i++) {
+            InviteEntity row = rows.get(i);
+            if (!row.isRevoked()) {
+                throw new DomainException(HttpStatus.CONFLICT, ALREADY_INVITED + " " + row.getCandidateRef());
+            }
+            revoked.put(row.getCandidateRef(), row);
+        }
+        return revoked;
     }
 
     public List<InviteSummary> listInvites(UUID configId) {
@@ -117,7 +157,7 @@ public class InviteService {
         return professorId;
     }
 
-    private List<String> validateCandidateRefs(UUID configId, List<String> candidateRefs) {
+    private List<String> validateCandidateRefs(List<String> candidateRefs) {
         List<FieldErrorDetail> errors = new ArrayList<>();
         if (candidateRefs == null || candidateRefs.isEmpty()) {
             errors.add(new FieldErrorDetail("candidateRefs", "must contain between 1 and 500 candidates", "REQUIRED"));
@@ -129,7 +169,6 @@ public class InviteService {
         }
 
         List<String> trimmed = new ArrayList<>(candidateRefs.size());
-        List<Integer> originalIndices = new ArrayList<>(candidateRefs.size());
         Set<String> seen = new HashSet<>(candidateRefs.size());
         for (int i = 0; i < candidateRefs.size(); i++) {
             String raw = candidateRefs.get(i);
@@ -148,21 +187,6 @@ public class InviteService {
                 continue;
             }
             trimmed.add(clean);
-            originalIndices.add(i);
-        }
-
-        if (!trimmed.isEmpty()) {
-            Set<String> existing = new HashSet<>(inviteRepository.findExistingCandidateRefs(configId, trimmed));
-            if (!existing.isEmpty()) {
-                for (int i = 0; i < trimmed.size(); i++) {
-                    String clean = trimmed.get(i);
-                    if (existing.contains(clean)) {
-                        String field = "candidateRefs[" + originalIndices.get(i) + "]";
-                        errors.add(new FieldErrorDetail(field, "candidateRef already invited: " + clean,
-                                "DUPLICATE_CANDIDATE_REF"));
-                    }
-                }
-            }
         }
 
         if (!errors.isEmpty()) {

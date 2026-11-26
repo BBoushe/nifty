@@ -104,7 +104,7 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         completedEvents.events.clear();
         // A real ChatModel always has options; ChatClient mutates them per call.
         when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
-        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand-1"));
+        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand-1", "hash"));
         when(studio.interviewerView(configId)).thenReturn(view(GroupingMode.HARD_SKILLS, false, List.of(q1, q2), 2));
         when(context.buildInterviewerContext(any())).thenReturn(new BuiltPromptContext(AgentRole.INTERVIEWER,
                 "interviewer-v1", SYSTEM_PROMPT, List.of(new PromptMessage("user", "<candidate_answer>x</candidate_answer>")),

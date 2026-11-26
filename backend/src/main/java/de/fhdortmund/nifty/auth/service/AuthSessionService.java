@@ -69,7 +69,7 @@ public class AuthSessionService {
                 .filter(found -> !found.isRevoked())
                 .orElseThrow(() -> new DomainException(HttpStatus.UNAUTHORIZED, INVALID_INVITE));
         NiftyPrincipal principal = NiftyPrincipal.candidate(
-                invite.getId(), invite.getConfigId(), invite.getCandidateRef());
+                invite.getId(), invite.getConfigId(), invite.getCandidateRef(), invite.getTokenHash());
         return UsernamePasswordAuthenticationToken.authenticated(
                 principal,
                 null,
@@ -81,8 +81,12 @@ public class AuthSessionService {
         return NiftyPrincipal.current().orElseThrow(() -> new DomainException(HttpStatus.UNAUTHORIZED, NOT_SIGNED_IN));
     }
 
-    /** True if the given invite still exists and has not been revoked (used by RevokedInviteFilter). */
-    public boolean isInviteActive(UUID inviteId) {
-        return inviteId != null && inviteRepository.existsByIdAndRevokedFalse(inviteId);
+    /**
+     * True if the invite exists, is not revoked, and still has the token hash of the session (used by
+     * RevokedInviteFilter). A null hash fails closed (Decision 2.34).
+     */
+    public boolean isInviteActive(UUID inviteId, String tokenHash) {
+        return inviteId != null && tokenHash != null
+                && inviteRepository.existsByIdAndTokenHashAndRevokedFalse(inviteId, tokenHash);
     }
 }
