@@ -11,11 +11,11 @@
 
 ## Tasks
 
-- [ ] **US-AC-01: Flyway `V6__assessment.sql`, ledger immutability trigger, and `AssessmentCleanupListener`**
-  - [ ] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) proving `conversation_entry` trigger rejects `UPDATE` and unflagged `DELETE`, and `AssessmentDeletedEvent` with `SET LOCAL nifty.allow_purge = 'on'` purges attempts, ledger rows, and BFI-10 rows cleanly.
-  - [ ] Implement `V6__assessment.sql`, entities/repositories in `assessment/repository/`, and `AssessmentCleanupListener`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(assessment): add V6 schema, immutable ledger trigger, and GDPR cleanup`
+- [x] **US-AC-01: Flyway `V6__assessment.sql`, ledger immutability trigger, and `AssessmentCleanupListener`**
+  - [x] Write RED `@DataJpaTest` (PostgreSQL Testcontainers) proving `conversation_entry` trigger rejects `UPDATE` and unflagged `DELETE`, and `AssessmentDeletedEvent` with `SET LOCAL nifty.allow_purge = 'on'` purges attempts, ledger rows, and BFI-10 rows cleanly.
+  - [x] Implement `V6__assessment.sql`, entities/repositories in `assessment/repository/`, and `AssessmentCleanupListener`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(assessment): add V6 schema, immutable ledger trigger, and GDPR cleanup`
 
 - [ ] **US-AC-02: Pure `AttemptStateMachine`, `PasteVelocityDetector`, and `Bfi10ScoringService`**
   - [ ] Write RED pure-JVM unit tests: core question order, `inventedQuestions = false`, `followUpLimit`, `SOFT_SKILLS`-only skip straight to `BFI10`, `maxAttempts` → `409`, `minTimeSec` + velocity (`> 12 chars/s` for `>= 150 chars`) → `pasteSuspected`, `expiresAt` grace window (`timedOut = true` with partial text kept per Decision 2.20), post-grace `409`, and BFI-10 boundary scoring (all 1s, all 5s, mixed 1R/3R/4R/5R/7R).
@@ -56,3 +56,10 @@
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log
+
+### US-AC-01 (2026-11-26)
+- Commits: `feat(assessment): add V6 schema, immutable ledger trigger, and GDPR cleanup`
+- Verification: RED: `./mvnw -B test -Dtest=AssessmentLedgerSchemaTest` → FAIL (entities, repositories and listener missing); GREEN: `cd backend && ./mvnw -B test` → exit 0
+- Contracts/Migrations added: `V6__assessment.sql` (`assessment_attempt`, `conversation_entry` + append-only trigger, `bfi_response`), `AssessmentCleanupListener`
+- Decisions: 4.4 (purge through the FK cascade; the cascade fires the ledger trigger too, so an unflagged attempt delete fails)
+- Open Questions: none
