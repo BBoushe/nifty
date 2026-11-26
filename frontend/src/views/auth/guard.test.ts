@@ -21,14 +21,14 @@ describe('authGuard (US-AU-02)', () => {
     expect(result).toEqual({ path: '/sign-in', query: { redirect: '/ranking/studio' } })
   })
 
-  it('redirects a CANDIDATE from /ranking to /sign-in', async () => {
+  it('sends a signed-in CANDIDATE from /ranking to the candidate start page (REQ-NAV-09)', async () => {
     const auth = useAuthStore()
     auth.me = { role: 'CANDIDATE', professorId: null }
     auth.loaded = true
 
     const result = await authGuard(routeTo('/ranking'), routeTo('/'), vi.fn())
 
-    expect(result).toEqual({ path: '/sign-in', query: { redirect: '/ranking' } })
+    expect(result).toEqual({ path: '/assessment' })
   })
 
   it('allows a PROFESSOR on /ranking routes', async () => {
@@ -41,14 +41,14 @@ describe('authGuard (US-AU-02)', () => {
     expect(result).toBe(true)
   })
 
-  it('redirects a PROFESSOR from /assessment to /sign-in', async () => {
+  it('sends a signed-in PROFESSOR from /assessment/results to the professor start page (REQ-NAV-09)', async () => {
     const auth = useAuthStore()
     auth.me = { role: 'PROFESSOR', professorId: '00000000-0000-0000-0000-000000000001' }
     auth.loaded = true
 
-    const result = await authGuard(routeTo('/assessment'), routeTo('/'), vi.fn())
+    const result = await authGuard(routeTo('/assessment/results/c1'), routeTo('/'), vi.fn())
 
-    expect(result).toEqual({ path: '/sign-in', query: { redirect: '/assessment' } })
+    expect(result).toEqual({ path: '/ranking/studio' })
   })
 
   it('allows a CANDIDATE on /assessment routes', async () => {

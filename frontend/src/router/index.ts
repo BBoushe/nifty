@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import assessmentRoutes from '@/views/assessment/routes'
-import { authGuard } from '@/views/auth/guard'
+import { authGuard, startPageFor } from '@/views/auth/guard'
 import authRoutes from '@/views/auth/routes'
 import rankingRoutes from '@/views/ranking/routes'
 import studioRoutes from '@/views/studio/routes'
@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 // REQ-NAV-04: vue-router awaits no redirect function, so a beforeEnter guard picks the role start page.
 async function startPage() {
   const me = await useAuthStore().fetchMe()
-  return me?.role === 'PROFESSOR' ? '/ranking/studio' : me?.role === 'CANDIDATE' ? '/assessment' : '/sign-in'
+  return startPageFor(me?.role)
 }
 
 // Each feature folder owns its routes file, so a ticket edits only its own routes (US-FF-03).
