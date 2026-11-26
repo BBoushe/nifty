@@ -20,7 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * REQ-EP-05 / Decisions 1.12, 2.24: verifies EvaluationEventListener triggers ONLY AFTER_COMMIT,
+ * REQ-EP-05 / Decisions 1.12, 2.28: verifies EvaluationEventListener triggers ONLY AFTER_COMMIT,
  * never starts when the publishing transaction rolls back, and survives a full executor queue.
  */
 @SpringBootTest

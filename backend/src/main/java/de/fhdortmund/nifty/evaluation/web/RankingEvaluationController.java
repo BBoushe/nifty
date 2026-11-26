@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REQ-SM-01..08 / Decisions 1.18, 1.19, 2.10, 2.13, 2.15, 2.24:
- * PROFESSOR-only endpoints for the Skills Matrix, Evidence Drawer drilldown, bulk-approve,
+ * REQ-SM-01..08 / Decisions 1.18, 1.19, 2.10, 2.13, 2.15, 2.24, 2.30:
+ * PROFESSOR-only endpoints for the Skills Matrix, Evidence Drawer drilldown, individual approval,
  * audited overrides, explicit attempt release, SQL Cohort Gaps, and transcript export.
  */
 @RestController
@@ -40,11 +40,6 @@ class RankingEvaluationController {
     @GetMapping("/attempts/{attemptId}/evaluations")
     EvaluationDtos.AttemptEvaluationDrilldownResponse getAttemptEvaluations(@PathVariable UUID attemptId) {
         return reviewService.getAttemptDrilldown(attemptId);
-    }
-
-    @PostMapping("/evaluations/approve")
-    EvaluationDtos.BulkApproveResponse bulkApprove(@RequestBody EvaluationDtos.BulkApproveRequest request) {
-        return reviewService.bulkApprove(request);
     }
 
     @PostMapping("/evaluations/{responseEvalId}/approve")

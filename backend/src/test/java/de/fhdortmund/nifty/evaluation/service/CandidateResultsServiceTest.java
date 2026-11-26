@@ -118,6 +118,32 @@ class CandidateResultsServiceTest {
     }
 
     @Test
+    void withholdsResultsWhenLatestAttemptIsNotYetCompleted() {
+        UUID configId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        UUID attemptId = UUID.randomUUID();
+        when(authContextService.currentCandidate())
+                .thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand_2"));
+
+        FormulaVersionEntity formula = new FormulaVersionEntity(
+                configId, 1, "WEIGHTED_MEAN", new BigDecimal("0.5000"), Map.of(), null);
+        EvaluationRunEntity run = new EvaluationRunEntity(attemptId, configId, formula, "v1", "RUNNING", "k-run");
+        CandidateEvaluationSummaryEntity running = new CandidateEvaluationSummaryEntity(
+                attemptId, configId, inviteId, 1, formula, run, "RUNNING",
+                new BigDecimal("3.00"), BigDecimal.ONE, 0, "auto_released", Instant.now());
+        when(summaryRepository.findTopByConfigIdAndInviteIdOrderByAttemptNoDescCreatedAtDesc(configId, inviteId))
+                .thenReturn(Optional.of(running));
+
+        EvaluationDtos.CandidateResultsResponse response = service.getResultsForCurrentCandidate(configId);
+
+        assertThat(response.released()).isFalse();
+        assertThat(response.fitScore()).isNull();
+        assertThat(response.skillScores()).isNull();
+        assertThat(response.evidence()).isNull();
+        verify(assessmentQueryService, never()).getSoftSkillProfileForAttempt(attemptId);
+    }
+
+    @Test
     void returnsFullTransparentProfileAfterRelease() {
         UUID configId = UUID.randomUUID();
         UUID inviteId = UUID.randomUUID();

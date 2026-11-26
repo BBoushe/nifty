@@ -56,7 +56,6 @@ class RankingEvaluationControllerTest {
         when(reviewService.getAttemptDrilldown(attemptId)).thenReturn(new EvaluationDtos.AttemptEvaluationDrilldownResponse(
                 attemptId, configId, UUID.randomUUID(), 1, new BigDecimal("3.00"), BigDecimal.ONE,
                 new BigDecimal("0.7000"), ReleaseStatus.AUTO_RELEASED, 0, Instant.now(), List.of(), List.of()));
-        when(reviewService.bulkApprove(any())).thenReturn(new EvaluationDtos.BulkApproveResponse(2, 1));
         when(reviewService.approveEvaluation(responseEvalId)).thenReturn(
                 new EvaluationDtos.ApproveEvaluationResponse(
                         responseEvalId, attemptId, null, ReleaseStatus.APPROVED, Instant.now(), 0));
@@ -79,14 +78,6 @@ class RankingEvaluationControllerTest {
         mockMvc.perform(get("/api/v1/ranking/attempts/{id}/evaluations", attemptId).with(user("p").roles("PROFESSOR")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.releaseStatus").value("auto_released"));
-
-        mockMvc.perform(post("/api/v1/ranking/evaluations/approve")
-                        .with(user("p").roles("PROFESSOR"))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configId\":\"" + configId + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.skippedFlaggedCount").value(1));
 
         mockMvc.perform(post("/api/v1/ranking/evaluations/{id}/approve", responseEvalId)
                         .with(user("p").roles("PROFESSOR"))

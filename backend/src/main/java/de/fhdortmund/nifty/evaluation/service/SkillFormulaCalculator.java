@@ -289,6 +289,7 @@ public class SkillFormulaCalculator {
         boolean anyPending = false;
         boolean anyOverridden = false;
         boolean anyApproved = false;
+        boolean anyAutoReleased = false;
         for (int i = 0; i < entries.size(); i++) {
             String status = entries.get(i).reviewStatus();
             if (ReleaseStatus.FLAGGED.literal().equals(status)) {
@@ -299,6 +300,8 @@ public class SkillFormulaCalculator {
                 anyOverridden = true;
             } else if (ReleaseStatus.APPROVED.literal().equals(status)) {
                 anyApproved = true;
+            } else if (ReleaseStatus.AUTO_RELEASED.literal().equals(status)) {
+                anyAutoReleased = true;
             }
         }
         if (anyFlagged) {
@@ -313,6 +316,10 @@ public class SkillFormulaCalculator {
         if (anyApproved) {
             return ReleaseStatus.APPROVED.literal();
         }
-        return ReleaseStatus.AUTO_RELEASED.literal();
+        if (anyAutoReleased) {
+            return ReleaseStatus.AUTO_RELEASED.literal();
+        }
+        // Fail closed on unknown literals rather than promoting to auto_released (Decision 2.10).
+        return ReleaseStatus.PENDING.literal();
     }
 }

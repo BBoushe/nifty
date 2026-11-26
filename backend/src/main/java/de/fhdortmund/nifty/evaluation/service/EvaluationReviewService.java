@@ -26,18 +26,16 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * REQ-SM-01..03, REQ-SM-06..08, REQ-FE-02 / Decisions 1.18, 2.10, 2.13, 2.15, 2.24:
- * Professor-scoped Skills Matrix, Evidence Drawer drilldown, bulk-approve (skipping flagged),
+ * REQ-SM-01..03, REQ-SM-06..08, REQ-FE-02 / Decisions 1.18, 2.10, 2.13, 2.15, 2.24, 2.30:
+ * Professor-scoped Skills Matrix, Evidence Drawer drilldown, individual approval (no bulk approval),
  * audited score overrides with deterministic Formula B recalculation, explicit attempt release,
  * and assessment-transcript/v1 export.
  */
@@ -180,73 +178,10 @@ public class EvaluationReviewService {
                 FormulaRecalculationHelper.toMatrixCells(evaluatorView.skills(), scores));
     }
 
-    @Transactional
-    public EvaluationDtos.BulkApproveResponse bulkApprove(EvaluationDtos.BulkApproveRequest request) {
-        if (request == null || request.configId() == null) {
-            throw new FieldValidationException(List.of(
-                    new FieldErrorDetail("configId", "must not be null", "REQUIRED")));
-        }
-        requireOwnedConfig(request.configId());
-
-        List<CandidateEvaluationSummaryEntity> summaries = summaryRepository.findLatestCompletedPerInvite(request.configId());
-        if (summaries.isEmpty()) {
-            return new EvaluationDtos.BulkApproveResponse(0, 0);
-        }
-        List<UUID> summaryIds = new ArrayList<>(summaries.size());
-        for (int i = 0; i < summaries.size(); i++) {
-            summaryIds.add(summaries.get(i).getId());
-        }
-
-        List<ResponseEvaluationEntity> responses = responseEvaluationRepository.findBySummaryIdIn(summaryIds);
-        Set<UUID> filterIds = (request.responseEvaluationIds() == null || request.responseEvaluationIds().isEmpty())
-                ? null
-                : new HashSet<>(request.responseEvaluationIds());
-
-        Instant now = Instant.now();
-        int approvedCount = 0;
-        int skippedFlaggedCount = 0;
-        List<ResponseEvaluationEntity> modified = new ArrayList<>();
-        Set<UUID> affectedSummaryIds = new HashSet<>();
-
-        for (int i = 0; i < responses.size(); i++) {
-            ResponseEvaluationEntity r = responses.get(i);
-            if (filterIds != null && !filterIds.contains(r.getId())) {
-                continue;
-            }
-            // REQ-SM-03: flagged scores MUST NEVER be bulk-approved.
-            if (ReleaseStatus.FLAGGED.literal().equals(r.getReviewStatus())) {
-                skippedFlaggedCount++;
-                continue;
-            }
-            if (ReleaseStatus.PENDING.literal().equals(r.getReviewStatus())) {
-                r.approve(now);
-                modified.add(r);
-                affectedSummaryIds.add(r.getSummary().getId());
-                approvedCount++;
-            }
-        }
-        if (!modified.isEmpty()) {
-            responseEvaluationRepository.saveAll(modified);
-            EvaluatorView evaluatorView = studioQueryService.evaluatorView(request.configId());
-            for (int i = 0; i < summaries.size(); i++) {
-                CandidateEvaluationSummaryEntity summary = summaries.get(i);
-                if (!affectedSummaryIds.contains(summary.getId())) {
-                    continue;
-                }
-                List<ResponseEvaluationEntity> summaryResponses = responseEvaluationRepository
-                        .findBySummaryIdOrderByIdAsc(summary.getId());
-                FormulaVersionEntity fv = summary.getFormulaVersion();
-                SkillFormulaCalculator.FormulaResult recalculated = recalcHelper.computeForResponses(
-                        evaluatorView, fv.getQuestionWeightsJson(), summaryResponses, fv.getMaxEntrySkillWeightShare());
-                recalcHelper.replaceSkillScores(summary, fv, recalculated, null);
-            }
-        }
-        return new EvaluationDtos.BulkApproveResponse(approvedCount, skippedFlaggedCount);
-    }
-
     /**
-     * REQ-SM-06 / AGENTS.md §2 #2: individual professor approval for a single flagged or pending
-     * evaluation without fabricating a 0..4 override (keeps effectiveLevel or N/A intact).
+     * REQ-SM-03, REQ-SM-06 / AGENTS.md §2 #2 / Decision 2.30: individual professor approval for a
+     * single flagged or pending evaluation without fabricating a 0..4 override (keeps effectiveLevel
+     * or N/A intact). Bulk approval is intentionally disallowed.
      */
     @Transactional
     public EvaluationDtos.ApproveEvaluationResponse approveEvaluation(UUID responseEvalId) {
@@ -399,6 +334,10 @@ public class EvaluationReviewService {
         if (!summary.isCompleted()) {
             throw new DomainException(HttpStatus.CONFLICT, "This attempt has not finished evaluation yet.");
         }
+        // Decision 2.10: an already-released attempt must not be re-released or have its releasedAt overwritten.
+        if (FormulaRecalculationHelper.isReleased(summary.getReleaseStatus())) {
+            throw new DomainException(HttpStatus.CONFLICT, "This attempt is already released.");
+        }
         List<ResponseEvaluationEntity> responses = responseEvaluationRepository
                 .findBySummaryIdOrderByIdAsc(summary.getId());
 
@@ -414,7 +353,7 @@ public class EvaluationReviewService {
         List<ResponseEvaluationEntity> toApprove = new ArrayList<>();
         for (int i = 0; i < responses.size(); i++) {
             ResponseEvaluationEntity r = responses.get(i);
-            if (ReleaseStatus.OVERRIDDEN.literal().equals(r.getReviewStatus())) {
+            if (r.getOverriddenBy() != null || ReleaseStatus.OVERRIDDEN.literal().equals(r.getReviewStatus())) {
                 anyOverridden = true;
             } else if (ReleaseStatus.PENDING.literal().equals(r.getReviewStatus())) {
                 r.approve(now);
@@ -479,7 +418,7 @@ public class EvaluationReviewService {
                             e.origin() == null ? "core" : e.origin().literal(),
                             e.coreQuestionId(),
                             weight,
-                            e.targetSkillIds() == null ? List.of() : e.targetSkillIds(),
+                            e.targetSkillIds() == null ? List.of() : List.copyOf(e.targetSkillIds()),
                             e.askedAt(),
                             e.expiresAt()),
                     new EvaluationDtos.TranscriptAnswerBlock(

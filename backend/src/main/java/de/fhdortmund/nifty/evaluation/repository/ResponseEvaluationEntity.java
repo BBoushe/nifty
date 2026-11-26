@@ -230,6 +230,10 @@ public class ResponseEvaluationEntity {
     }
 
     public void approve(Instant reviewedAt) {
+        // Decision 2.10: an audited professor override must survive; never overwrite it with approve.
+        if (this.overriddenBy != null) {
+            throw new IllegalStateException("Cannot approve an overridden response evaluation.");
+        }
         this.reviewStatus = "approved";
         this.reviewedAt = reviewedAt;
     }
