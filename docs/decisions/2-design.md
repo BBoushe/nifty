@@ -240,3 +240,12 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Free-text evaluator output parsed with heuristics; letting the LLM rank candidates
 - **Rationale / Justification:** A fixed schema makes the LLM output testable and keeps every number that affects a student deterministic (AGENTS.md §2.1).
 - **Affected Files / Pointers:** openspec/specs/evidence-pipeline/spec.md, openspec/specs/context-creation/spec.md, docs/architecture.md
+
+## 2.26 — Candidate answers are capped at 4000 characters at the assessment API
+- **Date:** 2026-11-26
+- **Triggered By:** prompter-change
+- **Context:** Review and mutation testing of context-creation found that injection checks read the full raw answer, and nothing limited answer size. Large answers cost CPU on every interviewer turn. The prompt sanitizer already cuts prompt text at 4000 characters.
+- **Decision:** POST /api/v1/assessment/sessions/{id}/answers rejects an answer content longer than 4000 characters with 400 ProblemDetail, errors[].field = content, and stores nothing (REQ-AC-20). The chat textarea sets maxlength=4000 and shows a counter. The limit equals PromptSanitizer.MAX_CHARS, so the ledger never holds text the models cannot see.
+- **Alternatives Considered:** No API cap (rely on the sanitizer cut and linear regexes); a larger cap such as 16000 with the prompt still cut at 4000; a request-body size limit only.
+- **Rationale / Justification:** One limit for ledger and prompt keeps quote verification and judging aligned, bounds CPU per turn, and gives the candidate a clear rule instead of silent truncation.
+- **Affected Files / Pointers:** openspec/changes/assessment-chat/specs/assessment-chat/spec.md, openspec/changes/assessment-chat/tasks.md, docs/tickets/03-assessment-chat.md, backend/src/main/java/de/fhdortmund/nifty/context/service/PromptSanitizer.java
