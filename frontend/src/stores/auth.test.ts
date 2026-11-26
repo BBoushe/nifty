@@ -26,6 +26,34 @@ describe('useAuthStore (REQ-AA-02, REQ-AA-06, Decision 1.23)', () => {
     vi.unstubAllGlobals()
   })
 
+  it('shares one in-flight /auth/me request between concurrent checks', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ role: 'PROFESSOR', professorId: 'prof-1' }))
+    vi.stubGlobal('fetch', fetchMock)
+    const auth = useAuthStore()
+
+    await Promise.all([auth.fetchMe(), auth.fetchMe()])
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(auth.me?.role).toBe('PROFESSOR')
+  })
+
+  it('never lets a slow older /auth/me answer overwrite a newer forced one (invite sign-in)', async () => {
+    let releaseStale: (r: Response) => void = () => {}
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(new Promise<Response>((resolve) => (releaseStale = resolve)))
+      .mockResolvedValueOnce(jsonResponse({ role: 'CANDIDATE', professorId: null, configId: 'cfg-1' }))
+    vi.stubGlobal('fetch', fetchMock)
+    const auth = useAuthStore()
+
+    const stale = auth.fetchMe()
+    await auth.fetchMe(true)
+    releaseStale(problemResponse(401, 'Not signed in'))
+    await stale
+
+    expect(auth.me?.role).toBe('CANDIDATE')
+  })
+
   it('keeps loaded=false on a non-401 error so subsequent checks can retry', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(problemResponse(500, 'Server error'))
     vi.stubGlobal('fetch', fetchMock)

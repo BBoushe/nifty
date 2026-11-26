@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import {
   applyFormulaPreset,
   formatScore,
@@ -132,6 +132,9 @@ const hasSelection = computed(() => Boolean(selectedConfigId.value))
 
     <div v-else-if="!hasSelection" class="rounded-xl border border-slate-200 bg-surface p-6 text-sm text-ink-muted">
       Create an assessment in Studio to review evaluations and cohort gaps here.
+      <RouterLink to="/ranking/studio/new" class="font-medium text-slate-900 underline" data-testid="ranking-empty-studio-link">
+        Open Studio
+      </RouterLink>
     </div>
 
     <template v-else>
