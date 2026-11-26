@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-26 — invite-links
+- **What:** Added `V4__auth_invites.sql` (`invite` with 256-bit random tokens stored only as SHA-256 hex), `PROFESSOR`-only invite create/list/revoke endpoints scoped via `StudioQueryService.ownedBy`, public `POST /api/v1/auth/invite/{token}` starting a `CANDIDATE` session, `AuthContextServiceImpl.currentCandidate()`, `RevokedInviteFilter` ending revoked sessions on their next request (`401`), synchronous `AssessmentDeletedEvent` invite purge, and frontend `/invite/:token` landing page + Studio detail invite panel (single add, CSV import, copy/download links, revoke).
+- **Why:** Candidates sign in only through personal invite links, assessment/evaluation need `AuthContextService.currentCandidate()`, and revoking an invite or deleting an assessment must end access and purge invite rows immediately (Decisions 1.17, 1.23, 4.4).
+- **PR/MR:** GitHub #26, GitLab !25
+- **Specs:** REQ-AA-08..09 (added to `auth-access`); REQ-AA-03..05 (implemented)   **Decisions:** applies 1.10, 1.14, 1.15, 1.17, 1.23, 4.4
+
 ## 2026-11-26 — studio-assessment-creation
 - **What:** Added `V3__studio.sql` (`assessment_config`, `skill`, `core_question`, `core_question_skill`, `studio_block_mutation()` immutability triggers), `@Immutable` JPA entities and repositories in `studio/repository/`, pure zero-Stream validators with the `SOFT_SKILLS` + BFI-10 zero-question exemption, one-shot idempotent creation (`CONFIG_CREATED` audit, `REQ-IS-12` key ownership), `StudioQueryServiceImpl` (with `ownedBy` and rubric-leak guard; placeholder deleted), `PROFESSOR`-only `/api/v1/ranking/studio/configs/**` REST endpoints + GDPR `DELETE` (`AssessmentDeletedEvent` + `SET LOCAL nifty.allow_purge = 'on'`), and Vue 3.5 + PrimeVue Studio form (`localStorage` draft), list, and read-only detail views.
 - **Why:** Professors need one-shot immutable assessment creation, hidden 5-level rubrics, narrow downstream read-only views, and GDPR purge without editing live rubrics (Decisions 1.19, 2.21, 2.22, 2.23, 4.4).

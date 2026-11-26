@@ -2,11 +2,10 @@ spring:
   main:
     banner-mode: off
   # The datasource comes from PostgresContainerBase (@ServiceConnection).
-  # Each cached test context keeps its own pool; 10 connections each exceed PostgreSQL's 100 after ~10 contexts.
   datasource:
     hikari:
-      maximum-pool-size: 4
-      minimum-idle: 1
+      # Keep cached Spring test contexts well under PostgreSQL's default max_connections=100.
+      maximum-pool-size: 3
   jpa:
     hibernate:
       ddl-auto: validate
