@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-02 done, committed
-- **Next action:** US-TB-03 (SimulatedAnnealingTeamOptimizer)
+- **Current:** US-TB-03 done, committed
+- **Next action:** US-TB-04 (TeamBuilderService)
 - **Uncommitted changes:** none (after the task commit)
 - **PR / MR:** — (orchestrator opens it)
 - **Open review findings:** —
@@ -23,11 +23,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(teams): implement zero-stream objective calculator with N/A handling`
 
-- [ ] **US-TB-03: Deterministic seeded `SimulatedAnnealingTeamOptimizer` (2-opt swaps)**
-  - [ ] Write RED pure-JVM tests: 22 students with `teamSize = 5` → 5 teams of sizes `{5,5,4,4,4}`, every student placed exactly once, fixed `seed = 42` returns identical assignments across runs, cost strictly improves or equals random baseline, and validation rejects `numTeams > N`, negative weights, or out-of-range `alpha`.
-  - [ ] Implement `SimulatedAnnealingTeamOptimizer` using primitive arrays and 2-opt swaps.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(teams): implement seeded Simulated Annealing 2-opt team optimizer`
+- [x] **US-TB-03: Deterministic seeded `SimulatedAnnealingTeamOptimizer` (2-opt swaps)**
+  - [x] Write RED pure-JVM tests: 22 students with `teamSize = 5` → 5 teams of sizes `{5,5,4,4,4}`, every student placed exactly once, fixed `seed = 42` returns identical assignments across runs, cost strictly improves or equals random baseline, and validation rejects `numTeams > N`, negative weights, or out-of-range `alpha`.
+  - [x] Implement `SimulatedAnnealingTeamOptimizer` using primitive arrays and 2-opt swaps.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(teams): implement seeded Simulated Annealing 2-opt team optimizer`
 
 - [ ] **US-TB-04: `TeamBuilderService` (generate `DRAFT`, drag-and-drop recalculate, `AuditService` publish)**
   - [ ] Write RED Mockito tests against `StudioQueryService`, `EvaluationQueryService`, `AssessmentQueryService`, and `AuditService`: generate uses only `CandidateProfilesView.released` and shows `pendingInviteIds` as waiting for review (REQ-TB-11), generate saves `DRAFT`, recalculate updates diagnostics with zero LLM calls and validates every candidate assigned once, publish flips `DRAFT -> PUBLISHED` and writes `TEAMS_PUBLISHED` via `AuditService`.
@@ -65,8 +65,15 @@
 - Open Questions: none
 
 ### US-TB-02 TeamObjectiveCalculator
-- Commits: <sha-us-tb-02> feat(teams): implement zero-stream objective calculator with N/A handling
+- Commits: d000c9f feat(teams): implement zero-stream objective calculator with N/A handling
 - Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamObjectiveCalculatorTest` → FAIL (compile error: calculator absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (211 run, 11 in the new class)
 - Contracts/Migrations added: `teams/service/TeamObjectiveCalculator` (public static `normalizeSkill`, `normalizeTrait`, `traitWeights`; records `Params`, `TeamDiagnostics`); migrations none
 - Decisions: 1.20, 2.23, 4.3 (pointer comments in the class; trait term only for BFI-10 on and SOFT_SKILLS/COMBINED, REQ-TB-06)
+- Open Questions: none
+
+### US-TB-03 SimulatedAnnealingTeamOptimizer
+- Commits: <sha-us-tb-03> feat(teams): implement seeded Simulated Annealing 2-opt team optimizer
+- Verification: RED: `cd backend && ./mvnw -B test -Dtest=SimulatedAnnealingTeamOptimizerTest` → FAIL (compile error: optimizer absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (211 run, 7 in the new class)
+- Contracts/Migrations added: `teams/service/SimulatedAnnealingTeamOptimizer.optimize(calculator, candidates, numTeams, seed)`; migrations none
+- Decisions: 1.20 (seeded, 2-opt swaps keep floor/ceil sizes; test greps both sources for zero Streams)
 - Open Questions: none
