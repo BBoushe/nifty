@@ -27,6 +27,12 @@ public interface AssessmentAttemptRepository extends Repository<AssessmentAttemp
 
     long countByInviteId(UUID inviteId);
 
+    Optional<AssessmentAttemptEntity> findFirstByConfigIdAndInviteIdAndStatusOrderByAttemptNoDesc(UUID configId,
+            UUID inviteId, String status);
+
+    /** Newest attempt first within each invite, so the first row per invite is the latest one (Decision 2.13). */
+    List<AssessmentAttemptEntity> findByConfigIdAndStatusOrderByInviteIdAscAttemptNoDesc(UUID configId, String status);
+
     /** IN_PROGRESS attempts whose last ledger row is an interviewer question that expired before {@code cutoff}. */
     @Query(value = "SELECT a.id FROM assessment_attempt a JOIN conversation_entry e ON e.attempt_id = a.id "
             + "WHERE a.status = 'IN_PROGRESS' AND e.author = 'interviewer' AND e.expires_at < :cutoff "

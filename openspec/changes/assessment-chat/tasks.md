@@ -29,11 +29,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(assessment): wire ContextCreationService, SSE streaming, and completion event`
 
-- [ ] **US-AC-04: `AssessmentQueryService` contracts for `evaluation` and `teams`**
-  - [ ] Write RED unit/persistence tests verifying `getTranscriptForAttempt` returns ordered ledger entries with zero BFI-10 fields, and `getSoftSkillProfilesForConfig` returns already-scored `1.0..5.0` trait means for each candidate's latest completed attempt.
-  - [ ] Implement `AssessmentQueryService` and `AssessmentQueryServiceImpl`.
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(assessment): add AssessmentQueryService read contracts`
+- [x] **US-AC-04: `AssessmentQueryService` contracts for `evaluation` and `teams`**
+  - [x] Write RED unit/persistence tests verifying `getTranscriptForAttempt` returns ordered ledger entries with zero BFI-10 fields, and `getSoftSkillProfilesForConfig` returns already-scored `1.0..5.0` trait means for each candidate's latest completed attempt.
+  - [x] Implement `AssessmentQueryService` and `AssessmentQueryServiceImpl`.
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(assessment): add AssessmentQueryService read contracts`
 
 - [ ] **US-AC-05: `AssessmentSessionController` (`CANDIDATE` only) and `docs/api.md` sync**
   - [ ] Write RED `@WebMvcTest` + `@MockitoBean` tests: `POST /api/v1/assessment/sessions`, `POST /api/v1/assessment/sessions/{id}/answers` (SSE), `GET /api/v1/assessment/sessions/{id}` (refresh resume), `POST /api/v1/assessment/sessions/{id}/bfi10` (`204` / `400` missing items / `409` wrong state), `PROFESSOR` → `403`, cross-candidate read → `403`, answer `content` of 4001 characters → `400` ProblemDetail (`errors[].field = content`) with no ledger write and no `ContextCreationService` call, 4000 characters → accepted (REQ-AC-20, Decision 2.26).
@@ -77,3 +77,10 @@
 - Contracts/Migrations added: public `AssessmentSessionService`, `SessionReply` (`delta` / `question` / `done` SSE payloads), `SseSink`, `SessionStateResponse`; `nifty.assessment.grace-seconds` (default 5) and `nifty.assessment.expiry-sweep-cron`; test pool capped at 4 (PostgreSQL ran out of connections with one more cached context)
 - Decisions: 1.11 (writes commit before the LLM streams), 1.18, 2.20, 2.24; gap-fills: `POST /sessions` resumes an unfinished attempt as JSON; LLM failure or a blank reply falls back to the configured core question text; a blank or too-late answer skips follow-ups
 - Open Questions: grace period value is not in the spec (5 s chosen); context template tells the LLM "Ask no follow-up ... the next question comes next" when the active core question has `followUpLimit = 0`, which may make it skip asking that core question (context owner)
+
+### US-AC-04 (2026-11-26)
+- Commits: `feat(assessment): add AssessmentQueryService read contracts`
+- Verification: RED: `./mvnw -B test -Dtest=AssessmentQueryServiceImplTest` → FAIL (`AssessmentQueryServiceImpl` missing); GREEN: `cd backend && ./mvnw -B test` → exit 0
+- Contracts/Migrations added: `AssessmentQueryServiceImpl` replaces `AssessmentQueryServicePlaceholder` (deleted)
+- Decisions: 1.19 (transcript route lives in `evaluation`), 2.13 (latest completed attempt per invite), REQ-AC-16 (transcript types carry no BFI-10 field)
+- Open Questions: none

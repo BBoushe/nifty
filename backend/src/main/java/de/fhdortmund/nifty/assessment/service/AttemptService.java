@@ -223,8 +223,8 @@ class AttemptService {
         InterviewerQuestion q = step instanceof AskCore core ? core.question() : ((AskFollowUp) step).question();
         EntryOrigin origin = step instanceof AskFollowUp ? EntryOrigin.FOLLOW_UP : EntryOrigin.CORE;
         // REQ-AC-07: a follow-up uses the time limits of its core question.
-        LedgerEntry question = toEntry(entries.save(new ConversationEntryEntity(attempt.getId(), ledger.size() + 1,
-                LedgerEntry.INTERVIEWER, q.coreQuestionId(), origin.literal(), text, q.targetSkillIds(), now,
+        LedgerEntry question = LedgerEntry.of(entries.save(new ConversationEntryEntity(attempt.getId(),
+                ledger.size() + 1, LedgerEntry.INTERVIEWER, q.coreQuestionId(), origin.literal(), text, q.targetSkillIds(), now,
                 now.plusSeconds(q.maxTimeSec()), false, false, false)));
         ledger.add(question);
         return new Asked(question, AttemptStateMachine.questionsRemaining(view, ledger));
@@ -256,7 +256,7 @@ class AttemptService {
 
     private LedgerEntry append(UUID attemptId, List<LedgerEntry> ledger, String author, LedgerEntry question,
             String content, Instant now, Instant expiresAt, boolean timedOut, boolean paste, boolean injection) {
-        return toEntry(entries.save(new ConversationEntryEntity(attemptId, ledger.size() + 1, author,
+        return LedgerEntry.of(entries.save(new ConversationEntryEntity(attemptId, ledger.size() + 1, author,
                 question.coreQuestionId(), question.origin().literal(), content, question.targetSkillIds(), now,
                 expiresAt, timedOut, paste, injection)));
     }
@@ -304,15 +304,9 @@ class AttemptService {
         List<ConversationEntryEntity> rows = entries.findByAttemptIdOrderBySeqAsc(attemptId);
         List<LedgerEntry> ledger = new ArrayList<>(rows.size());
         for (int i = 0; i < rows.size(); i++) {
-            ledger.add(toEntry(rows.get(i)));
+            ledger.add(LedgerEntry.of(rows.get(i)));
         }
         return ledger;
-    }
-
-    static LedgerEntry toEntry(ConversationEntryEntity e) {
-        return new LedgerEntry(e.getId(), e.getSeq(), e.getAuthor(), e.getCoreQuestionId(),
-                EntryOrigin.fromLiteral(e.getOrigin()), e.getContent(), e.getTargetSkills(), e.getCreatedAt(),
-                e.getExpiresAt(), e.isTimedOut(), e.isPasteSuspected(), e.isInjectionSuspected());
     }
 
     private AssessmentAttemptEntity lockOwned(UUID attemptId, UUID inviteId) {
