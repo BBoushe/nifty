@@ -9,6 +9,8 @@
 // Usage:
 //   node .claude/hooks/guard-agent.mjs --mode readonly
 //   node .claude/hooks/guard-agent.mjs --mode tests-only
+import fs from 'node:fs';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   getGitSubcommand,
@@ -54,8 +56,27 @@ const MUTATING_GIT_SUBCOMMANDS = new Set([
   'am',
 ]);
 
+// Hooks run with the main checkout as cwd, but agents work in `../nifty-<change>` worktrees.
+// Measure an absolute path from its own worktree root, but only for worktrees of this repo.
+function worktreeRootFor(inputPath, repoRoot) {
+  if (typeof inputPath !== 'string' || !path.isAbsolute(inputPath.trim())) return repoRoot;
+  const worktreesDir = path.join(path.resolve(repoRoot), '.git', 'worktrees') + path.sep;
+  let dir = path.dirname(path.resolve(inputPath.trim()));
+  while (dir !== path.dirname(dir)) {
+    const dotGit = path.join(dir, '.git');
+    if (fs.existsSync(dotGit)) {
+      if (!fs.statSync(dotGit).isFile()) return repoRoot;
+      const match = /^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dotGit, 'utf8'));
+      const gitdir = match ? path.resolve(dir, match[1].trim()) : '';
+      return gitdir.startsWith(worktreesDir) ? dir : repoRoot;
+    }
+    dir = path.dirname(dir);
+  }
+  return repoRoot;
+}
+
 export function isAllowedTestPath(inputPath, repoRoot = process.cwd()) {
-  const rel = toRepoRelative(inputPath, repoRoot);
+  const rel = toRepoRelative(inputPath, worktreeRootFor(inputPath, repoRoot));
   if (!rel || isBlockedEnvPath(rel)) return false;
 
   if (/^backend\/src\/test\/.+/.test(rel)) {
