@@ -35,6 +35,18 @@ class TwoRunResponseJudgeTest {
     private static final List<String> RUBRIC = List.of("None", "Basic", "Developing", "Proficient", "Expert");
 
     @Test
+    void judgeRunsOutsideAnyTransactionSoNoDbConnectionIsHeldAcrossLlmCalls() throws NoSuchMethodException {
+        // Decision 2.24: the class default is readOnly; judge() must opt out, because it blocks on two LLM calls.
+        var attribute = new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()
+                .getTransactionAttribute(
+                        TwoRunResponseJudge.class.getMethod("judge", JudgeContextInput.class), TwoRunResponseJudge.class);
+
+        assertThat(attribute).isNotNull();
+        assertThat(attribute.getPropagationBehavior())
+                .isEqualTo(org.springframework.transaction.TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
+    }
+
+    @Test
     void makesTwoFreshContextCallsAndParsesValidJudgeJson() {
         ChatModel chatModel = mock(ChatModel.class);
         when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());

@@ -22,29 +22,6 @@ public class ReleaseGateEvaluator {
     public FlagEvaluation evaluateResponseFlags(
             boolean substantiveAnswer,
             boolean quoteVerified,
-            Integer run1Level,
-            Integer run2Level,
-            BigDecimal calculatedConfidence,
-            BigDecimal questionConfidenceThreshold,
-            boolean pasteSuspected,
-            boolean injectionSuspected,
-            boolean parseFailed) {
-        return evaluateResponseFlags(
-                substantiveAnswer,
-                quoteVerified,
-                quoteVerified,
-                run1Level,
-                run2Level,
-                calculatedConfidence,
-                questionConfidenceThreshold,
-                pasteSuspected,
-                injectionSuspected,
-                parseFailed);
-    }
-
-    public FlagEvaluation evaluateResponseFlags(
-            boolean substantiveAnswer,
-            boolean quoteVerified,
             boolean allQuotesVerified,
             Integer run1Level,
             Integer run2Level,
@@ -73,11 +50,13 @@ public class ReleaseGateEvaluator {
         }
 
         // REQ-SM-01 / REQ-SM-05: an N/A score does not fail a question's confidence threshold.
+        // Decision 2.10 fail closed: a scored response whose confidence or threshold is unknown cannot prove
+        // that it meets the threshold, so it is flagged like a low-confidence response.
         boolean isScored = quoteVerified && (run1Level != null || run2Level != null);
-        if (isScored
-                && calculatedConfidence != null
+        boolean confidenceMet = calculatedConfidence != null
                 && questionConfidenceThreshold != null
-                && calculatedConfidence.compareTo(questionConfidenceThreshold) < 0) {
+                && calculatedConfidence.compareTo(questionConfidenceThreshold) >= 0;
+        if (isScored && !confidenceMet) {
             reasons.add("LOW_CONFIDENCE");
         }
 
@@ -99,9 +78,11 @@ public class ReleaseGateEvaluator {
             }
         }
 
-        boolean lowCoverage = coverage != null
-                && minCoverage != null
-                && coverage.compareTo(minCoverage) < 0;
+        // Decision 2.10 fail closed: no evidence (empty list) or an unknown coverage or minimum never auto-releases.
+        if (responseStatuses.isEmpty() || coverage == null || minCoverage == null) {
+            return new AttemptReleaseDecision(ReleaseStatus.PENDING, flaggedCount, false);
+        }
+        boolean lowCoverage = coverage.compareTo(minCoverage) < 0;
 
         if (flaggedCount == 0 && !lowCoverage) {
             return new AttemptReleaseDecision(ReleaseStatus.AUTO_RELEASED, 0, true);
