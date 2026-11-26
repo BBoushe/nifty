@@ -42,4 +42,4 @@
 - **No DB connection across LLM calls (Decision 2.28).** `TwoRunResponseJudge.judge` is `Propagation.NOT_SUPPORTED`.
 - **Snapshot weights (REQ-FE-02).** `FormulaRecalculationHelper.computeForResponses` takes the weights of the summary's `formula_version.question_weights_json`. Only the what-if preview uses the live studio weights.
 - **Formula version race.** `applyPreset` uses `saveAndFlush` and maps the `UNIQUE (config_id, version_number)` violation to `409`.
-- **Schema (V7, not yet merged).** `evaluation_run.attempt_count` defaults to `0` (`CHECK >= 0`). A new `evaluation_run.updated_at` is the heartbeat for stale `RUNNING` runs.
+- **Schema (`V9__evaluation_queue.sql`).** PR #29 merged V7 before these fixes, so V7 stays unchanged and V9 alters it: `evaluation_run.attempt_count` defaults to `0` (`CHECK >= 0`), and a new `evaluation_run.updated_at` is the heartbeat for stale `RUNNING` runs.
