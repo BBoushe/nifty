@@ -3,8 +3,8 @@
 ## Status
 - **Branch:** `feat/team-builder` (branch off `dev`)
 - **Worktree:** `../nifty-team-builder`
-- **Current:** US-TB-01 done, committed
-- **Next action:** US-TB-02 (TeamObjectiveCalculator)
+- **Current:** US-TB-02 done, committed
+- **Next action:** US-TB-03 (SimulatedAnnealingTeamOptimizer)
 - **Uncommitted changes:** none (after the task commit)
 - **PR / MR:** — (orchestrator opens it)
 - **Open review findings:** —
@@ -17,11 +17,11 @@
   - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
   - [x] Commit: `feat(teams): add V8 team proposal schema, repositories, and GDPR cleanup`
 
-- [ ] **US-TB-02: Pure zero-Stream `TeamObjectiveCalculator` with normalization and explicit `N/A` handling**
-  - [ ] Write RED pure-JVM tests: hard-skill `[0, 4] -> [0, 1]`, BFI-10 `[1, 5] -> [0, 1]` without double-inversion, `ENGINEERING_DEFAULT` `[0.30, 0.25, 0.20, 0.15, 0.10]` weights, `HARD_SKILLS` / `SOFT_SKILLS` / `COMBINED` blending, trait means in the imbalance term only when BFI-10 is on and the mode is `SOFT_SKILLS` or `COMBINED` (REQ-TB-06), and candidates with `N/A` hard skills excluded per dimension (never rejected, never treated as `0`).
-  - [ ] Implement primitive-array `TeamObjectiveCalculator` (zero Java Streams).
-  - [ ] Verify GREEN with `cd backend && ./mvnw -B test`.
-  - [ ] Commit: `feat(teams): implement zero-stream objective calculator with N/A handling`
+- [x] **US-TB-02: Pure zero-Stream `TeamObjectiveCalculator` with normalization and explicit `N/A` handling**
+  - [x] Write RED pure-JVM tests: hard-skill `[0, 4] -> [0, 1]`, BFI-10 `[1, 5] -> [0, 1]` without double-inversion, `ENGINEERING_DEFAULT` `[0.30, 0.25, 0.20, 0.15, 0.10]` weights, `HARD_SKILLS` / `SOFT_SKILLS` / `COMBINED` blending, trait means in the imbalance term only when BFI-10 is on and the mode is `SOFT_SKILLS` or `COMBINED` (REQ-TB-06), and candidates with `N/A` hard skills excluded per dimension (never rejected, never treated as `0`).
+  - [x] Implement primitive-array `TeamObjectiveCalculator` (zero Java Streams).
+  - [x] Verify GREEN with `cd backend && ./mvnw -B test`.
+  - [x] Commit: `feat(teams): implement zero-stream objective calculator with N/A handling`
 
 - [ ] **US-TB-03: Deterministic seeded `SimulatedAnnealingTeamOptimizer` (2-opt swaps)**
   - [ ] Write RED pure-JVM tests: 22 students with `teamSize = 5` → 5 teams of sizes `{5,5,4,4,4}`, every student placed exactly once, fixed `seed = 42` returns identical assignments across runs, cost strictly improves or equals random baseline, and validation rejects `numTeams > N`, negative weights, or out-of-range `alpha`.
@@ -58,8 +58,15 @@
 ## Handoff Log
 
 ### US-TB-01 Flyway V8, repositories, TeamCleanupListener
-- Commits: <sha-us-tb-01> feat(teams): add V8 team proposal schema, repositories, and GDPR cleanup
+- Commits: b051751 feat(teams): add V8 team proposal schema, repositories, and GDPR cleanup
 - Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamSchemaAndCleanupTest` → FAIL (compile error: teams entities/migration absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (193 run)
 - Contracts/Migrations added: `backend/src/main/resources/db/migration/V8__teams.sql`; entities and repositories in `teams/repository/`; `TeamCleanupListener`
 - Decisions: 4.4 (MANDATORY purge listener), 1.20
+- Open Questions: none
+
+### US-TB-02 TeamObjectiveCalculator
+- Commits: <sha-us-tb-02> feat(teams): implement zero-stream objective calculator with N/A handling
+- Verification: RED: `cd backend && ./mvnw -B test -Dtest=TeamObjectiveCalculatorTest` → FAIL (compile error: calculator absent); GREEN: `cd backend && ./mvnw -B test` → exit 0 (211 run, 11 in the new class)
+- Contracts/Migrations added: `teams/service/TeamObjectiveCalculator` (public static `normalizeSkill`, `normalizeTrait`, `traitWeights`; records `Params`, `TeamDiagnostics`); migrations none
+- Decisions: 1.20, 2.23, 4.3 (pointer comments in the class; trait term only for BFI-10 on and SOFT_SKILLS/COMBINED, REQ-TB-06)
 - Open Questions: none
