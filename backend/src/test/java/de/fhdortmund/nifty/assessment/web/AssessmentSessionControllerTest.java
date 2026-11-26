@@ -65,7 +65,8 @@ class AssessmentSessionControllerTest {
         UUID entryId = UUID.randomUUID();
         when(sessions.start()).thenReturn(new SessionReply.Stream(sink -> {
             sink.send("delta", new SessionReply.Delta("Hello.\nQuestion 1?"));
-            sink.send("question", new SessionReply.Question(ATTEMPT, entryId, EntryOrigin.CORE, EXPIRES, 1));
+            sink.send("question", new SessionReply.Question(ATTEMPT, entryId, EntryOrigin.CORE, EXPIRES, 1,
+                    EXPIRES.minusSeconds(180)));
         }));
 
         dispatch(candidate(post(BASE)))
@@ -75,7 +76,8 @@ class AssessmentSessionControllerTest {
                 .andExpect(content().string(containsString("event: delta\ndata: {\"text\":\"Hello.\\nQuestion 1?\"}\n\n")))
                 .andExpect(content().string(containsString("event: question\ndata: {\"attemptId\":\"" + ATTEMPT
                         + "\",\"entryId\":\"" + entryId
-                        + "\",\"origin\":\"core\",\"expiresAt\":\"2026-11-26T10:03:00Z\",\"questionsRemaining\":1}\n\n")));
+                        + "\",\"origin\":\"core\",\"expiresAt\":\"2026-11-26T10:03:00Z\",\"questionsRemaining\":1,"
+                        + "\"serverTime\":\"2026-11-26T10:00:00Z\"}\n\n")));
     }
 
     @Test
@@ -160,6 +162,15 @@ class AssessmentSessionControllerTest {
     }
 
     @Test
+    void bfi10WithoutItemsIs400OnItemsAndNeverReachesTheService() throws Exception {
+        mvc.perform(candidate(post(BASE + "/" + ATTEMPT + "/bfi10")).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("items"));
+
+        verify(sessions, never()).submitBfi10(any(), any());
+    }
+
+    @Test
     void bfi10MissingItemIs400NamingItAndWrongStateIs409() throws Exception {
         doThrow(new FieldValidationException(List.of(new FieldErrorDetail("items[6]", "Item 7 needs an answer.", "BFI10_ITEM"))))
                 .when(sessions).submitBfi10(eq(ATTEMPT), any());
@@ -196,6 +207,7 @@ class AssessmentSessionControllerTest {
 
     private static SessionStateResponse state(AttemptStatus status) {
         return new SessionStateResponse(ATTEMPT, status, 1, true, 1, EXPIRES,
-                List.of(new SessionStateResponse.Message(1, "interviewer", "Question 1", EXPIRES.minusSeconds(180))));
+                List.of(new SessionStateResponse.Message(1, "interviewer", "Question 1", EXPIRES.minusSeconds(180))),
+                EXPIRES.minusSeconds(100));
     }
 }

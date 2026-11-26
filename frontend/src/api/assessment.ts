@@ -19,6 +19,8 @@ export interface SessionState {
   questionsRemaining: number
   expiresAt: string | null
   messages: SessionMessage[]
+  /** Server clock when the state was read; the countdown corrects the browser clock with it. */
+  serverTime?: string
 }
 
 export type InterviewEvent =
@@ -30,6 +32,7 @@ export type InterviewEvent =
       origin: 'core' | 'follow_up'
       expiresAt: string
       questionsRemaining: number
+      serverTime?: string
     }
   | { type: 'done'; status: AttemptStatus }
 

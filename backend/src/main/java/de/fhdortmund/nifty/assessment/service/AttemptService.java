@@ -7,9 +7,9 @@ import de.fhdortmund.nifty.assessment.repository.BfiResponseRepository;
 import de.fhdortmund.nifty.assessment.repository.ConversationEntryEntity;
 import de.fhdortmund.nifty.assessment.repository.ConversationEntryRepository;
 import de.fhdortmund.nifty.assessment.service.AttemptStateMachine.AnswerTiming;
+import de.fhdortmund.nifty.assessment.service.AttemptStateMachine.Ask;
 import de.fhdortmund.nifty.assessment.service.AttemptStateMachine.AskCore;
 import de.fhdortmund.nifty.assessment.service.AttemptStateMachine.AskFollowUp;
-import de.fhdortmund.nifty.assessment.service.AttemptStateMachine.Finish;
 import de.fhdortmund.nifty.assessment.service.AttemptStateMachine.NextStep;
 import de.fhdortmund.nifty.auth.service.CandidateSessionPrincipal;
 import de.fhdortmund.nifty.context.service.ContextCreationService;
@@ -52,7 +52,7 @@ class AttemptService {
     }
 
     /** The interviewer LLM must word {@code step}; nothing is stored for it yet. */
-    record AwaitInterviewer(UUID attemptId, NextStep step, InterviewerContextInput input) implements TurnOutcome {
+    record AwaitInterviewer(UUID attemptId, Ask step, InterviewerContextInput input) implements TurnOutcome {
     }
 
     /** A question is stored and open. */
@@ -73,12 +73,15 @@ class AttemptService {
     private final ContextCreationService context;
     private final ApplicationEventPublisher events;
     private final Duration grace;
+    private final Duration staleReply;
 
     AttemptService(AssessmentAttemptRepository attempts, ConversationEntryRepository entries,
             BfiResponseRepository bfiResponses, StudioQueryService studio, ContextCreationService context,
             ApplicationEventPublisher events,
-            // REQ-AC-08: the spec sets no number; 5 s covers the browser auto-submit at zero plus network delay.
-            @Value("${nifty.assessment.grace-seconds:5}") long graceSeconds) {
+            // Decision 2.28 / REQ-AC-08: 5 s covers the browser auto-submit at zero plus network delay.
+            @Value("${nifty.assessment.grace-seconds:5}") long graceSeconds,
+            // Decision 2.28: longer than the 180 s MVC async timeout, so a reply still streaming is never overtaken.
+            @Value("${nifty.assessment.stale-reply-seconds:240}") long staleReplySeconds) {
         this.attempts = attempts;
         this.entries = entries;
         this.bfiResponses = bfiResponses;
@@ -86,13 +89,15 @@ class AttemptService {
         this.context = context;
         this.events = events;
         this.grace = Duration.ofSeconds(graceSeconds);
+        this.staleReply = Duration.ofSeconds(staleReplySeconds);
     }
 
     /** REQ-AC-01 / REQ-AC-06 / REQ-AC-11: resume the open attempt, or start a new one within the limit. */
     @Transactional
     TurnOutcome start(CandidateSessionPrincipal who) {
         InterviewerView view = studio.interviewerView(who.configId());
-        // shortcut: a double-click race fails on UNIQUE (invite_id, attempt_no) as a 500; add a 409 mapping if seen.
+        // A parallel start of the same invite fails on UNIQUE (invite_id, attempt_no); AssessmentSessionService maps
+        // it to 409.
         Optional<AssessmentAttemptEntity> open =
                 attempts.findFirstByInviteIdAndStatusNotOrderByAttemptNoDesc(who.inviteId(), COMPLETED);
         if (open.isPresent()) {
@@ -130,7 +135,7 @@ class AttemptService {
         boolean timedOut = timing == AnswerTiming.TIMED_OUT;
         boolean hasText = !content.isBlank();
         boolean paste = PasteVelocityDetector.pasteSuspected(open.createdAt(), now,
-                questionOf(view, open).minTimeSec(), content);
+                AttemptStateMachine.questionOf(view, open).minTimeSec(), content);
         // Decision 2.24: context checks the raw text and writes the audit row itself.
         boolean injection = hasText && context.inspectCandidateInput(attemptId, content).injectionSuspected();
         ledger.add(append(attemptId, ledger, LedgerEntry.CANDIDATE, open, content, now, null, timedOut, paste,
@@ -140,7 +145,7 @@ class AttemptService {
 
     /** Stores the streamed interviewer text; blank text falls back to the configured next core question. */
     @Transactional
-    TurnOutcome recordInterviewerReply(UUID attemptId, NextStep step, String text) {
+    TurnOutcome recordInterviewerReply(UUID attemptId, Ask step, String text) {
         AssessmentAttemptEntity attempt = attempts.findByIdForUpdate(attemptId)
                 .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, NOT_FOUND));
         InterviewerView view = studio.interviewerView(attempt.getConfigId());
@@ -175,6 +180,28 @@ class AttemptService {
         return attempts.findIdsWithQuestionExpiredBefore(Instant.now().minus(grace));
     }
 
+    /**
+     * Recovers an attempt whose interviewer reply never reached the ledger (stream died, server restart): after
+     * {@code staleReply} without an open question, the next core question opens in its configured words.
+     */
+    @Transactional
+    void recoverStale(UUID attemptId) {
+        AssessmentAttemptEntity attempt = attempts.findByIdForUpdate(attemptId).orElse(null);
+        if (attempt == null || !AttemptStatus.IN_PROGRESS.name().equals(attempt.getStatus())) {
+            return;
+        }
+        List<LedgerEntry> ledger = ledgerOf(attemptId);
+        Instant lastActivity = ledger.isEmpty() ? attempt.getStartedAt() : ledger.getLast().createdAt();
+        Instant now = Instant.now();
+        if (AttemptStateMachine.openQuestion(ledger).isEmpty() && lastActivity.isBefore(now.minus(staleReply))) {
+            advanceWithoutInterviewer(attempt, studio.interviewerView(attempt.getConfigId()), ledger, now);
+        }
+    }
+
+    List<UUID> staleAttemptIds() {
+        return attempts.findIdsAwaitingInterviewerSince(Instant.now().minus(staleReply));
+    }
+
     SessionStateResponse state(UUID attemptId, UUID inviteId) {
         AssessmentAttemptEntity attempt = owned(attempts.findById(attemptId), inviteId);
         return stateOf(attempt, studio.interviewerView(attempt.getConfigId()), ledgerOf(attemptId));
@@ -183,8 +210,9 @@ class AttemptService {
     /** REQ-AC-14 / REQ-AC-15: scores once, stores the row and completes the attempt. */
     @Transactional
     void submitBfi10(UUID attemptId, UUID inviteId, List<Integer> items) {
-        int[] answers = Bfi10ScoringService.validate(items);
+        // Ownership first, so a foreign attempt never answers 400 with details about its form.
         AssessmentAttemptEntity attempt = lockOwned(attemptId, inviteId);
+        int[] answers = Bfi10ScoringService.validate(items);
         requireStatus(attempt, AttemptStatus.BFI10);
         Bfi10Traits traits = Bfi10ScoringService.score(answers);
         Instant now = Instant.now();
@@ -195,8 +223,7 @@ class AttemptService {
 
     private TurnOutcome planNext(AssessmentAttemptEntity attempt, InterviewerView view, List<LedgerEntry> ledger,
             boolean followUpAllowed) {
-        NextStep step = AttemptStateMachine.next(view, ledger, followUpAllowed);
-        if (step instanceof Finish) {
+        if (!(AttemptStateMachine.next(view, ledger, followUpAllowed) instanceof Ask step)) {
             return finishInterview(attempt, view, Instant.now());
         }
         return new AwaitInterviewer(attempt.getId(), step, contextInput(attempt.getId(), view, ledger, step));
@@ -213,14 +240,14 @@ class AttemptService {
             List<LedgerEntry> ledger, Instant now) {
         NextStep step = AttemptStateMachine.next(view, ledger, false);
         if (step instanceof AskCore core) {
-            return ask(attempt, view, ledger, step, core.question().text(), now);
+            return ask(attempt, view, ledger, core, core.question().text(), now);
         }
         return finishInterview(attempt, view, now);
     }
 
-    private Asked ask(AssessmentAttemptEntity attempt, InterviewerView view, List<LedgerEntry> ledger, NextStep step,
+    private Asked ask(AssessmentAttemptEntity attempt, InterviewerView view, List<LedgerEntry> ledger, Ask step,
             String text, Instant now) {
-        InterviewerQuestion q = step instanceof AskCore core ? core.question() : ((AskFollowUp) step).question();
+        InterviewerQuestion q = step.question();
         EntryOrigin origin = step instanceof AskFollowUp ? EntryOrigin.FOLLOW_UP : EntryOrigin.CORE;
         // REQ-AC-07: a follow-up uses the time limits of its core question.
         LedgerEntry question = LedgerEntry.of(entries.save(new ConversationEntryEntity(attempt.getId(),
@@ -263,8 +290,8 @@ class AttemptService {
 
     /** REQ-AC-12 / Decision 1.21: only rubric-blind fields and this attempt's own turns reach context. */
     private static InterviewerContextInput contextInput(UUID attemptId, InterviewerView view, List<LedgerEntry> ledger,
-            NextStep step) {
-        InterviewerQuestion q = step instanceof AskCore core ? core.question() : ((AskFollowUp) step).question();
+            Ask step) {
+        InterviewerQuestion q = step.question();
         int used = step instanceof AskFollowUp followUp ? followUp.followUpsUsed() : 0;
         List<DialogueTurnView> turns = new ArrayList<>(ledger.size());
         for (int i = 0; i < ledger.size(); i++) {
@@ -297,7 +324,8 @@ class AttemptService {
                 ? AttemptStateMachine.openQuestion(ledger).map(LedgerEntry::expiresAt).orElse(null) : null;
         return new SessionStateResponse(attempt.getId(), AttemptStatus.valueOf(attempt.getStatus()),
                 attempt.getAttemptNo(), view.bfi10Enabled(),
-                interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0, expiresAt, messages);
+                interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0, expiresAt, messages,
+                Instant.now());
     }
 
     private List<LedgerEntry> ledgerOf(UUID attemptId) {
@@ -325,15 +353,6 @@ class AttemptService {
         if (!expected.name().equals(attempt.getStatus())) {
             throw new DomainException(HttpStatus.CONFLICT, "This session is not at the " + expected + " step.");
         }
-    }
-
-    private static InterviewerQuestion questionOf(InterviewerView view, LedgerEntry entry) {
-        for (int i = 0; i < view.questions().size(); i++) {
-            if (view.questions().get(i).coreQuestionId().equals(entry.coreQuestionId())) {
-                return view.questions().get(i);
-            }
-        }
-        throw new IllegalStateException("Ledger entry " + entry.id() + " names no core question of the config");
     }
 
     /** InterviewerView carries "v1"; the table stores 1. */

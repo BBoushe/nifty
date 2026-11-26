@@ -40,6 +40,14 @@ public interface AssessmentAttemptRepository extends Repository<AssessmentAttemp
             nativeQuery = true)
     List<UUID> findIdsWithQuestionExpiredBefore(@Param("cutoff") Instant cutoff);
 
+    /** IN_PROGRESS attempts with no open question whose last activity (last ledger row, or the start) is before cutoff. */
+    @Query(value = "SELECT a.id FROM assessment_attempt a LEFT JOIN conversation_entry e ON e.attempt_id = a.id "
+            + "AND e.seq = (SELECT max(e2.seq) FROM conversation_entry e2 WHERE e2.attempt_id = a.id) "
+            + "WHERE a.status = 'IN_PROGRESS' AND ((e.id IS NULL AND a.started_at < :cutoff) "
+            + "OR (e.author = 'candidate' AND e.created_at < :cutoff))",
+            nativeQuery = true)
+    List<UUID> findIdsAwaitingInterviewerSince(@Param("cutoff") Instant cutoff);
+
     /**
      * GDPR purge only (Decision 4.4). The FK cascade removes ledger and BFI-10 rows, so the caller must have set
      * {@code SET LOCAL nifty.allow_purge = 'on'}.

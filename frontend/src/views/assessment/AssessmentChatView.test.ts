@@ -18,7 +18,10 @@ const firstQuestion = () =>
   sse([
     ['delta', { text: 'Hello. ' }],
     ['delta', { text: 'What is ACID?' }],
-    ['question', { attemptId: ATTEMPT, entryId: 'e1', origin: 'core', expiresAt: at(180), questionsRemaining: 2 }],
+    [
+      'question',
+      { attemptId: ATTEMPT, entryId: 'e1', origin: 'core', expiresAt: at(180), questionsRemaining: 2, serverTime: at(0) },
+    ],
   ])
 
 function mountView() {
@@ -96,6 +99,60 @@ describe('AssessmentChatView (REQ-AC-03, 05, 06, 10, 20)', () => {
     expect(wrapper.text()).toContain('Question 3')
     expect(wrapper.get('[data-testid="countdown"]').text()).toBe('1:40')
     expect(wrapper.find('[data-testid="start"]').exists()).toBe(false)
+  })
+
+  it('counts down on the server clock when the browser clock is behind', async () => {
+    fetchMock.mockResolvedValueOnce(
+      sse([
+        ['delta', { text: 'Q1?' }],
+        [
+          'question',
+          // The server is 20 s ahead of this browser, so 160 s are really left.
+          { attemptId: ATTEMPT, entryId: 'e1', origin: 'core', expiresAt: at(180), questionsRemaining: 0, serverTime: at(20) },
+        ],
+      ]),
+    )
+    const wrapper = mountView()
+    await wrapper.get('[data-testid="start"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="countdown"]').text()).toBe('2:40')
+  })
+
+  it('polls a resumed session until the interviewer question arrives', async () => {
+    sessionStorage.setItem('nifty.assessment.attemptId', ATTEMPT)
+    const waiting = {
+      attemptId: ATTEMPT,
+      status: 'IN_PROGRESS',
+      attemptNo: 1,
+      bfi10Enabled: false,
+      questionsRemaining: 1,
+      expiresAt: null,
+      serverTime: at(0),
+      messages: [
+        { seq: 1, author: 'interviewer', content: 'Question 1', createdAt: at(-60) },
+        { seq: 2, author: 'candidate', content: 'My answer', createdAt: at(-1) },
+      ],
+    }
+    fetchMock.mockResolvedValueOnce(json(waiting))
+    fetchMock.mockResolvedValueOnce(
+      json({
+        ...waiting,
+        expiresAt: at(120),
+        messages: [...waiting.messages, { seq: 3, author: 'interviewer', content: 'Question 2', createdAt: at(0) }],
+      }),
+    )
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="countdown"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('waiting for the interviewer')
+
+    vi.advanceTimersByTime(3000)
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Question 2')
+    expect(wrapper.get('[data-testid="countdown"]').text()).toBe('2:00')
   })
 
   it('caps the answer at 4000 characters and counts them', async () => {

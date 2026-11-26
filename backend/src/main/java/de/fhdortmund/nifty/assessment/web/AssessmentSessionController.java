@@ -49,7 +49,7 @@ class AssessmentSessionController {
     }
 
     @PostMapping("/{attemptId}/bfi10")
-    ResponseEntity<Void> submitBfi10(@PathVariable UUID attemptId, @RequestBody Bfi10SubmitRequest request) {
+    ResponseEntity<Void> submitBfi10(@PathVariable UUID attemptId, @Valid @RequestBody Bfi10SubmitRequest request) {
         sessions.submitBfi10(attemptId, request.items());
         return ResponseEntity.noContent().build();
     }

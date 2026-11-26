@@ -17,13 +17,18 @@ import org.springframework.http.HttpStatus;
 final class AttemptStateMachine {
 
     /** The next interviewer turn after the ledger so far. */
-    sealed interface NextStep permits AskCore, AskFollowUp, Finish {
+    sealed interface NextStep permits Ask, Finish {
     }
 
-    record AskCore(InterviewerQuestion question) implements NextStep {
+    /** A turn that asks about one core question: the question itself or a follow-up on it. */
+    sealed interface Ask extends NextStep permits AskCore, AskFollowUp {
+        InterviewerQuestion question();
     }
 
-    record AskFollowUp(InterviewerQuestion question, int followUpsUsed) implements NextStep {
+    record AskCore(InterviewerQuestion question) implements Ask {
+    }
+
+    record AskFollowUp(InterviewerQuestion question, int followUpsUsed) implements Ask {
     }
 
     record Finish() implements NextStep {
@@ -99,6 +104,11 @@ final class AttemptStateMachine {
             }
         }
         return null;
+    }
+
+    /** The configured core question that a ledger row belongs to. */
+    static InterviewerQuestion questionOf(InterviewerView view, LedgerEntry entry) {
+        return view.questions().get(indexOf(view.questions(), entry));
     }
 
     private static int indexOf(List<InterviewerQuestion> questions, LedgerEntry entry) {

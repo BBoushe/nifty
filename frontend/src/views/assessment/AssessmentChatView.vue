@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
+import { useMutation, useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import Textarea from 'primevue/textarea'
@@ -48,13 +48,47 @@ const streaming = ref('')
 const expiresAt = ref<string | null>(null)
 const questionsRemaining = ref(0)
 const draft = ref('')
-const busy = ref(false)
 const failure = ref<string | null>(null)
 const now = ref(Date.now())
+// Decision 2.28: server clock minus browser clock, so a wrong browser clock cannot move the auto-submit past grace.
+const clockOffset = ref(0)
 let localKey = 0
 
-// REQ-AC-06: after a reload, the stored attempt ID resumes the session from the ledger.
+function onFailure(e: Error) {
+  failure.value = e.message || 'Something went wrong.'
+  // REQ-AC-08: a late answer gets 409; the server already moved on, so reload its state.
+  if (e instanceof ApiProblem && e.status === 409 && attemptId.value) {
+    void getSession(attemptId.value).then(applyState, () => undefined)
+  }
+}
+
+const { mutate: start, isPending: starting } = useMutation({
+  mutationFn: async () => {
+    const result = await startSession()
+    if ('state' in result) applyState(result.state)
+    else await consume(result.events)
+  },
+  onMutate: () => (failure.value = null),
+  onError: onFailure,
+})
+
+const { mutate: answer, isPending: answering } = useMutation({
+  mutationFn: ({ id, content }: { id: string; content: string }) => consume(sendAnswer(id, content)),
+  onMutate: () => (failure.value = null),
+  onError: onFailure,
+})
+
+const busy = computed(() => starting.value || answering.value)
+const questionOpen = computed(() => status.value === 'IN_PROGRESS' && expiresAt.value !== null)
+// The interviewer reply is not in the ledger yet (reload during a stream, or a stream that broke off).
+const awaitingInterviewer = computed(() => status.value === 'IN_PROGRESS' && expiresAt.value === null && !busy.value)
+
+// REQ-AC-06: after a reload, the stored attempt ID resumes the session from the ledger. While the interviewer reply
+// is missing, the same query polls until the server stores the next question.
 const resumeId = ref<string | null>(storage.read())
+watch(awaitingInterviewer, (waiting) => {
+  if (waiting && attemptId.value) resumeId.value = attemptId.value
+})
 const {
   data: resumed,
   isLoading: resuming,
@@ -63,18 +97,24 @@ const {
   queryKey: computed(() => ['assessment', 'session', resumeId.value]),
   queryFn: () => getSession(resumeId.value as string),
   enabled: computed(() => resumeId.value !== null),
+  refetchInterval: computed(() => (awaitingInterviewer.value ? 3000 : false)),
 })
 watch(resumed, (state) => state && applyState(state))
 
 // Decision 2.14: the deadline comes from the server; the browser only counts down to it.
 const secondsLeft = computed(() =>
-  expiresAt.value === null ? null : Math.max(0, Math.ceil((Date.parse(expiresAt.value) - now.value) / 1000)),
+  expiresAt.value === null
+    ? null
+    : Math.max(0, Math.ceil((Date.parse(expiresAt.value) - (now.value + clockOffset.value)) / 1000)),
 )
 const countdown = computed(() => {
   const s = secondsLeft.value ?? 0
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 })
-const questionOpen = computed(() => status.value === 'IN_PROGRESS' && expiresAt.value !== null)
+
+function syncClock(serverTime: string | undefined) {
+  if (serverTime) clockOffset.value = Date.parse(serverTime) - Date.now()
+}
 
 let timer: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
@@ -84,7 +124,7 @@ onUnmounted(() => clearInterval(timer))
 
 // REQ-AC-10: at zero the typed text goes out as it is. There is no pause.
 watch(secondsLeft, (s) => {
-  if (s === 0 && questionOpen.value) void submitAnswer()
+  if (s === 0 && questionOpen.value) submitAnswer()
 })
 
 function rememberAttempt(id: string) {
@@ -94,6 +134,7 @@ function rememberAttempt(id: string) {
 
 function applyState(state: SessionState) {
   rememberAttempt(state.attemptId)
+  syncClock(state.serverTime)
   status.value = state.status
   lines.value = state.messages.map((m) => ({ key: `seq-${m.seq}`, author: m.author, content: m.content }))
   expiresAt.value = state.expiresAt
@@ -112,6 +153,7 @@ async function consume(events: AsyncIterable<InterviewEvent>) {
       addLine('interviewer', streaming.value)
       streaming.value = ''
       rememberAttempt(event.attemptId)
+      syncClock(event.serverTime)
       status.value = 'IN_PROGRESS'
       expiresAt.value = event.expiresAt
       questionsRemaining.value = event.questionsRemaining
@@ -122,30 +164,6 @@ async function consume(events: AsyncIterable<InterviewEvent>) {
   }
 }
 
-async function run(action: () => Promise<void>) {
-  busy.value = true
-  failure.value = null
-  try {
-    await action()
-  } catch (e) {
-    // REQ-AC-08: a late answer gets 409; the server already moved on, so reload its state.
-    if (e instanceof ApiProblem && e.status === 409 && attemptId.value) {
-      applyState(await getSession(attemptId.value))
-    }
-    failure.value = e instanceof Error ? e.message : 'Something went wrong.'
-  } finally {
-    busy.value = false
-  }
-}
-
-function start() {
-  return run(async () => {
-    const result = await startSession()
-    if ('state' in result) applyState(result.state)
-    else await consume(result.events)
-  })
-}
-
 function submitAnswer() {
   if (busy.value || !questionOpen.value || !attemptId.value) return
   const id = attemptId.value
@@ -153,7 +171,7 @@ function submitAnswer() {
   addLine('candidate', content)
   draft.value = ''
   expiresAt.value = null
-  return run(() => consume(sendAnswer(id, content)))
+  answer({ id, content })
 }
 </script>
 
@@ -170,7 +188,7 @@ function submitAnswer() {
       <p class="text-sm text-slate-600">
         Each question has a time limit. The timer does not stop. When it reaches zero, your text is sent as it is.
       </p>
-      <Button class="mt-4" data-testid="start" label="Start interview" :loading="busy" @click="start" />
+      <Button class="mt-4" data-testid="start" label="Start interview" :loading="starting" @click="() => start()" />
     </div>
 
     <template v-if="status === 'IN_PROGRESS'">
@@ -193,6 +211,10 @@ function submitAnswer() {
         {{ streaming }}
       </li>
     </ol>
+
+    <p v-if="awaitingInterviewer && !streaming" class="text-sm text-slate-500" data-testid="awaiting">
+      Your answer is saved. We are waiting for the interviewer…
+    </p>
 
     <form v-if="questionOpen" class="space-y-2" @submit.prevent="submitAnswer">
       <Textarea

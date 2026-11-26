@@ -23,9 +23,11 @@ public sealed interface SessionReply {
 
     /**
      * SSE {@code question}: the reply is complete and the question is open until {@code expiresAt}. It carries
-     * {@code attemptId}, because after a streamed start the browser has no other way to learn it.
+     * {@code attemptId}, because after a streamed start the browser has no other way to learn it. {@code serverTime}
+     * lets the browser count down on the server clock, so a slow client clock cannot push the auto-submit past grace.
      */
-    record Question(UUID attemptId, UUID entryId, EntryOrigin origin, Instant expiresAt, int questionsRemaining) {
+    record Question(UUID attemptId, UUID entryId, EntryOrigin origin, Instant expiresAt, int questionsRemaining,
+            Instant serverTime) {
     }
 
     /** SSE {@code done}: the interview ended; {@code status} is BFI10 or COMPLETED. */

@@ -9,9 +9,12 @@ import de.fhdortmund.nifty.assessment.service.SessionReply.Delta;
 import de.fhdortmund.nifty.assessment.service.SessionReply.Done;
 import de.fhdortmund.nifty.assessment.service.SessionReply.Question;
 import de.fhdortmund.nifty.auth.service.AuthContextService;
+import de.fhdortmund.nifty.auth.service.CandidateSessionPrincipal;
 import de.fhdortmund.nifty.context.service.ContextCreationService;
 import de.fhdortmund.nifty.context.service.dto.BuiltPromptContext;
 import de.fhdortmund.nifty.context.service.dto.PromptMessage;
+import de.fhdortmund.nifty.shared.exception.DomainException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +25,8 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
@@ -48,7 +53,13 @@ public class AssessmentSessionService {
     }
 
     public SessionReply start() {
-        return toReply(attempts.start(auth.currentCandidate()));
+        CandidateSessionPrincipal who = auth.currentCandidate();
+        try {
+            return toReply(attempts.start(who));
+        } catch (DataIntegrityViolationException ex) {
+            // REQ-AC-11: a parallel start of the same invite won UNIQUE (invite_id, attempt_no) first.
+            throw new DomainException(HttpStatus.CONFLICT, "Your session is already starting. Reload the page.");
+        }
     }
 
     public SessionReply answer(UUID attemptId, String content) {
@@ -84,7 +95,8 @@ public class AssessmentSessionService {
                 }
             }
         } catch (RuntimeException ex) {
-            // The ledger keeps what the candidate saw; with no text, AttemptService asks the configured question.
+            // Decision 2.28: the ledger keeps what the candidate saw; with no text, AttemptService asks the configured
+            // question.
             log.warn("Interviewer call failed for attempt {}: {}", await.attemptId(), ex.getMessage());
         }
         String streamed = text.toString();
@@ -99,7 +111,7 @@ public class AssessmentSessionService {
                 sink.send("delta", new Delta(q.content()));
             }
             sink.send("question", new Question(asked.attemptId(), q.id(), q.origin(), q.expiresAt(),
-                    asked.questionsRemaining()));
+                    asked.questionsRemaining(), Instant.now()));
         } else if (outcome instanceof Finished finished) {
             sink.send("done", new Done(finished.status()));
         }

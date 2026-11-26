@@ -128,6 +128,8 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         assertThat(question.origin()).isEqualTo(EntryOrigin.CORE);
         assertThat(question.questionsRemaining()).isEqualTo(1);
         assertThat(question.expiresAt()).isBetween(Instant.now().plusSeconds(170), Instant.now().plusSeconds(181));
+        // The browser corrects its countdown by the offset to the server clock.
+        assertThat(question.serverTime()).isBetween(Instant.now().minusSeconds(10), Instant.now());
 
         Map<String, Object> row = jdbc.queryForMap("SELECT * FROM conversation_entry WHERE attempt_id = ?", attemptId);
         assertThat(row).containsEntry("author", "interviewer").containsEntry("origin", "core")
@@ -181,7 +183,8 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         assertThat(state.expiresAt()).isEqualTo(expiresAt);
         assertThat(state.questionsRemaining()).isEqualTo(1);
         assertThat(state.messages()).extracting(SessionStateResponse.Message::content).containsExactly("Question 1");
-        assertThat(sessions.state(attemptId)).isEqualTo(state);
+        assertThat(state.serverTime()).isBetween(Instant.now().minusSeconds(10), Instant.now());
+        assertThat(sessions.state(attemptId)).usingRecursiveComparison().ignoringFields("serverTime").isEqualTo(state);
         verifyNoInteractions(chatModel);
     }
 
@@ -376,6 +379,40 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
 
         assertThat(entry(attemptId, 2)).containsEntry("content", "").containsEntry("timed_out", true);
         assertThat(entry(attemptId, 3)).containsEntry("content", "Question 2");
+    }
+
+    @Test
+    void expirySweepRecoversAnAttemptWhoseInterviewerReplyNeverArrived() {
+        UUID answered = insertAttempt("IN_PROGRESS", 1);
+        insertEntry(answered, 1, "interviewer", q1, "core", "Question 1", Instant.now().minusSeconds(900),
+                Instant.now().minusSeconds(720));
+        insertEntry(answered, 2, "candidate", q1, "core", "My answer", Instant.now().minusSeconds(800), null);
+        UUID inviteOfEmpty = UUID.randomUUID();
+        UUID empty = UUID.randomUUID();
+        jdbc.update("INSERT INTO assessment_attempt (id, invite_id, config_id, attempt_no, status, started_at) "
+                + "VALUES (?, ?, ?, 1, 'IN_PROGRESS', now() - interval '10 minutes')", empty, inviteOfEmpty, configId);
+        UUID fresh = insertAttempt("IN_PROGRESS", 2);
+        insertEntry(fresh, 1, "interviewer", q1, "core", "Question 1", Instant.now().minusSeconds(20),
+                Instant.now().plusSeconds(160));
+        insertEntry(fresh, 2, "candidate", q1, "core", "Answer", Instant.now().minusSeconds(1), null);
+
+        scheduler.sweep();
+
+        assertThat(entry(answered, 3)).containsEntry("author", "interviewer").containsEntry("content", "Question 2");
+        assertThat(entry(empty, 1)).containsEntry("author", "interviewer").containsEntry("content", "Question 1");
+        // A reply that may still be streaming is left alone.
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM conversation_entry WHERE attempt_id = ?", Long.class,
+                fresh)).isEqualTo(2);
+    }
+
+    @Test
+    void bfi10SubmissionToAnotherCandidatesAttemptIs403EvenWithInvalidItems() {
+        UUID foreign = UUID.randomUUID();
+        jdbc.update("INSERT INTO assessment_attempt (id, invite_id, config_id, attempt_no, status, started_at) "
+                + "VALUES (?, ?, ?, 1, 'BFI10', now())", foreign, UUID.randomUUID(), configId);
+
+        assertThatThrownBy(() -> sessions.submitBfi10(foreign, List.of(9))).isInstanceOfSatisfying(
+                DomainException.class, ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     @Test
