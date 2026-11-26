@@ -67,6 +67,17 @@ class AttemptStateMachineTest {
     }
 
     @Test
+    void ledgerRowNamingAnUnknownCoreQuestionFailsLoudly() {
+        InterviewerQuestion foreign = question(9, 0);
+        List<LedgerEntry> ledger = new ArrayList<>();
+        ask(ledger, foreign, EntryOrigin.CORE);
+
+        assertThatThrownBy(() -> AttemptStateMachine.next(view, ledger, true))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("names no core question");
+    }
+
+    @Test
     void lastCoreQuestionFinishesTheInterview() {
         List<LedgerEntry> ledger = new ArrayList<>();
         ask(ledger, q3, EntryOrigin.CORE);

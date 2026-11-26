@@ -54,6 +54,10 @@ class Bfi10ScoringServiceTest {
                 .isInstanceOfSatisfying(FieldValidationException.class, ex -> assertThat(ex.getErrors())
                         .extracting(FieldErrorDetail::field)
                         .containsExactly("items[6]", "items[8]", "items[9]"));
+        // REQ-AC-14: the message names the item as the candidate sees it (1-based).
+        assertThatThrownBy(() -> Bfi10ScoringService.validate(items))
+                .isInstanceOfSatisfying(FieldValidationException.class, ex -> assertThat(ex.getErrors().getFirst()
+                        .message()).isEqualTo("Item 7 needs an answer from 1 to 5."));
         assertThatThrownBy(() -> Bfi10ScoringService.validate(null)).isInstanceOf(FieldValidationException.class);
     }
 }

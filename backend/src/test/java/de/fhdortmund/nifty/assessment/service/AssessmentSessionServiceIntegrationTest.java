@@ -40,6 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -71,6 +72,8 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
     @Autowired
     private AttemptExpiryScheduler scheduler;
     @Autowired
+    private AttemptService attemptService;
+    @Autowired
     private JdbcTemplate jdbc;
     @Autowired
     private CompletedEventProbe completedEvents;
@@ -95,7 +98,8 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         configId = UUID.randomUUID();
         q1 = new InterviewerQuestion(UUID.randomUUID(), 1, "Question 1", 30, 180, 0,
                 List.of(UUID.randomUUID()), List.of("Java"));
-        q2 = new InterviewerQuestion(UUID.randomUUID(), 2, "Question 2", 30, 120, 1,
+        // Different minimum times, so a lookup of the wrong question changes the paste flag.
+        q2 = new InterviewerQuestion(UUID.randomUUID(), 2, "Question 2", 10, 120, 1,
                 List.of(UUID.randomUUID()), List.of("SQL"));
         completedEvents.events.clear();
         // A real ChatModel always has options; ChatClient mutates them per call.
@@ -142,6 +146,11 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         List<Message> sent = prompt.getValue().getInstructions();
         assertThat(sent.getFirst()).isInstanceOf(SystemMessage.class);
         assertThat(sent.getFirst().getText()).isEqualTo(SYSTEM_PROMPT);
+        assertThat(sent).hasSize(2);
+        assertThat(sent.get(1)).isInstanceOf(UserMessage.class);
+        assertThat(sent.get(1).getText()).isEqualTo("<candidate_answer>x</candidate_answer>");
+        assertThat(jdbc.queryForObject("SELECT config_version FROM assessment_attempt WHERE id = ?", Integer.class,
+                attemptId)).isEqualTo(1);
     }
 
     @Test
@@ -208,6 +217,7 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         ArgumentCaptor<InterviewerContextInput> input = ArgumentCaptor.forClass(InterviewerContextInput.class);
         verify(context).buildInterviewerContext(input.capture());
         assertThat(input.getValue().activeQuestion().followUpsUsed()).isZero();
+        assertThat(input.getValue().coreQuestionsRemaining()).isZero();
         assertThat(input.getValue().priorTurns()).extracting(t -> t.author() + ":" + t.origin())
                 .containsExactly("interviewer:core", "candidate:core");
     }
@@ -222,6 +232,82 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         stream(sessions.answer(attemptId, "Pasted answer"));
 
         assertThat(entry(attemptId, 2)).containsEntry("paste_suspected", true);
+    }
+
+    @Test
+    void pasteFlagUsesTheMinimumTimeOfTheAnsweredQuestion() {
+        UUID attemptId = insertAttempt("IN_PROGRESS", 1);
+        insertEntry(attemptId, 1, "interviewer", q2, "core", "Question 2", Instant.now().minusSeconds(20),
+                Instant.now().plusSeconds(100));
+        llmReplies("Why?");
+
+        stream(sessions.answer(attemptId, "Considered answer"));
+
+        // q2 needs 10 s, q1 needs 30 s: 20 s is fine for q2.
+        assertThat(entry(attemptId, 2)).containsEntry("paste_suspected", false);
+    }
+
+    @Test
+    void blankOnTimeAnswerSkipsTheInterviewerAndAsksTheNextCoreQuestionInItsConfiguredWords() {
+        UUID attemptId = insertAttempt("IN_PROGRESS", 1);
+        insertEntry(attemptId, 1, "interviewer", q1, "core", "Question 1", Instant.now().minusSeconds(40),
+                Instant.now().plusSeconds(140));
+
+        List<Object[]> events = stream(sessions.answer(attemptId, "   "));
+
+        assertThat(events.getFirst()).containsExactly("delta", new Delta("Question 2"));
+        assertThat(events.getLast()[0]).isEqualTo("question");
+        assertThat(entry(attemptId, 3)).containsEntry("content", "Question 2").containsEntry("origin", "core");
+        verifyNoInteractions(chatModel);
+        verify(context, never()).inspectCandidateInput(any(), anyString());
+    }
+
+    @Test
+    void lastAnswerWithBfi10OnMovesToBfi10WithoutACompletionEvent() {
+        when(studio.interviewerView(configId)).thenReturn(view(GroupingMode.COMBINED, true, List.of(q1, q2), 2));
+        UUID attemptId = insertAttempt("IN_PROGRESS", 1);
+        insertEntry(attemptId, 1, "interviewer", q2, "core", "Question 2", Instant.now().minusSeconds(40),
+                Instant.now().plusSeconds(80));
+
+        List<Object[]> events = stream(sessions.answer(attemptId, ""));
+
+        assertThat(events).hasSize(1);
+        assertThat(events.getFirst()).containsExactly("done", new Done(AttemptStatus.BFI10));
+        Map<String, Object> attempt = jdbc.queryForMap("SELECT * FROM assessment_attempt WHERE id = ?", attemptId);
+        assertThat(attempt).containsEntry("status", "BFI10").containsEntry("completed_at", null);
+        assertThat(completedEvents.events).isEmpty();
+    }
+
+    @Test
+    void answerWithoutAnOpenQuestionIs409AndAnUnknownAttemptIs404() {
+        UUID attemptId = insertAttempt("IN_PROGRESS", 1);
+        insertEntry(attemptId, 1, "interviewer", q1, "core", "Question 1", Instant.now().minusSeconds(40),
+                Instant.now().plusSeconds(140));
+        insertEntry(attemptId, 2, "candidate", q1, "core", "Answer", Instant.now().minusSeconds(5), null);
+
+        assertThatThrownBy(() -> sessions.answer(attemptId, "Again")).isInstanceOfSatisfying(DomainException.class,
+                ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+        assertThatThrownBy(() -> sessions.answer(UUID.randomUUID(), "x")).isInstanceOfSatisfying(DomainException.class,
+                ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void lateInterviewerReplyStoresNothingWhenTheAttemptAlreadyMovedOn() {
+        UUID open = insertAttempt("IN_PROGRESS", 1);
+        insertEntry(open, 1, "interviewer", q1, "core", "Question 1", Instant.now().minusSeconds(10),
+                Instant.now().plusSeconds(170));
+        UUID done = insertAttempt("COMPLETED", 2);
+
+        AttemptService.TurnOutcome stillOpen =
+                attemptService.recordInterviewerReply(open, new AttemptStateMachine.AskCore(q2), "Late text");
+        AttemptService.TurnOutcome finished =
+                attemptService.recordInterviewerReply(done, new AttemptStateMachine.AskCore(q2), "Late text");
+
+        assertThat(stillOpen).isInstanceOfSatisfying(AttemptService.Asked.class,
+                asked -> assertThat(asked.question().content()).isEqualTo("Question 1"));
+        assertThat(finished).isEqualTo(new AttemptService.Finished(AttemptStatus.COMPLETED));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM conversation_entry WHERE attempt_id IN (?, ?)", Long.class,
+                open, done)).isOne();
     }
 
     @Test

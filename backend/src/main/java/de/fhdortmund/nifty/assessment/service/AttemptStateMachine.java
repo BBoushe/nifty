@@ -110,6 +110,8 @@ final class AttemptStateMachine {
         throw new IllegalStateException("Ledger entry " + entry.id() + " names no core question of the config");
     }
 
+    // PIT: negating isInterviewer() survives as an equivalent mutant. next() runs only after an answer, so each
+    // interviewer follow-up row has exactly one candidate follow-up row, and both counts are equal.
     private static int followUpsUsed(List<LedgerEntry> ledger, InterviewerQuestion question) {
         int used = 0;
         for (int i = 0; i < ledger.size(); i++) {

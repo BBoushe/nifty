@@ -33,6 +33,13 @@ class PasteVelocityDetectorTest {
     }
 
     @Test
+    void answerExactlyAtTheMinimumTimeIsNotSuspected() {
+        // "before askedAt + minimum time": the boundary itself is allowed.
+        assertThat(PasteVelocityDetector.pasteSuspected(ASKED, ASKED.plusSeconds(30), 30, "short")).isFalse();
+        assertThat(PasteVelocityDetector.pasteSuspected(ASKED, ASKED.plusMillis(29_999), 30, "short")).isTrue();
+    }
+
+    @Test
     void blankAnswerIsNeverSuspected() {
         assertThat(PasteVelocityDetector.pasteSuspected(ASKED, ASKED.plusSeconds(1), 30, "   ")).isFalse();
     }
