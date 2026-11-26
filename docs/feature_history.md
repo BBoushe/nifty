@@ -7,7 +7,7 @@ An entry can come before its change merges. The PR/MR line then names an open PR
 ## 2026-11-26 — studio-assessment-creation
 - **What:** Added `V3__studio.sql` (`assessment_config`, `skill`, `core_question`, `core_question_skill`, `studio_block_mutation()` immutability triggers), `@Immutable` JPA entities and repositories in `studio/repository/`, pure zero-Stream validators with the `SOFT_SKILLS` + BFI-10 zero-question exemption, one-shot idempotent creation (`CONFIG_CREATED` audit, `REQ-IS-12` key ownership), `StudioQueryServiceImpl` (with `ownedBy` and rubric-leak guard; placeholder deleted), `PROFESSOR`-only `/api/v1/ranking/studio/configs/**` REST endpoints + GDPR `DELETE` (`AssessmentDeletedEvent` + `SET LOCAL nifty.allow_purge = 'on'`), and Vue 3.5 + PrimeVue Studio form (`localStorage` draft), list, and read-only detail views.
 - **Why:** Professors need one-shot immutable assessment creation, hidden 5-level rubrics, narrow downstream read-only views, and GDPR purge without editing live rubrics (Decisions 1.19, 2.21, 2.22, 2.23, 4.4).
-- **PR/MR:** pending
+- **PR/MR:** GitHub #25, GitLab !24
 - **Specs:** REQ-IS-12 (added to `interviewer-studio`); REQ-IS-01, REQ-IS-05..11 (implemented)   **Decisions:** applies 1.10, 1.12, 1.14, 1.19, 2.21, 2.22, 2.23, 4.4
 
 ## 2026-11-25 — frontend-foundation

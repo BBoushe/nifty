@@ -3,10 +3,10 @@
 ## Status
 - **Branch:** `feat/studio-assessment-creation` (branch off `docs/ticket-01-prestep`)
 - **Worktree:** `../nifty-studio-assessment-creation`
-- **Current:** all tasks done; archived; waiting for the human to approve push and PR/MR
-- **Next action:** after approval, `node scripts/forge.mjs push`, then `node scripts/forge.mjs pr ... --base dev`; fill the PR/MR numbers into `docs/feature_history.md`
+- **Current:** delivered; PR/MR open; waiting for cold review and merge by Teammate A
+- **Next action:** none for the builder (Teammate A reviews, checks CI and merges; invite-links starts after #2 and #3 merge on dev)
 - **Uncommitted changes:** none
-- **PR / MR:** —
+- **PR / MR:** GitHub #25, GitLab !24
 - **Open review findings:** —
 
 ## Tasks
@@ -52,7 +52,7 @@
 - [x] `git fetch origin && git merge origin/dev` (never rebase a pushed branch, no force pushes)
 - [x] Run `cd backend && ./mvnw -B test`, `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build`, `OPENSPEC_TELEMETRY=0 openspec validate --all`, and `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` (expect exit 0).
 - [x] Archive: `OPENSPEC_TELEMETRY=0 openspec archive studio-assessment-creation -y`, update `docs/feature_backlog.md` and `docs/feature_history.md`, commit `chore(specs): archive studio-assessment-creation`.
-- [ ] Push and open PR/MR via `node scripts/forge.mjs`.
+- [x] Push and open PR/MR via `node scripts/forge.mjs`.
 - [ ] Pass cold read-only review, CI checks, human merge approval, and mirror sync.
 
 ## Handoff Log
