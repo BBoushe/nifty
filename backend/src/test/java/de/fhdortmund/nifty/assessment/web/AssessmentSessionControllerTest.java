@@ -140,6 +140,7 @@ class AssessmentSessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.expiresAt").value("2026-11-26T10:03:00Z"))
+                .andExpect(jsonPath("$.attemptsLeft").value(1))
                 .andExpect(jsonPath("$.messages[0].author").value("interviewer"));
     }
 
@@ -206,7 +207,7 @@ class AssessmentSessionControllerTest {
     }
 
     private static SessionStateResponse state(AttemptStatus status) {
-        return new SessionStateResponse(ATTEMPT, status, 1, true, 1, EXPIRES,
+        return new SessionStateResponse(ATTEMPT, status, 1, true, 1, 1, EXPIRES,
                 List.of(new SessionStateResponse.Message(1, "interviewer", "Question 1", EXPIRES.minusSeconds(180))),
                 EXPIRES.minusSeconds(100));
     }

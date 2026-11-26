@@ -325,8 +325,10 @@ class AttemptService {
                 ? AttemptStateMachine.openQuestion(ledger).map(LedgerEntry::expiresAt).orElse(null) : null;
         return new SessionStateResponse(attempt.getId(), AttemptStatus.valueOf(attempt.getStatus()),
                 attempt.getAttemptNo(), view.bfi10Enabled(),
-                interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0, expiresAt, messages,
-                now());
+                interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0,
+                AttemptStateMachine.attemptsLeft((int) attempts.countByInviteId(attempt.getInviteId()),
+                        view.maxAttempts()),
+                expiresAt, messages, now());
     }
 
     private List<LedgerEntry> ledgerOf(UUID attemptId) {

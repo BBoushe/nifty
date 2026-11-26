@@ -49,6 +49,11 @@ final class AttemptStateMachine {
         return view.bfi10Enabled() ? AttemptStatus.BFI10 : AttemptStatus.COMPLETED;
     }
 
+    /** REQ-AC-22: attempts the invite may still start, never below zero. */
+    static int attemptsLeft(int startedAttempts, int maxAttempts) {
+        return Math.max(0, maxAttempts - startedAttempts);
+    }
+
     /** REQ-AC-11 / Decision 2.13. */
     static void checkCanStart(int startedAttempts, int maxAttempts) {
         if (startedAttempts >= maxAttempts) {

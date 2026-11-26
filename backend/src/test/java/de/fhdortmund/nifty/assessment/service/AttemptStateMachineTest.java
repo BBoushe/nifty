@@ -130,6 +130,15 @@ class AttemptStateMachineTest {
                         ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.CONFLICT));
     }
 
+    // REQ-AC-22: the retake UI needs the attempts left, never below zero.
+    @Test
+    void attemptsLeftCountsDownFromTheMaximumAndStopsAtZero() {
+        assertThat(AttemptStateMachine.attemptsLeft(0, 2)).isEqualTo(2);
+        assertThat(AttemptStateMachine.attemptsLeft(1, 2)).isEqualTo(1);
+        assertThat(AttemptStateMachine.attemptsLeft(2, 2)).isZero();
+        assertThat(AttemptStateMachine.attemptsLeft(3, 2)).isZero();
+    }
+
     @Test
     void answerTimingKeepsPartialAnswersInsideTheGraceWindowAndRejectsLaterOnes() {
         Instant expiresAt = T0.plusSeconds(180);

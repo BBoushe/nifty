@@ -41,6 +41,13 @@ const storage = {
       // A blocked storage only loses the refresh resume; the backend still resumes on the next start.
     }
   },
+  clear: () => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // Nothing stored, nothing to clear.
+    }
+  },
 }
 
 const auth = useAuthStore()
@@ -50,6 +57,8 @@ const lines = ref<ChatLine[]>([])
 const streaming = ref('')
 const expiresAt = ref<string | null>(null)
 const questionsRemaining = ref(0)
+// REQ-AC-22: null = not known yet; 0 = no retake; above 0 = "Start new attempt".
+const attemptsLeft = ref<number | null>(null)
 const draft = ref('')
 const failure = ref<string | null>(null)
 const now = ref(Date.now())
@@ -65,6 +74,12 @@ function onFailure(e: Error) {
   }
 }
 
+function onStartFailure(e: Error) {
+  onFailure(e)
+  // REQ-AC-22: a 409 on start with no open attempt means the limit is reached (a new tab has no stored attempt).
+  if (e instanceof ApiProblem && e.status === 409 && !attemptId.value) attemptsLeft.value = 0
+}
+
 const { mutate: start, isPending: starting } = useMutation({
   mutationFn: async () => {
     const result = await startSession()
@@ -72,7 +87,7 @@ const { mutate: start, isPending: starting } = useMutation({
     else await consume(result.events)
   },
   onMutate: () => (failure.value = null),
-  onError: onFailure,
+  onError: onStartFailure,
 })
 
 const { mutate: answer, isPending: answering } = useMutation({
@@ -135,6 +150,26 @@ function rememberAttempt(id: string) {
   storage.write(id)
 }
 
+// REQ-AC-22: forget the finished attempt, then start the next one on the server.
+function startNewAttempt() {
+  storage.clear()
+  resumeId.value = null
+  attemptId.value = null
+  status.value = null
+  lines.value = []
+  expiresAt.value = null
+  questionsRemaining.value = 0
+  attemptsLeft.value = null
+  start()
+}
+
+// REQ-AC-22: an attempt that ends in this page does not know attemptsLeft yet; the session state does.
+watch(status, (s) => {
+  if (s === 'COMPLETED' && attemptsLeft.value === null && attemptId.value) {
+    void getSession(attemptId.value).then(applyState, () => undefined)
+  }
+})
+
 function applyState(state: SessionState) {
   rememberAttempt(state.attemptId)
   syncClock(state.serverTime)
@@ -142,6 +177,7 @@ function applyState(state: SessionState) {
   lines.value = state.messages.map((m) => ({ key: `seq-${m.seq}`, author: m.author, content: m.content }))
   expiresAt.value = state.expiresAt
   questionsRemaining.value = state.questionsRemaining
+  attemptsLeft.value = state.attemptsLeft ?? null
 }
 
 function addLine(author: ChatLine['author'], content: string) {
@@ -191,7 +227,10 @@ function submitAnswer() {
       <p class="text-sm text-slate-600">
         Each question has a time limit. The timer does not stop. When it reaches zero, your text is sent as it is.
       </p>
-      <Button class="mt-4" data-testid="start" label="Start interview" :loading="starting" @click="() => start()" />
+      <p v-if="attemptsLeft === 0" class="mt-4 text-sm font-medium text-slate-900" data-testid="no-attempts-left">
+        No attempts left.
+      </p>
+      <Button v-else class="mt-4" data-testid="start" label="Start interview" :loading="starting" @click="() => start()" />
     </div>
 
     <template v-if="status === 'IN_PROGRESS'">
@@ -248,6 +287,18 @@ function submitAnswer() {
       >
         View results
       </RouterLink>
+      <!-- REQ-AC-22: a retake while attempts are left; otherwise no start button. -->
+      <p v-if="attemptsLeft === 0" class="mt-3 font-medium text-slate-900" data-testid="no-attempts-left">
+        No attempts left.
+      </p>
+      <Button
+        v-else-if="attemptsLeft !== null && attemptsLeft > 0"
+        class="mt-3"
+        data-testid="start-new"
+        label="Start new attempt"
+        :loading="starting"
+        @click="startNewAttempt"
+      />
     </div>
   </section>
 </template>

@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 4 done (committed, not pushed).
-- **Next action:** Task 5 (retake UI; needs `SessionStateResponse.attemptsLeft` first).
+- **Current:** Tasks 1 to 5 done (committed, not pushed).
+- **Next action:** Task 6 (shell errors, 404, invites scroll, `schema.d.ts`, safe `localStorage`).
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -40,10 +40,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] GREEN per design §2.
   - [x] Commit `fix(frontend): show candidate names and sync the ranking route`.
 
-- [ ] **Task 5: Retake UI (REQ-AC-22)**
-  - [ ] Backend RED: `SessionStateResponse.attemptsLeft` is correct for 0, 1 and 2 used of a maximum of 2. GREEN. Update `docs/api.md`.
-  - [ ] Frontend RED: (1) a stored `COMPLETED` attempt with `attemptsLeft = 1` shows "Start new attempt" and clears the `sessionStorage` key on start; (2) `attemptsLeft = 0` shows "No attempts left" and no start button.
-  - [ ] GREEN. Commit `fix(assessment): let candidates start a retake`.
+- [x] **Task 5: Retake UI (REQ-AC-22)**
+  - [x] Backend RED: `SessionStateResponse.attemptsLeft` is correct for 0, 1 and 2 used of a maximum of 2. GREEN. Update `docs/api.md`.
+  - [x] Frontend RED: (1) a stored `COMPLETED` attempt with `attemptsLeft = 1` shows "Start new attempt" and clears the `sessionStorage` key on start; (2) `attemptsLeft = 0` shows "No attempts left" and no start button.
+  - [x] GREEN. Commit `fix(assessment): let candidates start a retake`.
 
 - [ ] **Task 6: Shell errors, 404 and invites scroll (REQ-NAV-10, REQ-NAV-12, REQ-NAV-13)**
   - [ ] RED: (1) an unknown path renders `NotFoundView` with the role start link; (2) a network error in `fetchMe` shows "Server not reachable", and Retry calls it again; (3) a `500` from `logout` shows "Sign-out failed. Try again." and does not navigate; (4) the `studio-invites` route scrolls `#invites` into view (mock `scrollIntoView`).
@@ -170,3 +170,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Contracts/Migrations added: none (frontend only; the backend `candidateRef` fields came with Task 3)
 - Decisions: no new ID. Design differed from code: (1) The shared key is the constant `ASSESSMENTS_KEY` in `api/studio.ts` (Studio list, Studio delete, Ranking), not a repeated literal. (2) The `shortcut:` comment in `EvidenceDialog` is gone; `candidateName` reads `candidateRef`. (3) Ranking has two route records (`ranking`, `ranking-config`); the dropdown calls `router.replace({ name: 'ranking-config' })`, also for the first default selection. The `RankingViews.test.ts` router now has that route. (4) The Build teams link uses the path string `/ranking/teams/<id>`, like the existing Studio link.
 - Open Questions: none
+
+### Task 5: Retake UI
+- Commits: (this commit) fix(assessment): let candidates start a retake
+- Verification: RED: `./mvnw -B test -Dtest='AttemptStateMachineTest'` → FAIL (compile: no `attemptsLeft`); `npx vitest run src/views/assessment/AssessmentChatView.test.ts` → FAIL (4 of 11 new retake tests); GREEN: `./mvnw -B test -Dtest='AttemptStateMachineTest,AssessmentSessionServiceIntegrationTest,AssessmentSessionControllerTest,AssessmentSessionServiceTest,AssessmentSpecInvariantPropertyTest,ArchitectureTest'` → exit 0 (73 run); `npx vitest run src/views/assessment` + `npm run typecheck && npm run lint` → exit 0 (16 run)
+- Contracts/Migrations added: `docs/api.md` (`SessionStateResponse.attemptsLeft`); no migration
+- Decisions: no new ID. Design differed from code: (1) `attemptsLeft = max(0, maxAttempts - attempts of the invite)` is the pure function `AttemptStateMachine.attemptsLeft`; `AttemptService.stateOf` adds one `countByInviteId` query per state read. (2) The `sessionStorage` key is cleared when the candidate clicks "Start new attempt", not on read, so a reload of a finished attempt still shows the thank-you page. (3) The page cannot know `attemptsLeft` in a new tab (no stored attempt, no session endpoint without an attempt ID). The start button stays there; a `409` on start with no open attempt sets `attemptsLeft = 0` and the page shows "No attempts left" with no button. This meets the "No attempts left" scenario after one click, not on page load. A proactive answer needs a new read endpoint; not added. (4) An attempt that ends inside the page (SSE `done` or BFI-10 submit) fetches the session once to get `attemptsLeft`.
+- Open Questions: none (see Decision 3 if the page-load wording of REQ-AC-22 must hold in a new tab)

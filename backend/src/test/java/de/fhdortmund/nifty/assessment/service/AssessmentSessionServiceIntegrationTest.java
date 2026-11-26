@@ -188,6 +188,17 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         verifyNoInteractions(chatModel);
     }
 
+    // REQ-AC-22: the session state tells the page whether a retake is left (maximum 2 in this setup).
+    @Test
+    void sessionStateReportsAttemptsLeftForOneAndTwoUsedOfTwo() {
+        UUID first = insertAttempt("COMPLETED", 1);
+        assertThat(sessions.state(first).attemptsLeft()).isEqualTo(1);
+
+        UUID second = insertAttempt("COMPLETED", 2);
+        assertThat(sessions.state(second).attemptsLeft()).isZero();
+        assertThat(sessions.state(first).attemptsLeft()).isZero();
+    }
+
     @Test
     void startBeyondTheAttemptLimitAnswers409AndCreatesNothing() {
         insertAttempt("COMPLETED", 1);

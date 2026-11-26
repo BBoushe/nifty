@@ -192,4 +192,92 @@ describe('AssessmentChatView (REQ-AC-03, 05, 06, 10, 20)', () => {
     expect(wrapper.find('[data-testid="bfi10-form"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="countdown"]').exists()).toBe(false)
   })
+
+  describe('retake (REQ-AC-22)', () => {
+    const NEXT_ATTEMPT = '33333333-3333-3333-3333-333333333333'
+    const completedState = (attemptsLeft: number) =>
+      json({
+        attemptId: ATTEMPT,
+        status: 'COMPLETED',
+        attemptNo: 1,
+        bfi10Enabled: false,
+        questionsRemaining: 0,
+        attemptsLeft,
+        expiresAt: null,
+        messages: [],
+      })
+
+    it('a stored COMPLETED attempt with an attempt left shows Start new attempt, and a click clears the stored ID and starts again', async () => {
+      sessionStorage.setItem('nifty.assessment.attemptId', ATTEMPT)
+      let storedAtStart: string | null = 'unset'
+      fetchMock.mockResolvedValueOnce(completedState(1))
+      fetchMock.mockImplementationOnce(() => {
+        storedAtStart = sessionStorage.getItem('nifty.assessment.attemptId')
+        return Promise.resolve(
+          sse([
+            ['delta', { text: 'Second attempt?' }],
+            [
+              'question',
+              { attemptId: NEXT_ATTEMPT, entryId: 'e9', origin: 'core', expiresAt: at(180), questionsRemaining: 2, serverTime: at(0) },
+            ],
+          ]),
+        )
+      })
+      const wrapper = mountView()
+      await flushPromises()
+
+      expect(wrapper.get('[data-testid="start-new"]').text()).toBe('Start new attempt')
+      expect(wrapper.find('[data-testid="no-attempts-left"]').exists()).toBe(false)
+
+      await wrapper.get('[data-testid="start-new"]').trigger('click')
+      await flushPromises()
+
+      expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/assessment/sessions')
+      expect(storedAtStart).toBeNull()
+      expect(sessionStorage.getItem('nifty.assessment.attemptId')).toBe(NEXT_ATTEMPT)
+      expect(wrapper.text()).toContain('Second attempt?')
+      expect(wrapper.find('[data-testid="completed"]').exists()).toBe(false)
+    })
+
+    it('a stored COMPLETED attempt with no attempt left shows No attempts left and no start button', async () => {
+      sessionStorage.setItem('nifty.assessment.attemptId', ATTEMPT)
+      fetchMock.mockResolvedValueOnce(completedState(0))
+      const wrapper = mountView()
+      await flushPromises()
+
+      expect(wrapper.get('[data-testid="no-attempts-left"]').text()).toContain('No attempts left')
+      expect(wrapper.find('[data-testid="start-new"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="start"]').exists()).toBe(false)
+    })
+
+    it('a new tab learns from the 409 on start that no attempt is left, and hides the start button', async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ title: 'Conflict', status: 409, detail: 'You have used all attempts for this assessment.' }),
+          { status: 409, headers: { 'Content-Type': 'application/problem+json' } },
+        ),
+      )
+      const wrapper = mountView()
+      await wrapper.get('[data-testid="start"]').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get('[data-testid="no-attempts-left"]').text()).toContain('No attempts left')
+      expect(wrapper.find('[data-testid="start"]').exists()).toBe(false)
+    })
+
+    it('an attempt that finishes in this page fetches attemptsLeft and offers the retake', async () => {
+      fetchMock.mockResolvedValueOnce(firstQuestion())
+      fetchMock.mockResolvedValueOnce(sse([['done', { status: 'COMPLETED' }]]))
+      fetchMock.mockResolvedValueOnce(completedState(1))
+      const wrapper = mountView()
+      await wrapper.get('[data-testid="start"]').trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-testid="answer"]').setValue('My answer')
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
+
+      expect(fetchMock.mock.calls[2][0]).toBe(`/api/v1/assessment/sessions/${ATTEMPT}`)
+      expect(wrapper.get('[data-testid="start-new"]').text()).toBe('Start new attempt')
+    })
+  })
 })
