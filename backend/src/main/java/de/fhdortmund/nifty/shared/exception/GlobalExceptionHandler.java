@@ -49,7 +49,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<Object> handleDomain(DomainException ex, WebRequest request) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
-        return handleExceptionInternal(ex, body, new HttpHeaders(), ex.getStatus(), request);
+        HttpHeaders headers = new HttpHeaders();
+        if (ex.getRetryAfterSeconds() != null) {
+            headers.set(HttpHeaders.RETRY_AFTER, ex.getRetryAfterSeconds().toString());
+        }
+        return handleExceptionInternal(ex, body, headers, ex.getStatus(), request);
     }
 
     // REQ-AC-24: a full bounded pool rejects the task; the client may retry.

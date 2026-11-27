@@ -2,6 +2,7 @@ package de.fhdortmund.nifty.auth.service;
 
 import de.fhdortmund.nifty.auth.repository.ProfessorAccountEntity;
 import de.fhdortmund.nifty.auth.repository.ProfessorAccountRepository;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class ProfessorBootstrap implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfessorBootstrap.class);
+    private static final int BCRYPT_MAX_BYTES = 72;
 
     private final ProfessorAccountRepository repository;
     private final PasswordEncoder encoder;
@@ -37,6 +39,11 @@ public class ProfessorBootstrap implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         if (email.isBlank() || password.isBlank()) {
             return;
+        }
+        // REQ-AA-15: bcrypt reads at most 72 bytes. The message names the limit and never the password.
+        if (password.getBytes(StandardCharsets.UTF_8).length > BCRYPT_MAX_BYTES) {
+            throw new IllegalStateException("nifty.bootstrap.professor.password is longer than the bcrypt limit of "
+                    + BCRYPT_MAX_BYTES + " bytes (UTF-8). Use a shorter password.");
         }
         String normalized = ProfessorAccountEntity.normalizeEmail(email);
         if (repository.existsByEmail(normalized)) {

@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,9 +31,11 @@ class AuthController {
     private final AuthSessionService sessions;
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
+    private final CsrfTokenRepository csrfTokens;
 
-    AuthController(AuthSessionService sessions) {
+    AuthController(AuthSessionService sessions, CsrfTokenRepository csrfTokens) {
         this.sessions = sessions;
+        this.csrfTokens = csrfTokens;
     }
 
     @PostMapping("/login")
@@ -67,6 +70,9 @@ class AuthController {
         context.setAuthentication(authentication);
         contextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
+        // REQ-AA-13: issue a new XSRF-TOKEN cookie now, so the token from before sign-in stops working.
+        // CsrfAuthenticationStrategy only deletes the old cookie and defers the new token, so the SPA would have none.
+        csrfTokens.saveToken(csrfTokens.generateToken(request), request, response);
     }
 
     record LoginRequest(@NotBlank String email, @NotBlank String password) {

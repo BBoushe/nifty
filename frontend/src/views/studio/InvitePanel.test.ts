@@ -189,6 +189,23 @@ describe('invite CSV helpers', () => {
     expect(parseCandidateCsv(csv)).toEqual(['Doe, Jane', 'O"Brien, Pat', 'cand_3'])
   })
 
+  // REQ-AA-12: a line break inside quotes belongs to the field. It must not start a new row.
+  it('reads a line break inside quotes as part of one field (RFC 4180)', () => {
+    expect(parseCandidateCsv('candidate_ref\n"Schmidt,\nAnna"\n"Meier\r\nBen",x\ncand_3\n')).toEqual([
+      'Schmidt,\nAnna',
+      'Meier\r\nBen',
+      'cand_3',
+    ])
+  })
+
+  it('reads a quoted comma, a doubled quote and a quoted header cell', () => {
+    expect(parseCandidateCsv('"candidate_ref"\n"Doe, ""JJ"" Jane",CS101\n')).toEqual(['Doe, "JJ" Jane'])
+  })
+
+  it('keeps an unterminated quoted field and ignores blank records', () => {
+    expect(parseCandidateCsv('a\n\n   \n"b')).toEqual(['a', 'b'])
+  })
+
   it('neutralizes spreadsheet formula prefixes and quotes cells in exported CSV', () => {
     const csv = formatInvitesCsv([
       { inviteId: '1', candidateRef: '=SUM(A1)', link: 'http://localhost:5173/invite/t1' },

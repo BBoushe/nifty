@@ -34,40 +34,57 @@ export function revokeInvite(configId: string, inviteId: string): Promise<void> 
   })
 }
 
-/** Extracts the first RFC-4180 CSV field from a single line, handling quoted commas and `""` escapes. */
-function extractFirstCsvCell(line: string): string {
-  const trimmed = line.trimStart()
-  if (!trimmed.startsWith('"')) {
-    const commaIdx = trimmed.indexOf(',')
-    return (commaIdx === -1 ? trimmed : trimmed.slice(0, commaIdx)).trim()
-  }
-  let out = ''
-  for (let i = 1; i < trimmed.length; i++) {
-    const ch = trimmed[i]
-    if (ch === '"') {
-      if (trimmed[i + 1] === '"') {
-        out += '"'
+/**
+ * Reads the first field of every RFC 4180 record (REQ-AA-12). A quoted field, in any column, may hold
+ * commas, `""` escapes and line breaks. Hand-written on purpose: one column needs no CSV library.
+ * shortcut: an unterminated quote runs to the end of the text, upgrade if the import needs error reports.
+ */
+function firstCsvCells(text: string): string[] {
+  const cells: string[] = []
+  let cell = ''
+  let inQuotes = false
+  let pastFirst = false // after the first comma of the record: read, but do not keep
+  let fieldStart = true // only blanks since the field began, so a quote opens a quoted field
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inQuotes) {
+      if (ch !== '"') {
+        if (!pastFirst) cell += ch
+      } else if (text[i + 1] === '"') {
+        if (!pastFirst) cell += '"'
         i++
       } else {
-        break
+        inQuotes = false
       }
+    } else if (ch === '"' && fieldStart) {
+      inQuotes = true
+      fieldStart = false
+      if (!pastFirst) cell = ''
+    } else if (ch === ',') {
+      pastFirst = true
+      fieldStart = true
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++
+      cells.push(cell.trim())
+      cell = ''
+      pastFirst = false
+      fieldStart = true
     } else {
-      out += ch
+      if (!pastFirst) cell += ch
+      if (ch.trim() !== '') fieldStart = false
     }
   }
-  return out.trim()
+  cells.push(cell.trim())
+  return cells
 }
 
 /** Parses a one-column CSV (`candidate_ref` header optional) into trimmed non-blank candidate refs. */
 export function parseCandidateCsv(text: string): string[] {
-  const cleaned = text.replace(/^\uFEFF/, '')
-  const lines = cleaned.split(/\r?\n/)
+  const cells = firstCsvCells(text.replace(/^\uFEFF/, ''))
   const refs: string[] = []
   let checkedHeader = false
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i].trim()
-    if (!raw) continue
-    const firstCol = extractFirstCsvCell(raw)
+  for (let i = 0; i < cells.length; i++) {
+    const firstCol = cells[i]
     if (!firstCol) continue
     if (!checkedHeader) {
       checkedHeader = true

@@ -9,13 +9,24 @@ import org.springframework.http.HttpStatus;
 public class DomainException extends RuntimeException {
 
     private final HttpStatus status;
+    // REQ-AA-14: seconds for the Retry-After header of a 429. Null for every other failure.
+    private final Long retryAfterSeconds;
 
     public DomainException(HttpStatus status, String detail) {
+        this(status, detail, null);
+    }
+
+    public DomainException(HttpStatus status, String detail, Long retryAfterSeconds) {
         super(detail);
         this.status = status;
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 
     public HttpStatus getStatus() {
         return status;
+    }
+
+    public Long getRetryAfterSeconds() {
+        return retryAfterSeconds;
     }
 }

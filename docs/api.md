@@ -26,6 +26,7 @@ MVP has two roles (Decision 1.15). `SecurityConfig` holds the path rules, and me
 
 - Sign-in creates a server session. The `JSESSIONID` cookie is `HttpOnly` and `SameSite=Lax`. It is `Secure` unless `NIFTY_SESSION_COOKIE_SECURE=false`.
 - Every response can set the `XSRF-TOKEN` cookie. Send its value in the `X-XSRF-TOKEN` header on every `POST`, `PUT`, `PATCH` and `DELETE`. Without it, the request gets `403`.
+- A professor sign-in and an invite sign-in each set a new `XSRF-TOKEN` cookie. A request that sends the token from before the sign-in in the header gets `403` (REQ-AA-13, `AuthController`).
 - `frontend/src/api/client.ts` (`apiFetch`, `postSse`) sends the header.
 - A request without a session to a protected route gets `401` as a ProblemDetail (§3). There is no HTTP Basic challenge.
 
@@ -56,7 +57,7 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 | Source | Status | `detail` |
 |---|---|---|
 | `@Valid` body violation or `FieldValidationException` | `400` | Validation summary plus `errors[]` |
-| `DomainException(status, detail)` | its `status` | its `detail` |
+| `DomainException(status, detail)` | its `status` | its `detail`. A `429` also sets `Retry-After` in seconds. |
 | Spring MVC errors (`404`, `405`, `415`, ...) | status mapped by `ResponseEntityExceptionHandler` | Spring default |
 | Any other exception | `500` | `An unexpected error occurred.` (server logs full error) |
 
@@ -70,9 +71,9 @@ Every API error is an RFC 9457 `ProblemDetail` with media type `application/prob
 | `GET` | `/api/v1/ranking/studio/configs` | `PROFESSOR` | — | `AssessmentSummaryResponse[]` | Lists the signed-in professor's own configurations, newest first (REQ-IS-10). |
 | `GET` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `AssessmentDetailResponse` | Full configuration including hidden 5-level rubrics. `404` for unknown or other professor's ID (REQ-IS-10). `PUT`/`PATCH` return `405` (REQ-IS-08). |
 | `DELETE` | `/api/v1/ranking/studio/configs/{configId}` | `PROFESSOR` | — | `204` | GDPR purge: sets `SET LOCAL nifty.allow_purge = 'on'`, publishes `AssessmentDeletedEvent`, deletes rows, writes `CONFIG_DELETED` audit row. `404` for non-owner (REQ-IS-07, Decision 4.4). |
-| `POST` | `/api/v1/auth/login` | Public (CSRF) | `{ email, password }` | `204`, session cookie | `401` ProblemDetail with the same detail for an unknown email and a wrong password (REQ-AA-02). Email is case-insensitive (`AuthController`). |
+| `POST` | `/api/v1/auth/login` | Public (CSRF) | `{ email, password }` | `204`, session cookie | `401` ProblemDetail with the same detail for an unknown email and a wrong password (REQ-AA-02). Email is case-insensitive (`AuthController`). After 5 failed sign-ins for one email within 15 minutes, the next sign-in gets `429` ProblemDetail with `Retry-After` (seconds), also with the correct password. A successful sign-in resets the count (REQ-AA-14, `LoginRateLimiter`). The count lives in memory, so it works for one backend instance only. Sign-in sets a new `XSRF-TOKEN` cookie (REQ-AA-13). |
 | `POST` | `/api/v1/auth/logout` | Public (CSRF) | — | `204` | Ends the session. `403` without the CSRF header (REQ-AA-06, `SecurityConfig`). |
-| `POST` | `/api/v1/auth/invite/{token}` | Public (CSRF) | — | `{ configId }`, session cookie | Starts a `CANDIDATE` session bound to the invite's assessment and candidate. Unknown and revoked tokens return the same `401` ProblemDetail (REQ-AA-04, `AuthController`). |
+| `POST` | `/api/v1/auth/invite/{token}` | Public (CSRF) | — | `{ configId }`, session cookie | Starts a `CANDIDATE` session bound to the invite's assessment and candidate. Unknown and revoked tokens return the same `401` ProblemDetail (REQ-AA-04, `AuthController`). Sign-in sets a new `XSRF-TOKEN` cookie (REQ-AA-13). |
 | `GET` | `/api/v1/auth/me` | Authenticated | — | `{ role, professorId, inviteId, configId }` | `role` is `PROFESSOR` or `CANDIDATE`. `professorId` is `null` for a candidate; `inviteId` and `configId` are `null` for a professor. `401` without a session or after invite revocation. |
 | `POST` | `/api/v1/ranking/studio/configs/{configId}/invites` | `PROFESSOR` | `{ candidateRefs: string[] }` (1..500 unique non-blank) | `CreatedInvite[]` (`{ inviteId, candidateRef, link }`, `201`) | Generates 256-bit random tokens, stores only SHA-256 hashes, returns links once. `400` on a duplicate ref inside the request or an invalid ref, `404` for unowned or unknown config (REQ-AA-03, REQ-AA-09, `InviteController`). A ref with a revoked invite gets a new token on the same invite and an `INVITE_REISSUED` audit row. The old link and its sessions answer `401` (REQ-AA-10, Decision 2.34). `409` when a ref has an active invite, or when a parallel create wins the unique key (REQ-AA-11). A `409` creates no invite. |
 | `GET` | `/api/v1/ranking/studio/configs/{configId}/invites` | `PROFESSOR` | — | `InviteSummary[]` (`{ inviteId, candidateRef, revoked, createdAt }`) | Lists invites newest first without tokens. `404` for unowned or unknown config (REQ-AA-09). |

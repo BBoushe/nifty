@@ -32,11 +32,14 @@ public class AuthSessionService {
 
     private final AuthenticationManager authenticationManager;
     private final InviteRepository inviteRepository;
+    private final LoginRateLimiter rateLimiter;
 
     AuthSessionService(
             ProfessorUserDetailsService users,
             PasswordEncoder encoder,
-            InviteRepository inviteRepository) {
+            InviteRepository inviteRepository,
+            LoginRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         // DaoAuthenticationProvider also hashes for unknown emails, so timing does not reveal which part was wrong.
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(users);
         provider.setPasswordEncoder(encoder);
@@ -46,13 +49,17 @@ public class AuthSessionService {
 
     /** Returns an authenticated token whose principal is a professor {@link NiftyPrincipal}, or throws 401. */
     public Authentication login(String email, String password) {
+        // REQ-AA-14: a blocked email answers 429 before any password check.
+        rateLimiter.checkAllowed(email);
         Authentication checked;
         try {
             checked = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(email, password));
         } catch (AuthenticationException ex) {
+            rateLimiter.recordFailure(email);
             throw new DomainException(HttpStatus.UNAUTHORIZED, BAD_CREDENTIALS);
         }
+        rateLimiter.reset(email);
         // ProfessorUserDetailsService puts the account ID into the username.
         UUID accountId = UUID.fromString(((UserDetails) checked.getPrincipal()).getUsername());
         NiftyPrincipal principal = NiftyPrincipal.professor(accountId);

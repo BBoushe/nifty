@@ -1,6 +1,7 @@
 package de.fhdortmund.nifty.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.fhdortmund.nifty.PostgresContainerBase;
 import de.fhdortmund.nifty.auth.repository.ProfessorAccountRepository;
@@ -46,6 +47,31 @@ class ProfessorBootstrapTest extends PostgresContainerBase {
 
         assertThat(countByEmail(EMAIL)).isEqualTo(1);
         assertThat(hashOf(EMAIL)).isEqualTo(before);
+    }
+
+    // REQ-AA-15: bcrypt reads 72 bytes only. A longer password would be cut off silently, so startup stops.
+    @Test
+    void passwordOf80BytesStopsStartupNamesTheLimitAndNeverTheSecret() {
+        String password = "synthetic-password-".repeat(5).substring(0, 80);
+
+        assertThatThrownBy(() -> new ProfessorBootstrap(repository, encoder, "long.pw@example.test", password)
+                .run(null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("72")
+                .satisfies(ex -> assertThat(ex.getMessage()).doesNotContain(password));
+        assertThat(countByEmail("long.pw@example.test")).isZero();
+    }
+
+    // The limit counts UTF-8 bytes, not characters: 37 times "ä" is 37 characters and 74 bytes.
+    @Test
+    void theLimitCountsUtf8BytesAndExactly72BytesStillWorks() throws Exception {
+        assertThatThrownBy(() -> new ProfessorBootstrap(repository, encoder, "bytes.pw@example.test", "ä".repeat(37))
+                .run(null))
+                .isInstanceOf(IllegalStateException.class);
+
+        new ProfessorBootstrap(repository, encoder, "edge.pw@example.test", "ä".repeat(36)).run(null);
+
+        assertThat(countByEmail("edge.pw@example.test")).isEqualTo(1);
     }
 
     @Test

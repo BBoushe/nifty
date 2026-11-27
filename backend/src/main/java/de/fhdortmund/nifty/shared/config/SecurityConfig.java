@@ -17,6 +17,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -40,12 +42,19 @@ public class SecurityConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
+    // REQ-AA-13: the same repository serves the CSRF filter and the sign-in controller, which renews the token.
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JsonMapper json) throws Exception {
+    public CsrfTokenRepository csrfTokenRepository() {
+        return CookieCsrfTokenRepository.withHttpOnlyFalse();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http, JsonMapper json, CsrfTokenRepository csrfTokenRepository) throws Exception {
         return http
-                // Spring Security 7 csrf.spa() configures CookieCsrfTokenRepository.withHttpOnlyFalse()
+                // Spring Security 7 csrf.spa() configures the XSRF-TOKEN cookie repository (withHttpOnlyFalse)
                 // and opts out of deferred loading so the first response issues XSRF-TOKEN.
-                .csrf(csrf -> csrf.spa())
+                .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 // The SPA never needs a saved request; without a cache, a 401 creates no session.
                 .requestCache(RequestCacheConfigurer::disable)
