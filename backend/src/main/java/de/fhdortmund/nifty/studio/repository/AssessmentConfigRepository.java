@@ -19,7 +19,16 @@ public interface AssessmentConfigRepository extends Repository<AssessmentConfigE
 
     Optional<AssessmentConfigEntity> findByIdempotencyKey(UUID idempotencyKey);
 
-    List<AssessmentConfigEntity> findByProfessorIdOrderByCreatedAtDesc(UUID professorId);
+    /** The professor's configurations newest first, each with its counts, in one statement (no query per row). */
+    @Query("""
+            SELECT new de.fhdortmund.nifty.studio.repository.ConfigWithCounts(c,
+                (SELECT count(s) FROM SkillEntity s WHERE s.config = c),
+                (SELECT count(q) FROM CoreQuestionEntity q WHERE q.config = c))
+            FROM AssessmentConfigEntity c
+            WHERE c.professorId = :professorId
+            ORDER BY c.createdAt DESC
+            """)
+    List<ConfigWithCounts> findWithCountsByProfessorIdNewestFirst(@Param("professorId") UUID professorId);
 
     boolean existsById(UUID id);
 

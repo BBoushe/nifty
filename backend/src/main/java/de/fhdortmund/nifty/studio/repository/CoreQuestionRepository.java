@@ -18,6 +18,4 @@ public interface CoreQuestionRepository extends Repository<CoreQuestionEntity, U
             ORDER BY q.position ASC
             """)
     List<CoreQuestionEntity> findWithSkillsByConfigIdOrderByPositionAsc(@Param("configId") UUID configId);
-
-    long countByConfigId(UUID configId);
 }

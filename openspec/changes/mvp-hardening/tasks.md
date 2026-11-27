@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 15 done (committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group E, Task 16 (one list query, Studio). Not started.
+- **Current:** Tasks 1 to 16 done (Group E complete, committed, not pushed). Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group F, Task 17 (teams precision and test clean-up). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -97,9 +97,9 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] RED. (1) The CSV parser test: a quoted comma, `""` and a line break inside quotes. Find where the CSV is parsed with `grep -rn -i csv frontend/src backend/src/main` and test it there. (2) A MockMvc test: a POST with the pre-login CSRF token after sign-in → `403`, and the new token → OK, for professor and invite login. (3) The 6th failed login in 15 min → `429` with `Retry-After`; a success resets the count (inject a `Clock`). (4) `ProfessorBootstrap` with an 80-byte password fails startup, and the message contains "72" and not the password.
   - [x] GREEN per design §5. Update `docs/api.md` (`429`). Commit `fix(auth): renew CSRF on login, rate-limit sign-in, check bcrypt length, parse quoted CSV`.
 
-- [ ] **Task 16: One list query (Studio)**
-  - [ ] RED: a `@DataJpaTest` or Hibernate-statistics test asserts that listing 5 assessments runs a fixed number of queries, the same as for 1.
-  - [ ] GREEN: one grouped count query in the repository. Commit `perf(studio): load assessment list counts in one query`.
+- [x] **Task 16: One list query (Studio)**
+  - [x] RED: a `@DataJpaTest` or Hibernate-statistics test asserts that listing 5 assessments runs a fixed number of queries, the same as for 1.
+  - [x] GREEN: one grouped count query in the repository. Commit `perf(studio): load assessment list counts in one query`.
 
 ## Group F — Teams and docs
 
@@ -253,4 +253,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `npx vitest run src/views/studio/InvitePanel.test.ts` → FAIL (a line break inside quotes split the row); `./mvnw -B test -Dtest='LoginRateLimiterTest,ProfessorBootstrapTest,LoginHardeningTest'` → FAIL (compile: no `LoginRateLimiter`); after the limiter existed, `LoginHardeningTest` → FAIL (sign-in set no new `XSRF-TOKEN`, 2 tests); GREEN: `./mvnw -B test -Dtest='LoginRateLimiterTest,ProfessorBootstrapTest,LoginHardeningTest,AuthControllerTest,InviteRevocationAndPurgeTest,InviteSignInTest,GlobalExceptionHandlerTest,ArchitectureTest,InviteServiceTest'` → exit 0 (59 run); `npx vitest run src/views/studio` → exit 0 (22 run); typecheck and lint → exit 0
 - Contracts/Migrations added: `docs/api.md` (login `429` and `Retry-After`, CSRF renewal on both sign-ins, error table); `DomainException` gains `retryAfterSeconds`; `CsrfTokenRepository` bean in `SecurityConfig`; no migration
 - Decisions: no new ID. Design differed from code: (1) The CSV parser is in `frontend/src/api/invites.ts` (the backend has no CSV code). It is now a character state machine over the whole text, so quotes in any column keep their line breaks. (2) `CsrfAuthenticationStrategy` (the "configured strategy") only deletes the cookie and defers the new token in Spring Security 7, so the SPA would hold no token until a later response. `AuthController` therefore uses the fallback of the design: it saves a new token through the shared `CsrfTokenRepository` bean. The repository is a double-submit cookie, so the server rejects a header that differs from the new cookie, but it cannot tell a client that sends the old value in both places. (3) `csrf()` of MockMvc swaps the CSRF repository of the shared filter for the whole Spring context, so the real-cookie tests live in `LoginHardeningTest`, which never calls `csrf()`. (4) The limiter blocks after 5 failures (the 6th attempt answers `429`, also with the correct password), uses a fixed 15-minute window from the first failure, and a size-bounded `LinkedHashMap` (10 000 emails, oldest first); the clock is injectable through a package-private constructor. Unknown emails count too.
+- Open Questions: none
+
+### Task 16: One list query (Studio)
+- Commits: (this commit) perf(studio): load assessment list counts in one query
+- Verification: RED: `./mvnw -B test -Dtest='AssessmentReadAndDeletionIntegrationTest'` → FAIL (`listRunsTheSameFixedNumberOfQueriesFor5AssessmentsAsFor1`: expected 3 statements, was 11); GREEN: `./mvnw -B test -Dtest='AssessmentReadAndDeletionIntegrationTest,ConfigCreationAndQueryIntegrationTest,StudioConfigControllerTest,StudioSchemaAndTriggerTest,ArchitectureTest'` → exit 0 (31 run)
+- Contracts/Migrations added: none (the list response is unchanged, so no `docs/api.md` change); new repository record `ConfigWithCounts`
+- Decisions: no new ID. Design differed from code: the list ran `1 + 2N` statements (a count of skills and a count of questions per row). One JPQL constructor query in `AssessmentConfigRepository` now returns each configuration with two scalar sub-select counts, so the whole list is 1 statement (the test asserts 1 for both 1 and 5 assessments). It replaces `findByProfessorIdOrderByCreatedAtDesc`, and `SkillRepository.countByConfigId` and `CoreQuestionRepository.countByConfigId` are removed (no other caller). The test counts JDBC statements with Hibernate `Statistics`, which it switches on at run time, so it needs no new Spring context.
 - Open Questions: none

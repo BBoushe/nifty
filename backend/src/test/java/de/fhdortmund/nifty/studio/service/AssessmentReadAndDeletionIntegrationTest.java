@@ -17,11 +17,14 @@ import de.fhdortmund.nifty.shared.config.AssessmentDeletedEvent;
 import de.fhdortmund.nifty.shared.exception.DomainException;
 import de.fhdortmund.nifty.studio.service.view.GroupingMode;
 import de.fhdortmund.nifty.studio.service.view.SoftPreset;
+import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +57,8 @@ class AssessmentReadAndDeletionIntegrationTest extends PostgresContainerBase {
     private AssessmentDeletionService deletionService;
     @Autowired
     private JdbcTemplate jdbc;
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
     @Autowired
     private DeletionEventProbe eventProbe;
 
@@ -95,6 +100,33 @@ class AssessmentReadAndDeletionIntegrationTest extends PostgresContainerBase {
                 .isInstanceOf(DomainException.class)
                 .extracting(e -> ((DomainException) e).getStatus())
                 .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    // Task 16: the counts come from one grouped query, so 5 assessments cost the same as 1 (no N+1).
+    @Test
+    void listRunsTheSameFixedNumberOfQueriesFor5AssessmentsAsFor1() {
+        UUID professor = UUID.randomUUID();
+        when(authContextService.currentProfessorId()).thenReturn(professor);
+        creationService.create(UUID.randomUUID(), requestTitled("Query count 1"));
+        long queriesForOne = queriesOfList();
+
+        for (int i = 2; i <= 5; i++) {
+            creationService.create(UUID.randomUUID(), requestTitled("Query count " + i));
+        }
+        long queriesForFive = queriesOfList();
+
+        assertThat(readService.listForCurrentProfessor()).hasSize(5)
+                .allSatisfy(row -> assertThat(row.skillCount()).isEqualTo(1))
+                .allSatisfy(row -> assertThat(row.questionCount()).isEqualTo(1));
+        assertThat(queriesForFive).isEqualTo(queriesForOne).isEqualTo(1L);
+    }
+
+    private long queriesOfList() {
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        readService.listForCurrentProfessor();
+        return statistics.getPrepareStatementCount();
     }
 
     @Test
