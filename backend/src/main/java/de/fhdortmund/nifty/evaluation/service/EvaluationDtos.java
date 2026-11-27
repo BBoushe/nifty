@@ -36,6 +36,7 @@ public final class EvaluationDtos {
      */
     public record MatrixCandidateRow(
             UUID inviteId,
+            String candidateRef,
             UUID attemptId,
             int attemptNo,
             String evaluationStatus,
@@ -90,7 +91,9 @@ public final class EvaluationDtos {
             UUID attemptId,
             UUID configId,
             UUID inviteId,
+            String candidateRef,
             int attemptNo,
+            String evaluationStatus,
             BigDecimal fitScore,
             BigDecimal coverage,
             BigDecimal minCoverage,
@@ -136,6 +139,9 @@ public final class EvaluationDtos {
             BigDecimal fitScore,
             BigDecimal coverage
     ) {
+    }
+
+    public record RetryEvaluationResponse(UUID attemptId, String evaluationStatus) {
     }
 
     public record SkillGapStat(
@@ -236,6 +242,7 @@ public final class EvaluationDtos {
 
     public record FormulaPreviewCandidate(
             UUID inviteId,
+            String candidateRef,
             UUID attemptId,
             BigDecimal fitScore,
             BigDecimal coverage,

@@ -6,8 +6,10 @@ import de.fhdortmund.nifty.assessment.service.TranscriptEntryView;
 import de.fhdortmund.nifty.audit.service.AuditActorRole;
 import de.fhdortmund.nifty.audit.service.AuditService;
 import de.fhdortmund.nifty.auth.service.AuthContextService;
+import de.fhdortmund.nifty.auth.service.InviteService;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryEntity;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryRepository;
+import de.fhdortmund.nifty.evaluation.repository.EvaluationRunEntity;
 import de.fhdortmund.nifty.evaluation.repository.FormulaVersionEntity;
 import de.fhdortmund.nifty.evaluation.repository.FormulaVersionRepository;
 import de.fhdortmund.nifty.evaluation.repository.ResponseEvaluationEntity;
@@ -57,6 +59,7 @@ public class EvaluationReviewService {
     private final ResponseEvaluationRepository responseEvaluationRepository;
     private final SkillScoreRepository skillScoreRepository;
     private final FormulaRecalculationHelper recalcHelper;
+    private final InviteService inviteService;
 
     EvaluationReviewService(
             StudioQueryService studioQueryService,
@@ -67,7 +70,8 @@ public class EvaluationReviewService {
             CandidateEvaluationSummaryRepository summaryRepository,
             ResponseEvaluationRepository responseEvaluationRepository,
             SkillScoreRepository skillScoreRepository,
-            FormulaRecalculationHelper recalcHelper) {
+            FormulaRecalculationHelper recalcHelper,
+            InviteService inviteService) {
         this.studioQueryService = studioQueryService;
         this.authContextService = authContextService;
         this.auditService = auditService;
@@ -77,6 +81,7 @@ public class EvaluationReviewService {
         this.responseEvaluationRepository = responseEvaluationRepository;
         this.skillScoreRepository = skillScoreRepository;
         this.recalcHelper = recalcHelper;
+        this.inviteService = inviteService;
     }
 
     public EvaluationDtos.MatrixResponse getMatrix(UUID configId) {
@@ -91,6 +96,7 @@ public class EvaluationReviewService {
         // shows as a waiting row and hides the older completed attempt.
         List<CandidateEvaluationSummaryEntity> latestSummaries = summaryRepository.findLatestPerInvite(configId);
         Map<UUID, List<SkillScoreEntity>> scoresBySummary = loadScoresBySummary(latestSummaries);
+        Map<UUID, String> refsByInvite = inviteService.candidateRefs(configId);
 
         List<EvaluationDtos.SkillColumn> columns = new ArrayList<>(evaluatorView.skills().size());
         for (int i = 0; i < evaluatorView.skills().size(); i++) {
@@ -104,6 +110,7 @@ public class EvaluationReviewService {
             List<SkillScoreEntity> scores = scoresBySummary.getOrDefault(summary.getId(), List.of());
             rows.add(new EvaluationDtos.MatrixCandidateRow(
                     summary.getInviteId(),
+                    FormulaRecalculationHelper.candidateRefOf(refsByInvite, summary.getInviteId()),
                     summary.getAttemptId(),
                     summary.getAttemptNo(),
                     summary.getEvaluationStatus(),
@@ -168,7 +175,10 @@ public class EvaluationReviewService {
                 summary.getAttemptId(),
                 summary.getConfigId(),
                 summary.getInviteId(),
+                FormulaRecalculationHelper.candidateRefOf(
+                        inviteService.candidateRefs(summary.getConfigId()), summary.getInviteId()),
                 summary.getAttemptNo(),
+                summary.getEvaluationStatus(),
                 summary.getFitScore(),
                 summary.getCoverage(),
                 scoringView.minCoverage(),
@@ -187,12 +197,8 @@ public class EvaluationReviewService {
     @Transactional
     public EvaluationDtos.ApproveEvaluationResponse approveEvaluation(UUID responseEvalId) {
         UUID professorId = authContextService.currentProfessorId();
-        ResponseEvaluationEntity target = responseEvaluationRepository.findWithSummaryById(responseEvalId)
-                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        ResponseEvaluationEntity target = lockSummaryAndLoadResponse(responseEvalId, professorId);
         CandidateEvaluationSummaryEntity summary = target.getSummary();
-        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
-            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
-        }
 
         // Decision 2.10: an audited professor override must survive; approve would silently replace it.
         if (target.getOverriddenBy() != null) {
@@ -255,12 +261,8 @@ public class EvaluationReviewService {
         validateOverrideRequest(request);
 
         UUID professorId = authContextService.currentProfessorId();
-        ResponseEvaluationEntity target = responseEvaluationRepository.findWithSummaryById(responseEvalId)
-                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        ResponseEvaluationEntity target = lockSummaryAndLoadResponse(responseEvalId, professorId);
         CandidateEvaluationSummaryEntity summary = target.getSummary();
-        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
-            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
-        }
 
         String oldValue = target.getEffectiveLevel() == null
                 ? "N/A"
@@ -398,6 +400,32 @@ public class EvaluationReviewService {
                 summary.getCoverage());
     }
 
+    /**
+     * REQ-EP-12: re-runs a FAILED evaluation with a fresh set of tries. The retry scheduler dispatches the QUEUED run
+     * on its next pass. The summary row lock keeps two concurrent re-runs from writing two audit rows.
+     */
+    @Transactional
+    public EvaluationDtos.RetryEvaluationResponse retryEvaluation(UUID attemptId) {
+        UUID professorId = authContextService.currentProfessorId();
+        CandidateEvaluationSummaryEntity summary = requireOwned(summaryRepository.findByAttemptIdForUpdate(attemptId));
+        EvaluationRunEntity run = summary.getLatestRun();
+        if (!"FAILED".equals(run.getStatus())) {
+            throw new DomainException(HttpStatus.CONFLICT, "Only a failed evaluation can be re-run.");
+        }
+        run.requeue(Instant.now());
+        summary.markEvaluationStatus("QUEUED");
+        auditService.record(
+                professorId.toString(),
+                AuditActorRole.PROFESSOR,
+                "ATTEMPT",
+                attemptId,
+                "EVALUATION_RETRIED",
+                "FAILED",
+                "QUEUED",
+                null);
+        return new EvaluationDtos.RetryEvaluationResponse(attemptId, "QUEUED");
+    }
+
     public EvaluationDtos.TranscriptExportResponse exportTranscript(UUID attemptId) {
         CandidateEvaluationSummaryEntity summary = requireOwnedSummary(attemptId);
         ImmutableTranscriptView transcript = assessmentQueryService.getTranscriptForAttempt(attemptId);
@@ -468,6 +496,23 @@ public class EvaluationReviewService {
                 transcript.startedAt(),
                 List.copyOf(entries),
                 List.copyOf(evidence));
+    }
+
+    /**
+     * REQ-SM-14: one lock order for every write of an attempt. The summary row is locked first, then the response is
+     * loaded fresh (a scalar read finds the attempt, so no stale response sits in the session before the lock).
+     * Release and the purge use the same order, so approve, override, release and purge never deadlock.
+     */
+    private ResponseEvaluationEntity lockSummaryAndLoadResponse(UUID responseEvalId, UUID professorId) {
+        UUID attemptId = responseEvaluationRepository.findAttemptIdById(responseEvalId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        CandidateEvaluationSummaryEntity summary = summaryRepository.findByAttemptIdForUpdate(attemptId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
+        if (!studioQueryService.ownedBy(summary.getConfigId(), professorId)) {
+            throw new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND);
+        }
+        return responseEvaluationRepository.findWithSummaryById(responseEvalId)
+                .orElseThrow(() -> new DomainException(HttpStatus.NOT_FOUND, RESPONSE_NOT_FOUND));
     }
 
     UUID requireOwnedConfig(UUID configId) {

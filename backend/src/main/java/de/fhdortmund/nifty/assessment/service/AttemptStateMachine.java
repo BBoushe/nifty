@@ -49,6 +49,11 @@ final class AttemptStateMachine {
         return view.bfi10Enabled() ? AttemptStatus.BFI10 : AttemptStatus.COMPLETED;
     }
 
+    /** REQ-AC-22: attempts the invite may still start, never below zero. */
+    static int attemptsLeft(int startedAttempts, int maxAttempts) {
+        return Math.max(0, maxAttempts - startedAttempts);
+    }
+
     /** REQ-AC-11 / Decision 2.13. */
     static void checkCanStart(int startedAttempts, int maxAttempts) {
         if (startedAttempts >= maxAttempts) {
@@ -59,8 +64,7 @@ final class AttemptStateMachine {
     /**
      * REQ-AC-01 / REQ-AC-02: core questions in position order, then up to {@code followUpLimit} follow-ups each.
      * {@code followUpAllowed} is false after a blank or timed-out answer, so the interview moves on.
-     * shortcut: always asks every allowed follow-up and never an invented question; let the interviewer end a topic
-     * early or invent questions when the team wants that.
+     * shortcut: always asks every allowed follow-up; let the interviewer end a topic early when the team wants that.
      */
     static NextStep next(InterviewerView view, List<LedgerEntry> ledger, boolean followUpAllowed) {
         List<InterviewerQuestion> questions = view.questions();

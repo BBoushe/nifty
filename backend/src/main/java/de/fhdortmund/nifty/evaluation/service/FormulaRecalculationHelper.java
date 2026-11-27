@@ -173,6 +173,12 @@ class FormulaRecalculationHelper {
         return List.copyOf(cells);
     }
 
+    /** REQ-SM-12: the invite's candidateRef, or the invite ID text when the invite is gone (never null). */
+    static String candidateRefOf(Map<UUID, String> refsByInvite, UUID inviteId) {
+        String ref = refsByInvite.get(inviteId);
+        return ref == null ? inviteId.toString() : ref;
+    }
+
     static boolean isReleased(String releaseStatusLiteral) {
         return ReleaseStatus.AUTO_RELEASED.literal().equals(releaseStatusLiteral)
                 || ReleaseStatus.APPROVED.literal().equals(releaseStatusLiteral)

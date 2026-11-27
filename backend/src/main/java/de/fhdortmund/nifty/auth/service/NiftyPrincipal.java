@@ -11,25 +11,28 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * The authentication principal of a Nifty session (Decision 1.23).
  * For a professor, {@code id} is the account ID. For a candidate, {@code id} equals {@code inviteId}
  * and {@code inviteId}, {@code configId}, {@code candidateRef} bind the session to one invite.
+ * {@code tokenHash} is the invite token hash at sign-in. A re-invite rotates it (Decision 2.34), which ends the session.
+ * A session saved before this field existed deserializes with {@code null}, and the checks treat that as invalid.
  */
 public record NiftyPrincipal(
         UUID id,
         Role role,
         UUID inviteId,
         UUID configId,
-        String candidateRef
+        String candidateRef,
+        String tokenHash
 ) implements Serializable {
 
     public NiftyPrincipal(UUID id, Role role) {
-        this(id, role, null, null, null);
+        this(id, role, null, null, null, null);
     }
 
     public static NiftyPrincipal professor(UUID professorId) {
-        return new NiftyPrincipal(professorId, Role.PROFESSOR, null, null, null);
+        return new NiftyPrincipal(professorId, Role.PROFESSOR, null, null, null, null);
     }
 
-    public static NiftyPrincipal candidate(UUID inviteId, UUID configId, String candidateRef) {
-        return new NiftyPrincipal(inviteId, Role.CANDIDATE, inviteId, configId, candidateRef);
+    public static NiftyPrincipal candidate(UUID inviteId, UUID configId, String candidateRef, String tokenHash) {
+        return new NiftyPrincipal(inviteId, Role.CANDIDATE, inviteId, configId, candidateRef, tokenHash);
     }
 
     /** The principal of the current request, or empty when nobody signed in through Nifty. */

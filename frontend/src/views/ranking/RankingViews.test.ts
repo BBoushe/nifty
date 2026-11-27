@@ -3,12 +3,127 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import TranscriptDialog from '@/components/TranscriptDialog.vue'
 import CohortGapsPanel from './CohortGapsPanel.vue'
-import EvidenceDrawer from './EvidenceDrawer.vue'
+import EvidenceDialog from './EvidenceDialog.vue'
+import RankingView from './RankingView.vue'
 import SkillsMatrixPanel from './SkillsMatrixPanel.vue'
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+
+// The Dialog portal mounts one tick late, and teleport is stubbed so the tests can query it.
+// Transitions run for real: PrimeVue binds its Esc listener in the enter hook.
+const dialogGlobal = { stubs: { teleport: true, transition: false } }
+// Leave transitions need a few frames before the Dialog leaves the DOM.
+const settle = () => new Promise((resolve) => setTimeout(resolve, 200))
+
+const quote = 'wrap the write in @Transactional'
+const answerText = `I ${quote} so failures roll back.`
+
+// One attempt (att-1) with one flagged evaluation and one transcript entry, shared by the modal tests.
+function attemptFetch(url: string): Promise<Response> {
+  if (url.includes('/attempts/att-1/evaluations')) {
+    return Promise.resolve(
+      jsonResponse({
+        attemptId: 'att-1',
+        configId: 'cfg-1',
+        inviteId: 'inv-12345678',
+        candidateRef: 'anna.schmidt',
+        attemptNo: 1,
+        evaluationStatus: 'COMPLETED',
+        fitScore: 2.0,
+        coverage: 1.0,
+        minCoverage: 0.7,
+        releaseStatus: 'flagged',
+        flaggedCount: 1,
+        releasedAt: null,
+        skillScores: [],
+        responses: [
+          {
+            responseEvaluationId: 're-1',
+            entryId: 'e-1',
+            coreQuestionId: 'q-1',
+            skillId: 's1',
+            skillName: 'Spring Boot',
+            questionOrigin: 'core',
+            questionWeight: 2.0,
+            confidenceThreshold: 0.7,
+            run1Level: 2,
+            run2Level: 3,
+            run1Quote: quote,
+            run2Quote: quote,
+            quoteVerified: true,
+            verifiedQuote: quote,
+            aiRationale: 'Understands transaction boundaries.',
+            aiLevel: 2,
+            calculatedConfidence: 0.62,
+            flagReasons: ['LOW_CONFIDENCE'],
+            reviewStatus: 'flagged',
+            effectiveLevel: 2,
+            overriddenBy: null,
+            overrideReason: null,
+            reviewedAt: null,
+          },
+        ],
+      }),
+    )
+  }
+  if (url.includes('/transcripts/att-1')) {
+    return Promise.resolve(
+      jsonResponse({
+        format: 'assessment-transcript/v1',
+        transcriptId: 'att-1',
+        candidateId: 'inv-12345678',
+        configId: 'cfg-1',
+        configVersion: 'v1',
+        attempt: 1,
+        startedAt: '2026-11-26T11:50:00Z',
+        entries: [
+          {
+            entryId: 'e-1',
+            turn: 1,
+            question: {
+              text: 'Explain @Transactional boundaries.',
+              origin: 'core',
+              coreQuestionId: 'q-1',
+              weight: 2.0,
+              targetSkills: ['s1'],
+              askedAt: '2026-11-26T11:50:05Z',
+              expiresAt: null,
+            },
+            answer: {
+              text: answerText,
+              submittedAt: '2026-11-26T11:50:47Z',
+              durationSec: 42,
+              timedOut: true,
+              pasteSuspected: true,
+              injectionSuspected: true,
+            },
+            metadata: { promptedTerms: [], unpromptedTerms: [] },
+          },
+        ],
+        evidence: [],
+      }),
+    )
+  }
+  return Promise.resolve(jsonResponse({}))
+}
+
+async function mountEvidence() {
+  const { pinia, queryClient } = createPlugins()
+  const wrapper = mount(EvidenceDialog, {
+    props: {
+      attemptId: 'att-1',
+      visible: true,
+      'onUpdate:visible': (v: boolean) => wrapper.setProps({ visible: v }),
+    },
+    global: { ...dialogGlobal, plugins: [pinia, PrimeVue, [VueQueryPlugin, { queryClient }]] },
+  })
+  await flushPromises()
+  return wrapper
+}
 
 function createPlugins() {
   const pinia = createPinia()
@@ -154,7 +269,7 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     expect(wrapper.find('[data-testid="bulk-approve-btn"]').exists()).toBe(false)
   })
 
-  it('EvidenceDrawer displays verified quote, requires override reason, submits override, and blocks release while flagged', async () => {
+  it('EvidenceDialog displays verified quote, requires override reason, submits override, and blocks release while flagged', async () => {
     const attemptId = 'att-1'
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url.includes('/attempts/att-1/evaluations')) {
@@ -272,28 +387,15 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const { pinia, queryClient } = createPlugins()
-    const wrapper = mount(EvidenceDrawer, {
+    const wrapper = mount(EvidenceDialog, {
       props: { attemptId, visible: true },
-      global: { plugins: [pinia, PrimeVue, [VueQueryPlugin, { queryClient }]] },
+      global: { ...dialogGlobal, plugins: [pinia, PrimeVue, [VueQueryPlugin, { queryClient }]] },
     })
     await flushPromises()
 
     expect(wrapper.text()).toContain('wrap the write in @Transactional')
     expect(wrapper.text()).toContain('JUDGE_DISAGREEMENT')
     expect(wrapper.get('[data-testid="release-attempt-btn"]').attributes('disabled')).toBeDefined()
-
-    // REQ-SM-08: full conversation ledger renders timestamps, time to answer, Q&A, and anomaly/timeout markers
-    const ledger = wrapper.get('[data-testid="conversation-ledger"]')
-    expect(ledger.text()).toContain('assessment-transcript/v1')
-    expect(ledger.text()).toContain('Turn #1')
-    expect(ledger.text()).toContain('Time to answer: 42s')
-    expect(ledger.text()).toContain('Asked: 2026-11-26T11:50:05Z')
-    expect(ledger.text()).toContain('Submitted: 2026-11-26T11:50:47Z')
-    expect(ledger.text()).toContain('Explain @Transactional boundaries.')
-    expect(ledger.text()).toContain('I wrap the write in @Transactional so failures roll back.')
-    expect(ledger.find('[data-testid="marker-timed-out-e-1"]').exists()).toBe(true)
-    expect(ledger.find('[data-testid="marker-paste-e-1"]').exists()).toBe(true)
-    expect(ledger.find('[data-testid="marker-injection-e-1"]').exists()).toBe(true)
 
     // Professor can approve a flagged item as-is without fabricating an override
     await wrapper.get('[data-testid="approve-eval-re-1"]').trigger('click')
@@ -319,7 +421,7 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     expect(transcriptCalls.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('EvidenceDrawer disables Release Attempt when attempt is already auto_released (Decision 2.10)', async () => {
+  it('EvidenceDialog disables Release Attempt when attempt is already auto_released (Decision 2.10)', async () => {
     const attemptId = 'att-released'
     vi.stubGlobal(
       'fetch',
@@ -362,13 +464,141 @@ describe('Ranking Views (US-EV-06, REQ-SM-01..08)', () => {
     )
 
     const { pinia, queryClient } = createPlugins()
-    const wrapper = mount(EvidenceDrawer, {
+    const wrapper = mount(EvidenceDialog, {
       props: { attemptId, visible: true },
-      global: { plugins: [pinia, PrimeVue, [VueQueryPlugin, { queryClient }]] },
+      global: { ...dialogGlobal, plugins: [pinia, PrimeVue, [VueQueryPlugin, { queryClient }]] },
     })
     await flushPromises()
 
     expect(wrapper.get('[data-testid="release-attempt-btn"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('EvidenceDialog has no inline ledger; View transcript opens the chat dialog with markers (REQ-SM-10)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(attemptFetch))
+    const wrapper = await mountEvidence()
+
+    expect(wrapper.find('[data-testid="conversation-ledger"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="transcript-dialog"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="view-transcript-btn"]').trigger('click')
+    await flushPromises()
+
+    const transcript = wrapper.get('[data-testid="transcript-dialog"]')
+    expect(transcript.text()).toContain('Core question 1')
+    expect(transcript.text()).toContain('Explain @Transactional boundaries.')
+    expect(transcript.text()).toContain(answerText)
+    expect(transcript.text()).toContain('answered in 42 s')
+    expect(transcript.find('[data-testid="marker-timed-out-e-1"]').exists()).toBe(true)
+    expect(transcript.find('[data-testid="marker-paste-e-1"]').exists()).toBe(true)
+    expect(transcript.find('[data-testid="marker-injection-e-1"]').exists()).toBe(true)
+    expect(wrapper.findComponent(TranscriptDialog).props('showMarkers')).toBe(true)
+  })
+
+  it('Show in transcript passes the focused entry and highlights the verified quote (REQ-SM-10)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(attemptFetch))
+    const wrapper = await mountEvidence()
+
+    await wrapper.get('[data-testid="show-in-transcript-re-1"]').trigger('click')
+    await flushPromises()
+
+    const transcript = wrapper.findComponent(TranscriptDialog)
+    expect(transcript.props('focusEntryId')).toBe('e-1')
+    expect(transcript.props('highlight')).toEqual({ 'e-1': [quote] })
+    expect(wrapper.get('[data-testid="answer-e-1"] mark').text()).toBe(quote)
+  })
+
+  it('Close and Esc close the evidence dialog; Esc with the transcript open closes only the transcript (REQ-SM-09)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(attemptFetch))
+    const wrapper = await mountEvidence()
+    const esc = () => document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }))
+
+    await wrapper.get('[data-testid="view-transcript-btn"]').trigger('click')
+    await flushPromises()
+    esc()
+    await settle()
+    expect(wrapper.find('[data-testid="transcript-dialog"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="evidence-dialog"]').exists()).toBe(true)
+
+    esc()
+    await settle()
+    expect(wrapper.find('[data-testid="evidence-dialog"]').exists()).toBe(false)
+  })
+
+  it('Inspect opens a modal dialog while the matrix stays mounted (REQ-SM-09)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/matrix')) {
+          return Promise.resolve(
+            jsonResponse({
+              configId: 'cfg-1',
+              formulaVersionId: null,
+              formulaVersionNumber: 1,
+              formulaPreset: 'WEIGHTED_MEAN',
+              minCoverage: 0.7,
+              skills: [{ skillId: 's1', skillName: 'Spring Boot' }],
+              rows: [
+                {
+                  inviteId: 'inv-12345678',
+                  candidateRef: 'anna.schmidt',
+                  attemptId: 'att-1',
+                  attemptNo: 1,
+                  evaluationStatus: 'COMPLETED',
+                  fitScore: 2.0,
+                  coverage: 1.0,
+                  releaseStatus: 'flagged',
+                  flaggedCount: 1,
+                  releasedAt: null,
+                  cells: [
+                    {
+                      skillId: 's1',
+                      skillName: 'Spring Boot',
+                      status: 'SCORED',
+                      value: 2.0,
+                      avgConfidence: 0.6,
+                      verifiedEvidenceCount: 1,
+                      reviewStatus: 'flagged',
+                    },
+                  ],
+                },
+              ],
+            }),
+          )
+        }
+        if (url.endsWith('/studio/configs')) {
+          return Promise.resolve(
+            jsonResponse([{ configId: 'cfg-1', title: 'Backend', version: 1, createdAt: '2026-11-26T10:00:00Z' }]),
+          )
+        }
+        return attemptFetch(url)
+      }),
+    )
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/ranking', component: RankingView },
+        { path: '/ranking/configs/:configId', name: 'ranking-config', component: RankingView },
+      ],
+    })
+    await router.push('/ranking')
+    await router.isReady()
+    const { pinia, queryClient } = createPlugins()
+    const wrapper = mount(RankingView, {
+      global: { ...dialogGlobal, plugins: [pinia, router, PrimeVue, [VueQueryPlugin, { queryClient }]] },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="inspect-attempt-att-1"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="matrix-cell-att-1-s1"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="evidence-close-btn"]').trigger('click')
+    await settle()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="matrix-cell-att-1-s1"]').exists()).toBe(true)
   })
 
   it('CohortGapsPanel renders backend SQL stats without client-side recomputation', async () => {

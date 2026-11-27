@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +74,8 @@ public class TwoRunResponseJudge {
         String raw = chatClient.prompt()
                 .system(systemPrompt)
                 .user(userContent)
+                // REQ-EP-10: per call, so the interviewer keeps the provider default temperature.
+                .options(ChatOptions.builder().temperature(0.0))
                 .call()
                 .content();
         return parseStrict(raw);
@@ -82,13 +85,16 @@ public class TwoRunResponseJudge {
         if (raw == null || raw.isBlank()) {
             return ParsedRun.failed();
         }
-        String trimmed = raw.trim();
-        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+        // REQ-EP-10: first '{' to last '}' also drops a Markdown code fence and any prose around the object.
+        // The schema check below stays strict. shortcut: a stray '{' in leading prose fails the parse, upgrade if seen.
+        int start = raw.indexOf('{');
+        int end = raw.lastIndexOf('}');
+        if (start < 0 || end < start) {
             return ParsedRun.failed();
         }
         Map<String, Object> fields;
         try {
-            fields = jsonMapper.readValue(trimmed, MAP_TYPE);
+            fields = jsonMapper.readValue(raw.substring(start, end + 1), MAP_TYPE);
         } catch (JacksonException ex) {
             return ParsedRun.failed();
         }

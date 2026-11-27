@@ -38,6 +38,12 @@ nifty:
     professor:
       email: ${NIFTY_BOOTSTRAP_PROFESSOR_EMAIL:}
       password: ${NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD:}
+  # REQ-AC-24: bounded pool for interviewer streams. A full pool and queue answers 503.
+  assessment:
+    stream:
+      core-size: 8
+      max-size: 32
+      queue-capacity: 100
   # Decision 2.28: bounded retry of QUEUED, FAILED, and stale RUNNING evaluation runs.
   evaluation:
     retry:

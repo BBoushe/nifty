@@ -9,7 +9,6 @@ export interface DraftSettings {
   vision: string
   minCoveragePercent: number
   maxAttempts: number
-  inventedQuestions: boolean
   bfi10Enabled: boolean
   teamSize: number
   groupingMode: GroupingMode
@@ -69,7 +68,6 @@ const defaultSettings = (): DraftSettings => ({
   vision: '',
   minCoveragePercent: 60,
   maxAttempts: 1,
-  inventedQuestions: false,
   bfi10Enabled: false,
   teamSize: 4,
   groupingMode: 'HARD_SKILLS',
@@ -121,7 +119,13 @@ export const useAssessmentFormStore = defineStore('assessmentForm', () => {
       questions: questions.value,
       idempotencyKey: idempotencyKey.value,
     }
-    localStorage.setItem(ASSESSMENT_FORM_STORAGE_KEY, JSON.stringify(snapshot))
+    // shortcut: a full or blocked localStorage (quota, privacy mode) silently loses the draft on reload; add a
+    // visible "draft not saved" notice when that matters.
+    try {
+      localStorage.setItem(ASSESSMENT_FORM_STORAGE_KEY, JSON.stringify(snapshot))
+    } catch {
+      // The form keeps working in memory.
+    }
   }
 
   watch([settings, skills, questions, idempotencyKey], persist, { deep: true, flush: 'sync' })
@@ -216,7 +220,6 @@ export const useAssessmentFormStore = defineStore('assessmentForm', () => {
         vision: settings.vision,
         minCoverage: roundRatio(settings.minCoveragePercent),
         maxAttempts: settings.maxAttempts,
-        inventedQuestions: settings.inventedQuestions,
         bfi10Enabled: settings.bfi10Enabled,
         teamSize: settings.teamSize,
         groupingMode: settings.groupingMode,
@@ -252,8 +255,10 @@ export const useAssessmentFormStore = defineStore('assessmentForm', () => {
     } finally {
       suppressPersist = false
     }
-    if (typeof localStorage !== 'undefined') {
+    try {
       localStorage.removeItem(ASSESSMENT_FORM_STORAGE_KEY)
+    } catch {
+      // No storage, nothing to remove.
     }
   }
 

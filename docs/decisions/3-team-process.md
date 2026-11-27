@@ -138,3 +138,12 @@ Engineering workflow, AI harness governance, coding standards, and review polici
 - **Alternatives Considered:** A rule in coding-standards.md only; leaving the plugin optional per developer
 - **Rationale / Justification:** One plugin gives every Claude session the same minimal-diff discipline, and the inline fallback keeps other tools at parity.
 - **Affected Files / Pointers:** .claude/agents/spec-builder.md, .claude/skills/spec-implementer/SKILL.md, .claude/settings.json, docs/setup.md
+
+## 3.16 — mvp-hardening ships without the manual smoke test
+- **Date:** 2026-11-27
+- **Triggered By:** prompter-change
+- **Context:** Task 19 asks for a manual browser smoke on docker compose. The team has no time left for it.
+- **Decision:** Skip the manual smoke for mvp-hardening. Ship on the automated checks and the cold review.
+- **Alternatives Considered:** Run the smoke before the PR.
+- **Rationale / Justification:** User request under time pressure. Every automated check passes, and the Group A UI had a quick look.
+- **Affected Files / Pointers:** openspec/changes/mvp-hardening/tasks.md

@@ -189,6 +189,49 @@ class InviteRevocationAndPurgeTest extends PostgresContainerBase {
                 .andExpect(jsonPath("$.role").value("PROFESSOR"));
     }
 
+    // REQ-AA-10 / Decision 2.34: a new link for a revoked candidate signs in. The old link and old session stay dead.
+    @Test
+    void reinviteAfterRevokeGivesANewWorkingLinkAndKeepsTheOldSessionAndLinkDead() throws Exception {
+        MockHttpSession professorSession = signInProfessor();
+        UUID configId = createConfig(professorSession);
+        JsonNode first = createInvite(professorSession, configId, "anna.schmidt");
+        String oldToken = tokenOf(first);
+        MockHttpSession oldSession = (MockHttpSession) mockMvc.perform(
+                        post("/api/v1/auth/invite/" + oldToken).with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession(false);
+        mockMvc.perform(delete("/api/v1/ranking/studio/configs/" + configId + "/invites/"
+                        + first.get("inviteId").asText())
+                .session(professorSession).with(csrf())).andExpect(status().isNoContent());
+
+        JsonNode second = createInvite(professorSession, configId, "anna.schmidt");
+
+        assertThat(second.get("inviteId").asText()).isEqualTo(first.get("inviteId").asText());
+        mockMvc.perform(get("/api/v1/auth/me").session(oldSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/auth/invite/" + oldToken).with(csrf())).andExpect(status().isUnauthorized());
+        MockHttpSession newSession = (MockHttpSession) mockMvc.perform(
+                        post("/api/v1/auth/invite/" + tokenOf(second)).with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession(false);
+        mockMvc.perform(get("/api/v1/auth/me").session(newSession)).andExpect(status().isOk());
+    }
+
+    private JsonNode createInvite(MockHttpSession professorSession, UUID configId, String ref) throws Exception {
+        String response = mockMvc.perform(post("/api/v1/ranking/studio/configs/" + configId + "/invites")
+                        .session(professorSession)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"candidateRefs\":[\"" + ref + "\"]}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return json.readTree(response).get(0);
+    }
+
+    private static String tokenOf(JsonNode invite) {
+        String link = invite.get("link").asText();
+        return link.substring(link.lastIndexOf('/') + 1);
+    }
+
     private MockHttpSession signInProfessor() throws Exception {
         MockHttpSession session = (MockHttpSession) mockMvc.perform(post("/api/v1/auth/login")
                         .with(csrf())

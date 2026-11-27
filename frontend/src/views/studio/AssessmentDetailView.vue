@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { deleteAssessment, formatPercent, getAssessment } from '@/api/studio'
+import { ASSESSMENTS_KEY, deleteAssessment, formatPercent, getAssessment } from '@/api/studio'
 import InvitePanel from './InvitePanel.vue'
 
 const route = useRoute()
@@ -21,10 +21,23 @@ const { data, isPending, isError, error } = useQuery({
   enabled: computed(() => configId.value.length > 0),
 })
 
+// REQ-NAV-12: "Send to students" opens this page on the studio-invites route, scrolled to the invites section.
+// The panel only exists once the assessment has loaded, so wait for the data instead of onMounted.
+const invitesPanel = ref<{ $el: HTMLElement } | null>(null)
+watch(
+  data,
+  async (loaded) => {
+    if (!loaded || route.name !== 'studio-invites') return
+    await nextTick()
+    invitesPanel.value?.$el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  },
+  { immediate: true },
+)
+
 const deleteMutation = useMutation({
   mutationFn: () => deleteAssessment(configId.value),
   onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: ['studio', 'assessments'] })
+    await queryClient.invalidateQueries({ queryKey: ASSESSMENTS_KEY })
     await router.push('/ranking/studio')
   },
 })
@@ -123,10 +136,8 @@ const deleteMutation = useMutation({
           <dd class="font-semibold text-slate-900">{{ data.teamSize }} · {{ data.groupingMode }}</dd>
         </div>
         <div>
-          <dt class="text-slate-500">BFI-10 / Invented questions</dt>
-          <dd class="font-semibold text-slate-900">
-            {{ data.bfi10Enabled ? 'On' : 'Off' }} / {{ data.inventedQuestions ? 'On' : 'Off' }}
-          </dd>
+          <dt class="text-slate-500">BFI-10</dt>
+          <dd class="font-semibold text-slate-900">{{ data.bfi10Enabled ? 'On' : 'Off' }}</dd>
         </div>
       </dl>
 
@@ -172,7 +183,7 @@ const deleteMutation = useMutation({
         </div>
       </div>
 
-      <InvitePanel :config-id="data.configId" />
+      <InvitePanel ref="invitesPanel" :config-id="data.configId" />
     </template>
   </section>
 </template>

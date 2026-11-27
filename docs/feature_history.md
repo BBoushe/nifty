@@ -4,6 +4,12 @@ Newest first. One entry per folder in `openspec/changes/archive/` (enforced by `
 The date in each heading is the archive date. Before 2026-11-24, the team did not archive finished changes, so the early entries share one date.
 An entry can come before its change merges. The PR/MR line then names an open PR.
 
+## 2026-11-27 — mvp-hardening
+- **What:** The professor reviews evidence in a modal over Ranking. A shared Transcript dialog shows the conversation as a chat for the professor and the candidate. Ranking shows candidate names, refreshes while a run is unfinished, gates Release on a completed run, and links to Team Builder. The app has a 404 page, a "Server not reachable" banner and a retake button. Candidates have no Sign out button. The judge accepts fenced JSON at temperature 0. A crashed final try fails, and the professor can re-run it. Lost completion events are recovered, scoring uses the stored formula weights, and every write locks the summary first. Soft-only attempts auto-release. The invented-questions toggle is gone. Expired BFI-10 attempts complete and are evaluated. Stream threads are bounded (`503` when full). A re-invite rotates the token. Concurrent creates answer `409`. Login renews CSRF and is rate-limited (`429`). The CSV parser handles quoted fields. Team diagnostics keep full precision.
+- **Why:** The first manual runs, a `dev` audit and the cold reviews of PRs #26–#34 left about 35 open items. The professor review was hard to use.
+- **PR/MR:** open (see `tasks.md` Status)
+- **Specs:** REQ-NAV-02, -05 (modified), REQ-NAV-10..13, REQ-SM-09..14, REQ-CR-07, REQ-EP-10..13, REQ-FE-07, REQ-AC-21..24, REQ-CC-10, REQ-AA-10..15, REQ-IS-14, REQ-TB-13   **Decisions:** 2.31–2.36, 3.16, applies 1.12, 2.29
+
 ## 2026-11-26 — evaluation-review-hardening
 - **What:** The professor approves, overrides and releases one by one, and bulk approval is gone (Decision 2.30). A second release of an attempt answers `409` with no audit row. An unknown review status falls back to `pending`. The Evidence Drawer shows the full conversation ledger. REQ-SM-03 now applies only where an attempt is not auto-released, which removes its clash with REQ-SM-05. Release locks the summary row (`PESSIMISTIC_WRITE`), so two concurrent releases write one `ATTEMPT_RELEASED` audit row.
 - **Why:** Bulk approval invited rubber-stamping in human review. PR #33 also edited the main spec without a change, left REQ-SM-03 in conflict with auto-release, and left a release race.

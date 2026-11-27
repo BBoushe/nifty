@@ -20,10 +20,13 @@ public interface InviteRepository extends Repository<InviteEntity, UUID> {
 
     List<InviteEntity> findByConfigIdOrderByCreatedAtDesc(UUID configId);
 
-    @Query("SELECT i.candidateRef FROM InviteEntity i WHERE i.configId = :configId AND i.candidateRef IN :refs")
-    List<String> findExistingCandidateRefs(@Param("configId") UUID configId, @Param("refs") Collection<String> refs);
+    /** Flushes at once, so a unique-key violation surfaces here and not at commit (REQ-AA-11). */
+    InviteEntity saveAndFlush(InviteEntity invite);
 
-    boolean existsByIdAndRevokedFalse(UUID id);
+    List<InviteEntity> findByConfigIdAndCandidateRefIn(UUID configId, Collection<String> candidateRefs);
+
+    /** Decision 2.34: the token hash binds a session to the current token, so a rotation ends old sessions. */
+    boolean existsByIdAndTokenHashAndRevokedFalse(UUID id, String tokenHash);
 
     /** GDPR purge on AssessmentDeletedEvent (Decision 4.4). */
     @Modifying

@@ -31,7 +31,8 @@ function proposal(overrides: Partial<TeamProposal> = {}): TeamProposal {
     seed: 42,
     createdAt: '2026-11-26T10:00:00Z',
     publishedAt: null,
-    diagnostics: { imbalance: 0.1234, diversity: 0.4321, cost: -0.1, naCount: 1 },
+    // Full precision on the wire (REQ-TB-13): the view rounds for display only.
+    diagnostics: { imbalance: 0.123456, diversity: 0.43214999, cost: -0.1, naCount: 1 },
     teams: [
       {
         teamNo: 1,
@@ -88,8 +89,8 @@ describe('TeamBuilderView (REQ-TB-03, REQ-TB-04, REQ-TB-07, REQ-TB-11)', () => {
     const naScore = team1.get('[data-testid="member-inv-a"] [data-testid="score-docker"]')
     expect(naScore.text()).toContain('N/A')
     expect(naScore.text()).not.toContain('0')
-    expect(wrapper.get('[data-testid="diag-imbalance"]').text()).toContain('0.1234')
-    expect(wrapper.get('[data-testid="diag-diversity"]').text()).toContain('0.4321')
+    expect(wrapper.get('[data-testid="diag-imbalance"]').text()).toBe('0.1235')
+    expect(wrapper.get('[data-testid="diag-diversity"]').text()).toBe('0.4321')
     expect(wrapper.get('[data-testid="diag-na"]').text()).toContain('1')
     expect(wrapper.get('[data-testid="pending"]').text()).toContain('1')
     expect(wrapper.find('[data-testid="chart"]').exists()).toBe(true)

@@ -152,8 +152,8 @@ const errorText = (e: unknown, fallback: string) => (e instanceof Error && e.mes
         <div class="flex flex-wrap items-center gap-4 text-sm text-slate-700">
           <Tag :value="proposal.status" :severity="locked ? 'success' : 'secondary'" data-testid="status" />
           <span>Mode {{ proposal.groupingMode }} · seed {{ proposal.seed }}</span>
-          <span>Imbalance <strong data-testid="diag-imbalance">{{ proposal.diagnostics.imbalance }}</strong></span>
-          <span>Diversity <strong data-testid="diag-diversity">{{ proposal.diagnostics.diversity }}</strong></span>
+          <span>Imbalance <strong data-testid="diag-imbalance">{{ proposal.diagnostics.imbalance.toFixed(4) }}</strong></span>
+          <span>Diversity <strong data-testid="diag-diversity">{{ proposal.diagnostics.diversity.toFixed(4) }}</strong></span>
           <span>N/A scores <strong data-testid="diag-na">{{ proposal.diagnostics.naCount }}</strong></span>
         </div>
         <Button

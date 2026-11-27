@@ -4,6 +4,7 @@ import de.fhdortmund.nifty.auth.service.AuthContextService;
 import de.fhdortmund.nifty.shared.exception.DomainException;
 import de.fhdortmund.nifty.studio.repository.AssessmentConfigEntity;
 import de.fhdortmund.nifty.studio.repository.AssessmentConfigRepository;
+import de.fhdortmund.nifty.studio.repository.ConfigWithCounts;
 import de.fhdortmund.nifty.studio.repository.CoreQuestionEntity;
 import de.fhdortmund.nifty.studio.repository.CoreQuestionRepository;
 import de.fhdortmund.nifty.studio.repository.SkillEntity;
@@ -43,12 +44,13 @@ public class AssessmentReadService {
 
     public List<AssessmentSummaryResponse> listForCurrentProfessor() {
         UUID professorId = authContext.currentProfessorId();
-        List<AssessmentConfigEntity> configs = configRepository.findByProfessorIdOrderByCreatedAtDesc(professorId);
-        List<AssessmentSummaryResponse> summaries = new ArrayList<>(configs.size());
-        for (int i = 0; i < configs.size(); i++) {
-            AssessmentConfigEntity c = configs.get(i);
-            int skillCount = Math.toIntExact(skillRepository.countByConfigId(c.getId()));
-            int questionCount = Math.toIntExact(questionRepository.countByConfigId(c.getId()));
+        // Task 16: counts come with the rows, so the list costs one query for any number of assessments.
+        List<ConfigWithCounts> rows = configRepository.findWithCountsByProfessorIdNewestFirst(professorId);
+        List<AssessmentSummaryResponse> summaries = new ArrayList<>(rows.size());
+        for (int i = 0; i < rows.size(); i++) {
+            AssessmentConfigEntity c = rows.get(i).config();
+            int skillCount = Math.toIntExact(rows.get(i).skillCount());
+            int questionCount = Math.toIntExact(rows.get(i).questionCount());
             summaries.add(new AssessmentSummaryResponse(
                     c.getId(),
                     c.getTitle(),
@@ -109,7 +111,6 @@ public class AssessmentReadService {
                 config.getVision(),
                 config.getMinCoverage(),
                 config.getMaxAttempts(),
-                config.isInventedQuestions(),
                 config.isBfi10Enabled(),
                 config.getTeamSize(),
                 GroupingMode.valueOf(config.getGroupingMode()),

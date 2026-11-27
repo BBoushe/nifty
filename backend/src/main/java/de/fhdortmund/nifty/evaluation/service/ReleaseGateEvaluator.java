@@ -69,7 +69,17 @@ public class ReleaseGateEvaluator {
     public AttemptReleaseDecision evaluateAttemptRelease(
             List<ReleaseStatus> responseStatuses,
             BigDecimal coverage,
-            BigDecimal minCoverage) {
+            BigDecimal minCoverage,
+            int hardSkillCount,
+            boolean softProfileComplete) {
+
+        // Decision 2.31: with zero hard skills there is nothing to review, so a complete BFI-10 profile alone
+        // releases the attempt. Without the profile it stays pending (fail closed, Decision 2.10).
+        if (hardSkillCount == 0) {
+            return softProfileComplete
+                    ? new AttemptReleaseDecision(ReleaseStatus.AUTO_RELEASED, 0, true)
+                    : new AttemptReleaseDecision(ReleaseStatus.PENDING, 0, false);
+        }
 
         int flaggedCount = 0;
         for (int i = 0; i < responseStatuses.size(); i++) {

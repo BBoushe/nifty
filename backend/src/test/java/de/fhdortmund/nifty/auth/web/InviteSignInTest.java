@@ -83,14 +83,20 @@ class InviteSignInTest extends PostgresContainerBase {
                 .andExpect(jsonPath("$.inviteId").value(invite.inviteId().toString()))
                 .andExpect(jsonPath("$.configId").value(configId.toString()));
 
+        // Decision 2.34: sign-in stores the token hash in the session principal.
+        NiftyPrincipal signedIn = (NiftyPrincipal) ((org.springframework.security.core.context.SecurityContext)
+                candidateSession.getAttribute("SPRING_SECURITY_CONTEXT")).getAuthentication().getPrincipal();
+        assertThat(signedIn.tokenHash()).isNotBlank();
+
         // Verify currentCandidate() resolves the bound invite when authenticated as CANDIDATE.
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(
-                        NiftyPrincipal.candidate(invite.inviteId(), configId, "cand_042"),
+                        NiftyPrincipal.candidate(invite.inviteId(), configId, "cand_042", signedIn.tokenHash()),
                         null,
                         List.of()));
         CandidateSessionPrincipal bound = authContextService.currentCandidate();
-        assertThat(bound).isEqualTo(new CandidateSessionPrincipal(invite.inviteId(), configId, "cand_042"));
+        assertThat(bound).isEqualTo(
+                new CandidateSessionPrincipal(invite.inviteId(), configId, "cand_042", signedIn.tokenHash()));
     }
 
     @Test
@@ -126,7 +132,7 @@ class InviteSignInTest extends PostgresContainerBase {
         // currentCandidate() on a revoked invite gives 401.
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(
-                        NiftyPrincipal.candidate(invite.inviteId(), configId, "cand_revoked"),
+                        NiftyPrincipal.candidate(invite.inviteId(), configId, "cand_revoked", "any-hash"),
                         null,
                         List.of()));
         assertThatThrownBy(() -> authContextService.currentCandidate())

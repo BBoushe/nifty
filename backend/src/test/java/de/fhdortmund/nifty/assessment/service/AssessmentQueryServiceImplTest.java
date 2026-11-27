@@ -135,6 +135,19 @@ class AssessmentQueryServiceImplTest extends PostgresContainerBase {
         assertThat(query.getSoftSkillProfileForAttempt(UUID.randomUUID())).isEmpty();
     }
 
+    // REQ-EP-13: the evaluation slice recovers completed attempts whose completion event was lost.
+    @Test
+    void completedAttemptsSinceListsOnlyCompletedAttemptsInsideTheWindow() {
+        UUID invite = UUID.randomUUID();
+        UUID done = attempt(invite, 1, "COMPLETED");
+        attempt(invite, 2, "IN_PROGRESS");
+        attempt(UUID.randomUUID(), 1, "BFI10");
+
+        assertThat(query.completedAttemptsSince(T0)).containsExactly(
+                new de.fhdortmund.nifty.shared.config.AttemptCompletedEvent(done, configId, invite));
+        assertThat(query.completedAttemptsSince(T0.plusSeconds(700))).isEmpty();
+    }
+
     private UUID attempt(UUID invite, int attemptNo, String status) {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO assessment_attempt (id, invite_id, config_id, attempt_no, status, started_at, "

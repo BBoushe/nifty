@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, reactive, ref, watch } from 'vue'
@@ -10,44 +11,90 @@ import {
   formatScore,
   getAttemptEvaluations,
   getTranscriptExport,
+  isEvaluationPending,
   overrideEvaluation,
+  POLL_INTERVAL_MS,
   releaseAttempt,
+  retryEvaluation,
 } from '@/api/evaluation'
 import ScoreBadge from '@/components/ScoreBadge.vue'
+import TranscriptDialog from '@/components/TranscriptDialog.vue'
+import { fromTranscriptExport } from '@/components/transcript'
 
-const props = defineProps<{ attemptId: string | null; visible: boolean }>()
-const emit = defineEmits<{ close: []; updated: [] }>()
+// REQ-SM-09: evidence review is a modal; the matrix stays mounted behind the mask.
+const props = defineProps<{ attemptId: string | null }>()
+const visible = defineModel<boolean>('visible', { default: false })
+const emit = defineEmits<{ updated: [] }>()
 
 const queryClient = useQueryClient()
 const overrideLevels = reactive<Record<string, number>>({})
 const overrideReasons = reactive<Record<string, string>>({})
 const actionError = ref<string | null>(null)
 const actionSuccess = ref<string | null>(null)
+const transcriptOpen = ref(false)
+const focusEntryId = ref<string | undefined>(undefined)
 
 watch(
   () => props.attemptId,
   () => {
     actionError.value = null
     actionSuccess.value = null
+    transcriptOpen.value = false
+    focusEntryId.value = undefined
   },
 )
 
 const drilldownQuery = useQuery({
   queryKey: computed(() => ['attempt-evaluations', props.attemptId]),
   queryFn: () => getAttemptEvaluations(props.attemptId!),
-  enabled: computed(() => Boolean(props.visible && props.attemptId)),
+  enabled: computed(() => Boolean(visible.value && props.attemptId)),
+  // REQ-SM-11: poll while the evaluator has not finished.
+  refetchInterval: (query) => (isEvaluationPending(query.state.data?.evaluationStatus) ? POLL_INTERVAL_MS : false),
 })
 
-// REQ-SM-08: load the full conversation ledger with timestamps, durationSec, and anomaly markers.
+// REQ-SM-08: the full conversation with timestamps, durationSec, and anomaly markers.
 const transcriptQuery = useQuery({
   queryKey: computed(() => ['attempt-transcript', props.attemptId]),
   queryFn: () => getTranscriptExport(props.attemptId!),
-  enabled: computed(() => Boolean(props.visible && props.attemptId)),
+  enabled: computed(() => Boolean(visible.value && props.attemptId)),
 })
+
+const turns = computed(() => (transcriptQuery.data.value?.entries ?? []).map(fromTranscriptExport))
+
+// Every verified quote, by entry, so the transcript shows what the evidence rests on.
+const highlight = computed(() => {
+  const byEntry: Record<string, string[]> = {}
+  for (const item of drilldownQuery.data.value?.responses ?? []) {
+    if (!item.quoteVerified || !item.verifiedQuote) continue
+    const quotes = byEntry[item.entryId] ?? []
+    quotes.push(item.verifiedQuote)
+    byEntry[item.entryId] = quotes
+  }
+  return byEntry
+})
+
+function openTranscript(entryId?: string) {
+  focusEntryId.value = entryId
+  transcriptOpen.value = true
+}
+
+// REQ-SM-12: the invite name, never a UUID prefix.
+const candidateName = computed(() => drilldownQuery.data.value?.candidateRef ?? 'Evidence review')
 
 const isAlreadyReleased = computed(() => {
   const status = drilldownQuery.data.value?.releaseStatus
   return status === 'auto_released' || status === 'approved' || status === 'overridden'
+})
+
+// REQ-SM-11: Release needs a COMPLETED evaluation, zero flags and no earlier release. The tooltip names the first reason.
+const releaseBlockReason = computed(() => {
+  const data = drilldownQuery.data.value
+  if (!data) return 'Evidence is still loading.'
+  if (isEvaluationPending(data.evaluationStatus)) return 'Evaluation is still running.'
+  if (data.evaluationStatus === 'FAILED') return 'Evaluation failed, so there is nothing to release.'
+  if (data.flaggedCount > 0) return 'Resolve all flagged items first.'
+  if (isAlreadyReleased.value) return 'Already released.'
+  return null
 })
 
 const overrideMutation = useMutation({
@@ -97,6 +144,21 @@ const releaseMutation = useMutation({
   },
 })
 
+// REQ-EP-12: the matrix and this dialog poll while the re-queued run is QUEUED or RUNNING.
+const retryMutation = useMutation({
+  mutationFn: () => retryEvaluation(props.attemptId!),
+  onSuccess: () => {
+    actionError.value = null
+    actionSuccess.value = 'Evaluation queued again.'
+    queryClient.invalidateQueries({ queryKey: ['attempt-evaluations', props.attemptId] })
+    queryClient.invalidateQueries({ queryKey: ['evaluation-matrix'] })
+    emit('updated')
+  },
+  onError: (err: Error) => {
+    actionError.value = err.message || 'Re-run failed.'
+  },
+})
+
 function submitOverride(responseEvalId: string, fallbackLevel: number | null) {
   const reason = (overrideReasons[responseEvalId] ?? '').trim()
   if (!reason) {
@@ -126,29 +188,28 @@ async function downloadTranscript() {
 </script>
 
 <template>
-  <aside
-    v-if="visible && attemptId"
-    class="rounded-xl border border-slate-200 bg-surface p-5 shadow-card space-y-4"
-    data-testid="evidence-drawer"
+  <!-- PrimeVue binds Esc on the document for every open Dialog. While the transcript dialog is open on
+       top, this one ignores Esc, so one press closes only the top dialog. -->
+  <Dialog
+    v-model:visible="visible"
+    modal
+    maximizable
+    dismissable-mask
+    :close-on-escape="!transcriptOpen"
+    :style="{ width: 'min(1100px, 95vw)' }"
+    :breakpoints="{ '640px': '100vw' }"
+    :pt="{ content: { class: 'space-y-4' } }"
+    data-testid="evidence-dialog"
   >
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-      <div>
-        <h3 class="text-base font-semibold text-ink">Evidence Drawer</h3>
-        <p class="font-mono text-xs text-ink-muted">Attempt {{ attemptId }}</p>
+    <template #header>
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 class="text-base font-semibold text-ink">{{ candidateName }}</h2>
+        <span v-if="drilldownQuery.data.value" class="text-sm text-ink-muted">
+          Attempt {{ drilldownQuery.data.value.attemptNo }}
+        </span>
+        <Tag v-if="drilldownQuery.data.value" :value="drilldownQuery.data.value.releaseStatus" />
       </div>
-      <div class="flex items-center gap-2">
-        <Button label="Export Transcript" size="small" severity="secondary" @click="downloadTranscript" />
-        <Button
-          label="Release Attempt"
-          size="small"
-          :disabled="!drilldownQuery.data.value || drilldownQuery.data.value.flaggedCount > 0 || isAlreadyReleased"
-          :loading="releaseMutation.isPending.value"
-          data-testid="release-attempt-btn"
-          @click="releaseMutation.mutate()"
-        />
-        <Button label="Close" size="small" severity="secondary" text @click="emit('close')" />
-      </div>
-    </div>
+    </template>
 
     <Message v-if="actionError" severity="error" :closable="false">{{ actionError }}</Message>
     <Message v-if="actionSuccess" severity="success" :closable="false">{{ actionSuccess }}</Message>
@@ -159,7 +220,7 @@ async function downloadTranscript() {
     </Message>
 
     <template v-else-if="drilldownQuery.data.value">
-      <div class="grid gap-3 sm:grid-cols-4 text-xs">
+      <div class="grid gap-3 sm:grid-cols-3 text-xs">
         <div class="rounded-lg bg-surface-sunken p-3">
           <div class="text-ink-muted">Fit Score</div>
           <div class="mt-1 text-base font-bold text-ink">{{ formatScore(drilldownQuery.data.value.fitScore) }}</div>
@@ -172,10 +233,6 @@ async function downloadTranscript() {
               (min {{ formatRatioPercent(drilldownQuery.data.value.minCoverage) }})
             </span>
           </div>
-        </div>
-        <div class="rounded-lg bg-surface-sunken p-3">
-          <div class="text-ink-muted">Release Status</div>
-          <div class="mt-1"><Tag :value="drilldownQuery.data.value.releaseStatus" /></div>
         </div>
         <div class="rounded-lg bg-surface-sunken p-3">
           <div class="text-ink-muted">Flagged Items</div>
@@ -220,6 +277,15 @@ async function downloadTranscript() {
             <span v-if="item.quoteVerified && item.verifiedQuote">“{{ item.verifiedQuote }}”</span>
             <span v-else class="italic text-ink-muted">No verified verbatim quote.</span>
           </blockquote>
+          <Button
+            v-if="item.entryId"
+            label="Show in transcript"
+            size="small"
+            severity="secondary"
+            text
+            :data-testid="`show-in-transcript-${item.responseEvaluationId}`"
+            @click="openTranscript(item.entryId)"
+          />
 
           <p v-if="item.aiRationale" class="text-xs text-ink-muted">
             <span class="font-semibold text-ai-ink">AI rationale:</span> {{ item.aiRationale }}
@@ -272,78 +338,63 @@ async function downloadTranscript() {
           </div>
         </li>
       </ul>
-
-      <!-- REQ-SM-08: Full conversation ledger with timestamps, time to answer, and anomaly/timeout markers -->
-      <section class="border-t border-slate-200 pt-4 space-y-3" data-testid="conversation-ledger">
-        <div class="flex items-center justify-between">
-          <h4 class="text-sm font-semibold text-ink">Full Conversation Ledger</h4>
-          <span v-if="transcriptQuery.data.value" class="font-mono text-xs text-ink-muted">
-            {{ transcriptQuery.data.value.format }}
-          </span>
-        </div>
-
-        <div v-if="transcriptQuery.isPending.value" class="text-xs text-ink-muted">
-          Loading conversation ledger...
-        </div>
-
-        <Message v-else-if="transcriptQuery.isError.value" severity="error" :closable="false">
-          Could not load conversation ledger.
-        </Message>
-
-        <div
-          v-else-if="!transcriptQuery.data.value || transcriptQuery.data.value.entries.length === 0"
-          class="text-xs text-ink-muted"
-        >
-          No conversation entries recorded for this attempt.
-        </div>
-
-        <ol v-else class="space-y-3">
-          <li
-            v-for="entry in transcriptQuery.data.value.entries"
-            :key="entry.entryId"
-            class="rounded-lg border border-slate-200 bg-surface-sunken/50 p-3 text-xs space-y-2"
-            :data-testid="`ledger-entry-${entry.entryId}`"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-2 text-ink-muted">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="font-semibold text-ink">Turn #{{ entry.turn }}</span>
-                <Tag :value="entry.question.origin" severity="secondary" />
-                <span class="tabular-nums">Time to answer: {{ entry.answer.durationSec }}s</span>
-              </div>
-              <div class="flex flex-wrap items-center gap-1">
-                <Tag
-                  v-if="entry.answer.timedOut"
-                  value="Timed Out"
-                  severity="warn"
-                  :data-testid="`marker-timed-out-${entry.entryId}`"
-                />
-                <Tag
-                  v-if="entry.answer.pasteSuspected"
-                  value="Paste Suspected"
-                  severity="danger"
-                  :data-testid="`marker-paste-${entry.entryId}`"
-                />
-                <Tag
-                  v-if="entry.answer.injectionSuspected"
-                  value="Injection Suspected"
-                  severity="danger"
-                  :data-testid="`marker-injection-${entry.entryId}`"
-                />
-              </div>
-            </div>
-
-            <div class="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-ink-muted">
-              <span>Asked: {{ entry.question.askedAt }}</span>
-              <span v-if="entry.answer.submittedAt">Submitted: {{ entry.answer.submittedAt }}</span>
-            </div>
-
-            <p class="font-medium text-ink">Q: {{ entry.question.text }}</p>
-            <p class="whitespace-pre-wrap text-ink-muted">
-              A: {{ entry.answer.text || '(No answer submitted)' }}
-            </p>
-          </li>
-        </ol>
-      </section>
     </template>
-  </aside>
+
+    <template #footer>
+      <Button label="Close" size="small" severity="secondary" text data-testid="evidence-close-btn" @click="visible = false" />
+      <Button
+        label="Refresh"
+        size="small"
+        severity="secondary"
+        :loading="drilldownQuery.isFetching.value"
+        data-testid="evidence-refresh-btn"
+        @click="drilldownQuery.refetch()"
+      />
+      <Button
+        v-if="drilldownQuery.data.value?.evaluationStatus === 'FAILED'"
+        label="Re-run evaluation"
+        size="small"
+        severity="secondary"
+        :loading="retryMutation.isPending.value"
+        data-testid="rerun-evaluation-btn"
+        @click="retryMutation.mutate()"
+      />
+      <Button label="Export JSON" size="small" severity="secondary" @click="downloadTranscript" />
+      <Button
+        label="View transcript"
+        size="small"
+        severity="secondary"
+        data-testid="view-transcript-btn"
+        @click="openTranscript()"
+      />
+      <!-- A disabled button gets no hover events, so the span carries the reason as a native tooltip. -->
+      <span :title="releaseBlockReason ?? undefined" data-testid="release-attempt-tip">
+        <Button
+          label="Release Attempt"
+          size="small"
+          :disabled="releaseBlockReason !== null"
+          :loading="releaseMutation.isPending.value"
+          data-testid="release-attempt-btn"
+          @click="releaseMutation.mutate()"
+        />
+      </span>
+    </template>
+  </Dialog>
+
+  <!-- REQ-SM-10: the full conversation, with professor markers, over the evidence dialog. -->
+  <TranscriptDialog
+    v-model:visible="transcriptOpen"
+    title="Conversation"
+    :subtitle="candidateName"
+    :turns="turns"
+    :show-markers="true"
+    :focus-entry-id="focusEntryId"
+    :highlight="highlight"
+    :loading="transcriptQuery.isPending.value"
+    :error="transcriptQuery.isError.value"
+  >
+    <template #actions>
+      <Button label="Export JSON" size="small" severity="secondary" @click="downloadTranscript" />
+    </template>
+  </TranscriptDialog>
 </template>

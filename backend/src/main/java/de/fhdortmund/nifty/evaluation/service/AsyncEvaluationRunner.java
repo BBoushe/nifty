@@ -62,6 +62,9 @@ public class AsyncEvaluationRunner {
     private static final int RETRY_BATCH = 50;
     private static final String RUNNING = "RUNNING";
     private static final String FAILED = "FAILED";
+    private static final String STALE_FINAL_TRY = "STALE_FINAL_TRY";
+    // shortcut: a completion lost for longer than this stays lost; widen the window or add a startup sweep if needed.
+    private static final Duration RECOVERY_WINDOW = Duration.ofDays(7);
 
     private final StudioQueryService studioQueryService;
     private final AssessmentQueryService assessmentQueryService;
@@ -140,6 +143,49 @@ public class AsyncEvaluationRunner {
         }
     }
 
+    /**
+     * REQ-EP-13: creates the run of every completed attempt whose completion event was lost (crash between the
+     * assessment commit and {@link #enqueue}). {@link #enqueue} is idempotent, so a repeated pass adds nothing.
+     * shortcut: re-checks every attempt completed inside the window on each pass (one lookup each); upgrade to an
+     * anti-join if cohorts grow past a few hundred attempts per week.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void recoverMissedRuns() {
+        List<AttemptCompletedEvent> completed =
+                assessmentQueryService.completedAttemptsSince(Instant.now().minus(RECOVERY_WINDOW));
+        for (int i = 0; i < completed.size(); i++) {
+            try {
+                enqueue(completed.get(i));
+            } catch (RuntimeException ex) {
+                LOG.warn("Could not recover the evaluation run of attempt {}", completed.get(i).attemptId(), ex);
+            }
+        }
+    }
+
+    /**
+     * REQ-EP-11: a stale RUNNING run on its last try can never be claimed again, so it ends as FAILED. The professor
+     * can re-run it (REQ-EP-12).
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void failStaleFinalTries() {
+        List<UUID> runIds = evaluationRunRepository.findStaleFinalTryIds(maxAttempts, Instant.now().minus(staleAfter));
+        for (int i = 0; i < runIds.size(); i++) {
+            UUID runId = runIds.get(i);
+            transactionTemplate.executeWithoutResult(tx -> {
+                EvaluationRunEntity run = evaluationRunRepository.findById(runId).orElseThrow();
+                CandidateEvaluationSummaryEntity summary =
+                        summaryRepository.findByAttemptId(run.getAttemptId()).orElseThrow();
+                if (summary.isCompleted() || !RUNNING.equals(run.getStatus())) {
+                    return;
+                }
+                run.markFailed(STALE_FINAL_TRY, Instant.now());
+                evaluationRunRepository.save(run);
+                summary.markEvaluationStatus(FAILED);
+                summaryRepository.save(summary);
+            });
+        }
+    }
+
     /** Runs the scheduler should dispatch again. Order: oldest first. */
     public List<UUID> retryableRunIds() {
         return evaluationRunRepository.findRetryableIds(
@@ -170,6 +216,8 @@ public class AsyncEvaluationRunner {
             Map<UUID, EvaluatorSkill> skillsById = indexSkills(evaluatorView.skills());
             Map<UUID, ScoringQuestion> scoringByQuestion = indexScoringQuestions(scoringView.questions());
             Map<UUID, EvaluatorQuestion> evalByQuestion = indexEvaluatorQuestions(evaluatorView.questions());
+            // REQ-FE-07: weights come from the stored formula version, never from the live Studio view.
+            Map<UUID, BigDecimal> storedWeights = parseStoredWeights(formulaVersion.getQuestionWeightsJson());
 
             List<EvaluatedPair> evaluatedPairs = new ArrayList<>();
             Set<UUID> answeredCoreQuestionIds = new HashSet<>();
@@ -214,12 +262,14 @@ public class AsyncEvaluationRunner {
                     if (templateVersion == null && twoRun.templateVersion() != null) {
                         templateVersion = twoRun.templateVersion();
                     }
-                    evaluatedPairs.add(buildEvaluatedPair(entry, scoringQ, skillId, substantive, answerLength, twoRun));
+                    BigDecimal weight = storedWeights.getOrDefault(entry.coreQuestionId(), scoringQ.weight());
+                    evaluatedPairs.add(buildEvaluatedPair(
+                            entry, scoringQ, weight, skillId, substantive, answerLength, twoRun));
                 }
             }
 
             List<UUID> configuredSkillIds = extractSkillIds(evaluatorView.skills());
-            List<SkillFormulaCalculator.QuestionWeight> questionWeights = extractQuestionWeights(scoringView.questions());
+            List<SkillFormulaCalculator.QuestionWeight> questionWeights = toQuestionWeights(storedWeights);
             List<SkillFormulaCalculator.ScoredEntryInput> formulaInputs = toFormulaInputs(evaluatedPairs);
 
             SkillFormulaCalculator.FormulaResult formulaResult = formulaCalculator.calculate(
@@ -233,8 +283,12 @@ public class AsyncEvaluationRunner {
             for (int i = 0; i < evaluatedPairs.size(); i++) {
                 pairStatuses.add(evaluatedPairs.get(i).flagEvaluation().reviewStatus());
             }
+            // Decision 2.31: only an assessment with no hard skills asks for the BFI-10 profile (one lookup).
+            int hardSkillCount = evaluatorView.skills().size();
+            boolean softProfileComplete = hardSkillCount == 0 && hasCompleteSoftProfile(attemptId);
             ReleaseGateEvaluator.AttemptReleaseDecision releaseDecision = releaseGateEvaluator.evaluateAttemptRelease(
-                    pairStatuses, formulaResult.coverage(), scoringView.minCoverage());
+                    pairStatuses, formulaResult.coverage(), scoringView.minCoverage(), hardSkillCount,
+                    softProfileComplete);
 
             final String finalTemplateVersion = templateVersion;
 
@@ -319,6 +373,13 @@ public class AsyncEvaluationRunner {
         }
     }
 
+    /** The assessment slice sets {@code softSkillScores} only after all five BFI-10 traits are scored. */
+    private boolean hasCompleteSoftProfile(UUID attemptId) {
+        return assessmentQueryService.getSoftSkillProfileForAttempt(attemptId)
+                .filter(profile -> profile.softSkillScores() != null)
+                .isPresent();
+    }
+
     /** Keeps the run retryable (bounded by max attempts); a completed twin is never overwritten. */
     private void markFailed(RunClaim claim, String message) {
         transactionTemplate.executeWithoutResult(tx -> {
@@ -392,6 +453,7 @@ public class AsyncEvaluationRunner {
     private EvaluatedPair buildEvaluatedPair(
             TranscriptEntryView entry,
             ScoringQuestion scoringQ,
+            BigDecimal weight,
             UUID skillId,
             boolean substantive,
             int answerLength,
@@ -436,7 +498,7 @@ public class AsyncEvaluationRunner {
                 entry.coreQuestionId(),
                 skillId,
                 origin,
-                scoringQ.weight(),
+                weight,
                 r1.level(),
                 r2.level(),
                 r1.verbatimQuote(),
@@ -559,13 +621,20 @@ public class AsyncEvaluationRunner {
         return ids;
     }
 
-    private static List<SkillFormulaCalculator.QuestionWeight> extractQuestionWeights(List<ScoringQuestion> questions) {
-        List<SkillFormulaCalculator.QuestionWeight> weights = new ArrayList<>(questions.size());
-        for (int i = 0; i < questions.size(); i++) {
-            ScoringQuestion q = questions.get(i);
-            weights.add(new SkillFormulaCalculator.QuestionWeight(q.coreQuestionId(), q.weight()));
+    private static Map<UUID, BigDecimal> parseStoredWeights(Map<String, BigDecimal> stored) {
+        Map<UUID, BigDecimal> weights = new HashMap<>(stored.size());
+        for (Map.Entry<String, BigDecimal> entry : stored.entrySet()) {
+            weights.put(UUID.fromString(entry.getKey()), entry.getValue());
         }
         return weights;
+    }
+
+    private static List<SkillFormulaCalculator.QuestionWeight> toQuestionWeights(Map<UUID, BigDecimal> weights) {
+        List<SkillFormulaCalculator.QuestionWeight> list = new ArrayList<>(weights.size());
+        for (Map.Entry<UUID, BigDecimal> entry : weights.entrySet()) {
+            list.add(new SkillFormulaCalculator.QuestionWeight(entry.getKey(), entry.getValue()));
+        }
+        return list;
     }
 
     private static List<SkillFormulaCalculator.ScoredEntryInput> toFormulaInputs(List<EvaluatedPair> pairs) {

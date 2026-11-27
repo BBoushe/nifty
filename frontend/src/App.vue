@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
-import { onMounted } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import Button from 'primevue/button'
+import Message from 'primevue/message'
+import { onMounted, ref } from 'vue'
+import { RouterLink, RouterView, START_LOCATION, useRouter } from 'vue-router'
 import { fetchBackendHealth } from '@/api/health'
 import { useAuthStore } from '@/stores/auth'
 
@@ -13,11 +15,33 @@ const { data: health, isPending, isError } = useQuery({
 
 const auth = useAuthStore()
 const router = useRouter()
-onMounted(() => auth.fetchMe())
+const serverDown = ref(false)
+const signOutError = ref<string | null>(null)
+
+// REQ-NAV-13: fetchMe answers a 401 itself, so any error that reaches here means the server is not reachable.
+async function loadSession() {
+  try {
+    await auth.fetchMe()
+    serverDown.value = false
+    // The route guard calls fetchMe too, so a failed first load also aborted the first navigation. Run it again.
+    if (router.currentRoute.value === START_LOCATION) {
+      await router.replace(`${location.pathname}${location.search}${location.hash}`)
+    }
+  } catch {
+    serverDown.value = true
+  }
+}
+onMounted(loadSession)
 
 async function signOut() {
-  await auth.logout()
-  await router.push('/sign-in')
+  signOutError.value = null
+  try {
+    await auth.logout()
+    await router.push('/sign-in')
+  } catch {
+    // REQ-NAV-13: stay on the page; the session may still be active.
+    signOutError.value = 'Sign-out failed. Try again.'
+  }
 }
 
 const linkClass = 'rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100'
@@ -63,7 +87,8 @@ const activeClass = 'bg-slate-900 text-white hover:bg-slate-900'
         </div>
 
         <div class="flex items-center gap-3 text-xs">
-          <button v-if="auth.me" type="button" :class="linkClass" data-testid="nav-sign-out" @click="signOut">
+          <!-- Decision 2.36: candidates have no sign-out; the invite link is their only way in. -->
+          <button v-if="auth.me?.role === 'PROFESSOR'" type="button" :class="linkClass" data-testid="nav-sign-out" @click="signOut">
             Sign out
           </button>
           <span
@@ -93,6 +118,14 @@ const activeClass = 'bg-slate-900 text-white hover:bg-slate-900'
         </div>
       </div>
     </header>
+
+    <Message v-if="serverDown" severity="error" :closable="false" class="mx-6 mt-4" data-testid="server-down">
+      <span class="mr-3">Server not reachable.</span>
+      <Button label="Retry" size="small" severity="secondary" data-testid="server-retry" @click="loadSession" />
+    </Message>
+    <Message v-if="signOutError" severity="error" class="mx-6 mt-4" data-testid="sign-out-error" @close="signOutError = null">
+      {{ signOutError }}
+    </Message>
 
     <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
       <RouterView />

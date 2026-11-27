@@ -1,5 +1,7 @@
 package de.fhdortmund.nifty.assessment.service;
 
+import de.fhdortmund.nifty.shared.config.AttemptCompletedEvent;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,4 +16,7 @@ public interface AssessmentQueryService {
     List<StudentSoftSkillProfile> getSoftSkillProfilesForConfig(UUID configId); // latest completed attempt per invite
 
     Optional<StudentSoftSkillProfile> getSoftSkillProfileForAttempt(UUID attemptId);
+
+    /** REQ-EP-13: completed attempts since {@code since}, as the event evaluation would have received. */
+    List<AttemptCompletedEvent> completedAttemptsSince(Instant since);
 }

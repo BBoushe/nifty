@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -48,7 +49,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<Object> handleDomain(DomainException ex, WebRequest request) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
-        return handleExceptionInternal(ex, body, new HttpHeaders(), ex.getStatus(), request);
+        HttpHeaders headers = new HttpHeaders();
+        if (ex.getRetryAfterSeconds() != null) {
+            headers.set(HttpHeaders.RETRY_AFTER, ex.getRetryAfterSeconds().toString());
+        }
+        return handleExceptionInternal(ex, body, headers, ex.getStatus(), request);
+    }
+
+    // REQ-AC-24: a full bounded pool rejects the task; the client may retry.
+    @ExceptionHandler(TaskRejectedException.class)
+    ResponseEntity<Object> handleRejected(TaskRejectedException ex, WebRequest request) {
+        HttpStatus status = HttpStatus.SERVICE_UNAVAILABLE;
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(status, "The server is busy. Try again in a moment.");
+        return handleExceptionInternal(ex, body, new HttpHeaders(), status, request);
     }
 
     // Method security (@PreAuthorize) failures must reach Spring Security's 401/403 handling, not the 500 below.

@@ -9,7 +9,6 @@ public record InterviewerView(
         String configVersion,              // "v1" in records; the DB stores version INT 1
         String vision,
         int maxAttempts,
-        boolean inventedQuestionsEnabled,
         boolean bfi10Enabled,
         GroupingMode groupingMode,
         List<InterviewerQuestion> questions // ordered by position (empty only for SOFT_SKILLS-only)

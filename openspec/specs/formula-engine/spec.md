@@ -59,3 +59,10 @@ Give professors transparent, versioned, and strictly deterministic control over 
 #### Scenario: Cap with three entries
 - **WHEN** skill `docker` has levels 4, 2 and 0 on core questions with weights 3, 1 and 1
 - **THEN** the shares are `0.50`, `0.25` and `0.25`, and the skill score is `2.50`.
+
+### Requirement: REQ-FE-07 Scores Use the Stored Formula Version
+**WHEN** the system computes the scores of an attempt **THE SYSTEM SHALL** read the weights from the stored formula version. This includes the first computation. **THE SYSTEM SHALL** record that version on the scores.
+
+#### Scenario: First evaluation
+- **WHEN** the first attempt of an assessment is scored
+- **THEN** formula version 1 exists, the scores use its stored weights, and the scores reference version 1.

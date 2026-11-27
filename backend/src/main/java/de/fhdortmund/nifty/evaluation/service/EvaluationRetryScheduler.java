@@ -10,7 +10,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Decision 2.28 / REQ-EP-09: periodic pass that dispatches QUEUED, FAILED, and stale RUNNING runs again.
+ * Decision 2.28 / REQ-EP-09, REQ-EP-11, REQ-EP-13: periodic pass that fails crashed final tries, recovers lost
+ * completion events, and dispatches QUEUED, FAILED, and stale RUNNING runs again.
  * The runner bounds the tries and claims each run atomically, so this pass is safe to overlap.
  * shortcut: single-node fixed delay; upgrade to a shared scheduler lock if the backend runs on many nodes.
  */
@@ -30,6 +31,8 @@ public class EvaluationRetryScheduler {
             fixedDelayString = "${nifty.evaluation.retry.fixed-delay:PT1M}",
             initialDelayString = "${nifty.evaluation.retry.fixed-delay:PT1M}")
     public void retryPass() {
+        runner.failStaleFinalTries();
+        runner.recoverMissedRuns();
         List<UUID> runIds = runner.retryableRunIds();
         for (int i = 0; i < runIds.size(); i++) {
             try {

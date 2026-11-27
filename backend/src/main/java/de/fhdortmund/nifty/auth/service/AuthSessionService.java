@@ -32,11 +32,14 @@ public class AuthSessionService {
 
     private final AuthenticationManager authenticationManager;
     private final InviteRepository inviteRepository;
+    private final LoginRateLimiter rateLimiter;
 
     AuthSessionService(
             ProfessorUserDetailsService users,
             PasswordEncoder encoder,
-            InviteRepository inviteRepository) {
+            InviteRepository inviteRepository,
+            LoginRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         // DaoAuthenticationProvider also hashes for unknown emails, so timing does not reveal which part was wrong.
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(users);
         provider.setPasswordEncoder(encoder);
@@ -46,13 +49,17 @@ public class AuthSessionService {
 
     /** Returns an authenticated token whose principal is a professor {@link NiftyPrincipal}, or throws 401. */
     public Authentication login(String email, String password) {
+        // REQ-AA-14: a blocked email answers 429 before any password check.
+        rateLimiter.checkAllowed(email);
         Authentication checked;
         try {
             checked = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(email, password));
         } catch (AuthenticationException ex) {
+            rateLimiter.recordFailure(email);
             throw new DomainException(HttpStatus.UNAUTHORIZED, BAD_CREDENTIALS);
         }
+        rateLimiter.reset(email);
         // ProfessorUserDetailsService puts the account ID into the username.
         UUID accountId = UUID.fromString(((UserDetails) checked.getPrincipal()).getUsername());
         NiftyPrincipal principal = NiftyPrincipal.professor(accountId);
@@ -69,7 +76,7 @@ public class AuthSessionService {
                 .filter(found -> !found.isRevoked())
                 .orElseThrow(() -> new DomainException(HttpStatus.UNAUTHORIZED, INVALID_INVITE));
         NiftyPrincipal principal = NiftyPrincipal.candidate(
-                invite.getId(), invite.getConfigId(), invite.getCandidateRef());
+                invite.getId(), invite.getConfigId(), invite.getCandidateRef(), invite.getTokenHash());
         return UsernamePasswordAuthenticationToken.authenticated(
                 principal,
                 null,
@@ -81,8 +88,12 @@ public class AuthSessionService {
         return NiftyPrincipal.current().orElseThrow(() -> new DomainException(HttpStatus.UNAUTHORIZED, NOT_SIGNED_IN));
     }
 
-    /** True if the given invite still exists and has not been revoked (used by RevokedInviteFilter). */
-    public boolean isInviteActive(UUID inviteId) {
-        return inviteId != null && inviteRepository.existsByIdAndRevokedFalse(inviteId);
+    /**
+     * True if the invite exists, is not revoked, and still has the token hash of the session (used by
+     * RevokedInviteFilter). A null hash fails closed (Decision 2.34).
+     */
+    public boolean isInviteActive(UUID inviteId, String tokenHash) {
+        return inviteId != null && tokenHash != null
+                && inviteRepository.existsByIdAndTokenHashAndRevokedFalse(inviteId, tokenHash);
     }
 }

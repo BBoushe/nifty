@@ -10,6 +10,4 @@ public interface SkillRepository extends Repository<SkillEntity, UUID> {
     SkillEntity save(SkillEntity skill);
 
     List<SkillEntity> findByConfigIdOrderByNameAsc(UUID configId);
-
-    long countByConfigId(UUID configId);
 }

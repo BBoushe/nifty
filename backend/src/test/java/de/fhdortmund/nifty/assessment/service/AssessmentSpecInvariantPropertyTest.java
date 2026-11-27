@@ -574,7 +574,7 @@ class AssessmentSpecInvariantPropertyTest {
             questions.add(new InterviewerQuestion(UUID.randomUUID(), i, "Question " + i, 30, 180, rnd.nextInt(4),
                     List.of(UUID.randomUUID()), List.of("Skill " + i)));
         }
-        return new InterviewerView(UUID.randomUUID(), "v1", "Vision", maxAttempts, false, bfi, mode, questions);
+        return new InterviewerView(UUID.randomUUID(), "v1", "Vision", maxAttempts, bfi, mode, questions);
     }
 
     private static AssessmentAttemptEntity attemptEntity(UUID invite, UUID config, int attemptNo, String status) {
@@ -659,7 +659,7 @@ class AssessmentSpecInvariantPropertyTest {
             this.rnd = rnd;
             this.view = view;
             this.configId = view.configId();
-            this.principal = new CandidateSessionPrincipal(inviteId, configId, "cand");
+            this.principal = new CandidateSessionPrincipal(inviteId, configId, "cand", "hash");
             StudioQueryService studio = mock(StudioQueryService.class);
             when(studio.interviewerView(any())).thenReturn(view);
             ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
@@ -681,7 +681,7 @@ class AssessmentSpecInvariantPropertyTest {
             when(entries.findByAttemptIdOrderBySeqAsc(any())).thenAnswer(inv -> new ArrayList<>(ledger));
             when(context.inspectCandidateInput(any(), any())).thenAnswer(
                     inv -> new SanitizationReport(nextInjection, List.of(), false));
-            this.service = new AttemptService(attempts, entries, bfi, studio, context, events, GRACE_SECONDS, 240);
+            this.service = new AttemptService(attempts, entries, bfi, studio, context, events, GRACE_SECONDS, 240, 1800);
         }
 
         TurnOutcome startAtBfi() {

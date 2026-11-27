@@ -13,8 +13,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * REQ-EP-05 / Decisions 1.12, 2.28: starts the evaluator strictly AFTER_COMMIT so rolled-back attempt
  * completions never trigger LLM judge calls. The QUEUED run is persisted before dispatch, so a rejected
  * executor submission only delays the work: the retry pass dispatches the run again.
- * shortcut: a crash between the assessment commit and {@code enqueue} still loses the event. Upgrade: insert the
- * QUEUED rows in BEFORE_COMMIT, or reconcile completed attempts against the assessment slice at start-up.
+ * A crash between the assessment commit and {@code enqueue} loses the event; the retry pass recovers the run
+ * (REQ-EP-13, {@link AsyncEvaluationRunner#recoverMissedRuns}).
  */
 @Component
 public class EvaluationEventListener {

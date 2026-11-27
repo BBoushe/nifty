@@ -18,6 +18,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
@@ -93,6 +94,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void rejectedTaskReturns503ProblemDetailWithoutInternals() throws Exception {
+        mockMvc.perform(get("/test/errors/rejected"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.detail").value("The server is busy. Try again in a moment."))
+                .andExpect(content().string(not(containsString("TaskRejectedException"))));
+    }
+
+    @Test
     void securityExceptionsAreLeftToSpringSecurity() {
         assertThatThrownBy(() -> mockMvc.perform(get("/test/errors/denied")))
                 .hasRootCauseInstanceOf(AccessDeniedException.class);
@@ -124,6 +135,11 @@ class GlobalExceptionHandlerTest {
             throw new FieldValidationException(List.of(
                     new FieldErrorDetail("minTimeSec", "must be at least 30", "MIN_TIME_TOO_LOW"),
                     new FieldErrorDetail("followUpLimit", "must be at most 3", "FOLLOW_UP_LIMIT_TOO_HIGH")));
+        }
+
+        @GetMapping("/test/errors/rejected")
+        String rejected() {
+            throw new TaskRejectedException("pool is full");
         }
 
         @GetMapping("/test/errors/denied")

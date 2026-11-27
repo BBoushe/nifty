@@ -285,3 +285,57 @@ Domain model, scoring/evidence contracts, API documentation, and UX design decis
 - **Alternatives Considered:** Keep bulk approval for unflagged pending items only while skipping flagged items (original REQ-SM-03).
 - **Rationale / Justification:** Eliminates rubber-stamping risk in human-in-the-loop review under EU AI Act Annex III and simplifies the review state machine.
 - **Affected Files / Pointers:** openspec/specs/skills-matrix-review/spec.md, docs/api.md, docs/architecture.md, .agents/rules/frontend-vue.md, backend/src/main/java/de/fhdortmund/nifty/evaluation/service/EvaluationReviewService.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/web/RankingEvaluationController.java, frontend/src/views/ranking/SkillsMatrixPanel.vue
+
+## 2.31 — Soft-skills-only attempts auto-release
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** An assessment with zero hard skills (SOFT_SKILLS + BFI-10) has no evaluated pairs, so the fail-closed release gate always returns PENDING and Team Builder never places those students.
+- **Decision:** WHEN an assessment has zero hard skills AND the attempt has a completed BFI-10 profile, the release gate auto-releases the attempt. Assessments with hard skills keep the fail-closed gate of Decision 2.10.
+- **Alternatives Considered:** Team Builder places completed but unreleased soft-only attempts; keep manual release per student.
+- **Rationale / Justification:** Nothing exists to review for a soft-only attempt (BFI-10 scores are deterministic), so manual release adds clicks without oversight value.
+- **Affected Files / Pointers:** backend/.../evaluation/service/ReleaseGateEvaluator.java, openspec/changes/mvp-hardening/
+
+## 2.32 — Remove the interviewer-invented-questions toggle for the MVP
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** The Studio toggle is saved and mentioned in the prompt, but AttemptStateMachine never asks an invented question.
+- **Decision:** Remove the toggle from the Studio UI and from the interviewer prompt. Keep the database column (no migration). The LLM keeps wording core questions and asking follow-ups up to each question's followUpLimit.
+- **Alternatives Considered:** Implement invented questions and early topic end in the state machine.
+- **Rationale / Justification:** A setting that does nothing misleads professors; implementing it would weaken the deterministic question flow.
+- **Affected Files / Pointers:** frontend/src/views/studio/SettingsSection.vue, backend/.../context/service/PromptTemplates.java
+
+## 2.33 — Expired attempts complete without BFI-10 and are evaluated
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** With BFI-10 on, a candidate who leaves before the BFI-10 form leaves the attempt open forever, so the interview is never evaluated.
+- **Decision:** WHEN an attempt with BFI-10 expires after the interview part, the expiry scheduler completes it without a soft-skill profile (traits stay N/A) and publishes AttemptCompletedEvent, so the interview answers are evaluated.
+- **Alternatives Considered:** Leave the attempt incomplete.
+- **Rationale / Justification:** The interview evidence is valid on its own; N/A for missing traits follows the missing-evidence invariant.
+- **Affected Files / Pointers:** backend/.../assessment/service/AttemptExpiryScheduler.java
+
+## 2.34 — Allow a new invite after a revoke
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** A revoked student cannot be invited again, so a lost or leaked link cannot be replaced.
+- **Decision:** After a revoke, the professor can create a new invite for the same student in the same assessment. The revoked token stays invalid. Both the revoke and the new invite are audited.
+- **Alternatives Considered:** Keep revoke final per student and assessment.
+- **Rationale / Justification:** Replacing a leaked link is the main reason to revoke.
+- **Affected Files / Pointers:** backend/.../auth/service/InviteService.java
+
+## 2.35 — Retake gap in a new tab accepted
+- **Date:** 2026-11-27
+- **Triggered By:** question-round
+- **Context:** A candidate in a new tab has no stored attempt ID, so the page cannot read attemptsLeft before Start.
+- **Decision:** Keep the Start button. A 409 on start shows No attempts left. Add no new read endpoint.
+- **Alternatives Considered:** Add a read endpoint for attemptsLeft before start.
+- **Rationale / Justification:** The gap costs one click. A new endpoint adds API surface for a rare case.
+- **Affected Files / Pointers:** frontend/src/views/assessment/AssessmentChatView.vue, openspec/changes/mvp-hardening/tasks.md
+
+## 2.36 — No sign-out button for candidates
+- **Date:** 2026-11-27
+- **Triggered By:** prompter-change
+- **Context:** The candidate header showed a Sign out button. The candidate enters only through the invite link.
+- **Decision:** Show Sign out only to professors. Candidates get no sign-out button. REQ-NAV-02 and REQ-NAV-05 change.
+- **Alternatives Considered:** Keep Sign out for both roles.
+- **Rationale / Justification:** User request. A candidate who signs out by mistake can only return through the invite link.
+- **Affected Files / Pointers:** frontend/src/App.vue, openspec/changes/mvp-hardening/specs/app-navigation/spec.md

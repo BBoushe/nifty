@@ -3,6 +3,7 @@ package de.fhdortmund.nifty.evaluation.service;
 import de.fhdortmund.nifty.audit.service.AuditActorRole;
 import de.fhdortmund.nifty.audit.service.AuditService;
 import de.fhdortmund.nifty.auth.service.AuthContextService;
+import de.fhdortmund.nifty.auth.service.InviteService;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryEntity;
 import de.fhdortmund.nifty.evaluation.repository.CandidateEvaluationSummaryRepository;
 import de.fhdortmund.nifty.evaluation.repository.FormulaVersionEntity;
@@ -56,6 +57,7 @@ public class FormulaPresetService {
     private final CandidateEvaluationSummaryRepository summaryRepository;
     private final ResponseEvaluationRepository responseEvaluationRepository;
     private final FormulaRecalculationHelper recalcHelper;
+    private final InviteService inviteService;
 
     FormulaPresetService(
             StudioQueryService studioQueryService,
@@ -64,7 +66,8 @@ public class FormulaPresetService {
             FormulaVersionRepository formulaVersionRepository,
             CandidateEvaluationSummaryRepository summaryRepository,
             ResponseEvaluationRepository responseEvaluationRepository,
-            FormulaRecalculationHelper recalcHelper) {
+            FormulaRecalculationHelper recalcHelper,
+            InviteService inviteService) {
         this.studioQueryService = studioQueryService;
         this.authContextService = authContextService;
         this.auditService = auditService;
@@ -72,6 +75,7 @@ public class FormulaPresetService {
         this.summaryRepository = summaryRepository;
         this.responseEvaluationRepository = responseEvaluationRepository;
         this.recalcHelper = recalcHelper;
+        this.inviteService = inviteService;
     }
 
     public List<EvaluationDtos.FormulaPresetInfo> listPresets() {
@@ -160,6 +164,7 @@ public class FormulaPresetService {
         // A preview is a what-if for the NEXT version, so it uses the current studio weights.
         Map<String, BigDecimal> previewWeights = buildQuestionWeightsMap(studioQueryService.scoringView(configId).questions());
         List<CandidateEvaluationSummaryEntity> summaries = summaryRepository.findLatestCompletedPerInvite(configId);
+        Map<UUID, String> refsByInvite = inviteService.candidateRefs(configId);
 
         List<EvaluationDtos.FormulaPreviewCandidate> candidates = new ArrayList<>(summaries.size());
         for (int i = 0; i < summaries.size(); i++) {
@@ -170,6 +175,7 @@ public class FormulaPresetService {
                     evaluatorView, previewWeights, responses, SkillFormulaCalculator.DEFAULT_MAX_ENTRY_SHARE);
             candidates.add(new EvaluationDtos.FormulaPreviewCandidate(
                     summary.getInviteId(),
+                    FormulaRecalculationHelper.candidateRefOf(refsByInvite, summary.getInviteId()),
                     summary.getAttemptId(),
                     result.fitScore(),
                     result.coverage(),

@@ -93,6 +93,13 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **2.28** | — | Design | Durable evaluation queue with bounded retry | Decided | 2026-11-26 | prompter-change | [2-design.md](./2-design.md#228--durable-evaluation-queue-with-bounded-retry) |
 | **2.29** | — | Design | Assessment interview gap-fills: grace, resume, fallbacks, stale recovery, server clock | Decided | 2026-11-26 | team | [2-design.md](./2-design.md#229--assessment-interview-gap-fills-grace-resume-fallbacks-stale-recovery-server-clock) |
 | **2.30** | — | Design | Individual professor approval only (no bulk approval) | Decided | 2026-11-26 | prompter-change | [2-design.md](./2-design.md#230--individual-professor-approval-only-no-bulk-approval) |
+| **2.31** | — | Design | Soft-skills-only attempts auto-release | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#231--soft-skills-only-attempts-auto-release) |
+| **2.32** | — | Design | Remove the interviewer-invented-questions toggle for the MVP | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#232--remove-the-interviewer-invented-questions-toggle-for-the-mvp) |
+| **2.33** | — | Design | Expired attempts complete without BFI-10 and are evaluated | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#233--expired-attempts-complete-without-bfi-10-and-are-evaluated) |
+| **2.34** | — | Design | Allow a new invite after a revoke | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#234--allow-a-new-invite-after-a-revoke) |
+| **2.35** | — | Design | Retake gap in a new tab accepted | Decided | 2026-11-27 | question-round | [2-design.md](./2-design.md#235--retake-gap-in-a-new-tab-accepted) |
+| **2.36** | — | Design | No sign-out button for candidates | Decided | 2026-11-27 | prompter-change | [2-design.md](./2-design.md#236--no-sign-out-button-for-candidates) |
+| **3.16** | — | Team & Process | mvp-hardening ships without the manual smoke test | Decided | 2026-11-27 | prompter-change | [3-team-process.md](./3-team-process.md#316--mvp-hardening-ships-without-the-manual-smoke-test) |
 <!-- DECISION_INDEX_END -->
 
 ---

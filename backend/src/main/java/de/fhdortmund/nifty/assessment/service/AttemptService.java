@@ -75,6 +75,7 @@ class AttemptService {
     private final ApplicationEventPublisher events;
     private final Duration grace;
     private final Duration staleReply;
+    private final Duration bfi10Window;
 
     AttemptService(AssessmentAttemptRepository attempts, ConversationEntryRepository entries,
             BfiResponseRepository bfiResponses, StudioQueryService studio, ContextCreationService context,
@@ -82,7 +83,9 @@ class AttemptService {
             // Decision 2.29 / REQ-AC-08: 5 s covers the browser auto-submit at zero plus network delay.
             @Value("${nifty.assessment.grace-seconds:5}") long graceSeconds,
             // Decision 2.29: longer than the 180 s MVC async timeout, so a reply still streaming is never overtaken.
-            @Value("${nifty.assessment.stale-reply-seconds:240}") long staleReplySeconds) {
+            @Value("${nifty.assessment.stale-reply-seconds:240}") long staleReplySeconds,
+            // Decision 2.33: 30 min is far above the 1 to 2 min the ten items take.
+            @Value("${nifty.assessment.bfi10-window-seconds:1800}") long bfi10WindowSeconds) {
         this.attempts = attempts;
         this.entries = entries;
         this.bfiResponses = bfiResponses;
@@ -91,6 +94,7 @@ class AttemptService {
         this.events = events;
         this.grace = Duration.ofSeconds(graceSeconds);
         this.staleReply = Duration.ofSeconds(staleReplySeconds);
+        this.bfi10Window = Duration.ofSeconds(bfi10WindowSeconds);
     }
 
     /** REQ-AC-01 / REQ-AC-06 / REQ-AC-11: resume the open attempt, or start a new one within the limit. */
@@ -200,7 +204,32 @@ class AttemptService {
     }
 
     List<UUID> staleAttemptIds() {
-        return attempts.findIdsAwaitingInterviewerSince(now().minus(staleReply));
+        return attempts.findIdsIdleSince(AttemptStatus.IN_PROGRESS.name(), now().minus(staleReply));
+    }
+
+    /**
+     * Decision 2.33 / REQ-AC-21: a candidate who never submits the BFI-10 form leaves the attempt open forever, so the
+     * interview is never evaluated. After {@code bfi10Window} the attempt completes with no soft profile (traits stay
+     * N/A) and the event is published, so the interview answers are evaluated.
+     * shortcut: a fixed window since the BFI-10 step opened, not a per-configuration deadline; make it configurable
+     * per assessment when professors ask.
+     */
+    @Transactional
+    void completeWithoutBfi10(UUID attemptId) {
+        AssessmentAttemptEntity attempt = attempts.findByIdForUpdate(attemptId).orElse(null);
+        if (attempt == null || !AttemptStatus.BFI10.name().equals(attempt.getStatus())) {
+            return;
+        }
+        List<LedgerEntry> ledger = ledgerOf(attemptId);
+        Instant lastActivity = ledger.isEmpty() ? attempt.getStartedAt() : ledger.getLast().createdAt();
+        Instant now = now();
+        if (lastActivity.isBefore(now.minus(bfi10Window))) {
+            complete(attempt, now);
+        }
+    }
+
+    List<UUID> bfi10ExpiredAttemptIds() {
+        return attempts.findIdsIdleSince(AttemptStatus.BFI10.name(), now().minus(bfi10Window));
     }
 
     SessionStateResponse state(UUID attemptId, UUID inviteId) {
@@ -310,7 +339,7 @@ class AttemptService {
         }
         return new InterviewerContextInput(attemptId, view.configVersion(), view.vision(), List.copyOf(skillNames),
                 new CoreQuestionPromptView(q.coreQuestionId(), q.text(), q.targetSkillNames(), q.followUpLimit(), used),
-                remaining, view.inventedQuestionsEnabled(), turns);
+                remaining, turns);
     }
 
     private SessionStateResponse stateOf(AssessmentAttemptEntity attempt, InterviewerView view,
@@ -325,8 +354,10 @@ class AttemptService {
                 ? AttemptStateMachine.openQuestion(ledger).map(LedgerEntry::expiresAt).orElse(null) : null;
         return new SessionStateResponse(attempt.getId(), AttemptStatus.valueOf(attempt.getStatus()),
                 attempt.getAttemptNo(), view.bfi10Enabled(),
-                interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0, expiresAt, messages,
-                now());
+                interviewing ? AttemptStateMachine.questionsRemaining(view, ledger) : 0,
+                AttemptStateMachine.attemptsLeft((int) attempts.countByInviteId(attempt.getInviteId()),
+                        view.maxAttempts()),
+                expiresAt, messages, now());
     }
 
     private List<LedgerEntry> ledgerOf(UUID attemptId) {

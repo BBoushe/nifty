@@ -172,11 +172,6 @@ const bfi10Missing = computed(
 
     <div class="flex flex-wrap gap-6 pt-2">
       <label class="flex items-center gap-2 text-sm text-slate-700">
-        <ToggleSwitch v-model="form.settings.inventedQuestions" />
-        Allow interviewer-invented questions
-      </label>
-
-      <label class="flex items-center gap-2 text-sm text-slate-700">
         <ToggleSwitch v-model="form.settings.bfi10Enabled" />
         Enable BFI-10 personality step
       </label>

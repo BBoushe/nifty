@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * REQ-AC-08: closes questions nobody answered, so an absent candidate's clock keeps running (Decision 2.14, no pause).
- * It also reopens attempts whose interviewer reply never reached the ledger (stream died, server restart).
+ * It also reopens attempts whose interviewer reply never reached the ledger (stream died, server restart), and
+ * completes attempts left in the BFI-10 step (Decision 2.33).
  * Each attempt commits on its own; one failure does not stop the sweep.
  */
 @Component
@@ -28,6 +29,7 @@ class AttemptExpiryScheduler {
     void sweep() {
         each(attempts.expiredAttemptIds(), attempts::closeExpired);
         each(attempts.staleAttemptIds(), attempts::recoverStale);
+        each(attempts.bfi10ExpiredAttemptIds(), attempts::completeWithoutBfi10); // Decision 2.33
     }
 
     private static void each(List<UUID> ids, Consumer<UUID> action) {

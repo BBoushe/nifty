@@ -17,6 +17,8 @@ export interface SessionState {
   attemptNo: number
   bfi10Enabled: boolean
   questionsRemaining: number
+  /** REQ-AC-22: attempts the invite may still start; 0 hides the start button. */
+  attemptsLeft: number
   expiresAt: string | null
   messages: SessionMessage[]
   /** Server clock when the state was read; the countdown corrects the browser clock with it. */

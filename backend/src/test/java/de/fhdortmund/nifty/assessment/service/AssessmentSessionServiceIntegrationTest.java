@@ -104,7 +104,7 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         completedEvents.events.clear();
         // A real ChatModel always has options; ChatClient mutates them per call.
         when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
-        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand-1"));
+        when(auth.currentCandidate()).thenReturn(new CandidateSessionPrincipal(inviteId, configId, "cand-1", "hash"));
         when(studio.interviewerView(configId)).thenReturn(view(GroupingMode.HARD_SKILLS, false, List.of(q1, q2), 2));
         when(context.buildInterviewerContext(any())).thenReturn(new BuiltPromptContext(AgentRole.INTERVIEWER,
                 "interviewer-v1", SYSTEM_PROMPT, List.of(new PromptMessage("user", "<candidate_answer>x</candidate_answer>")),
@@ -186,6 +186,17 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
         assertThat(state.serverTime()).isBetween(Instant.now().minusSeconds(10), Instant.now());
         assertThat(sessions.state(attemptId)).usingRecursiveComparison().ignoringFields("serverTime").isEqualTo(state);
         verifyNoInteractions(chatModel);
+    }
+
+    // REQ-AC-22: the session state tells the page whether a retake is left (maximum 2 in this setup).
+    @Test
+    void sessionStateReportsAttemptsLeftForOneAndTwoUsedOfTwo() {
+        UUID first = insertAttempt("COMPLETED", 1);
+        assertThat(sessions.state(first).attemptsLeft()).isEqualTo(1);
+
+        UUID second = insertAttempt("COMPLETED", 2);
+        assertThat(sessions.state(second).attemptsLeft()).isZero();
+        assertThat(sessions.state(first).attemptsLeft()).isZero();
     }
 
     @Test
@@ -469,7 +480,7 @@ class AssessmentSessionServiceIntegrationTest extends PostgresContainerBase {
     }
 
     private InterviewerView view(GroupingMode mode, boolean bfi10, List<InterviewerQuestion> questions, int maxAttempts) {
-        return new InterviewerView(configId, "v1", "Vision", maxAttempts, false, bfi10, mode, questions);
+        return new InterviewerView(configId, "v1", "Vision", maxAttempts, bfi10, mode, questions);
     }
 
     @TestConfiguration

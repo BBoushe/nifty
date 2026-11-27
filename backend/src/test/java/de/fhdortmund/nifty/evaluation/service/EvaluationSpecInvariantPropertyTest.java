@@ -32,6 +32,8 @@ class EvaluationSpecInvariantPropertyTest {
 
     private static final long SEED = 20261126L;
     private static final int ROUNDS = 400;
+    // The REQ-SM-05 gate properties describe assessments with hard skills (soft-only: Decision 2.31).
+    private static final int HARD_SKILLS = 2;
     private static final BigDecimal CAP = new BigDecimal("0.5000");
 
     private final VerbatimQuoteVerifier verifier = new VerbatimQuoteVerifier();
@@ -794,7 +796,7 @@ class EvaluationSpecInvariantPropertyTest {
                 allPass &= !specFlagged(subst, ver, r1, r2, conf, thr, paste, inj);
             }
             boolean expectAuto = allPass && coverage.compareTo(minCoverage) >= 0;
-            var decision = gate.evaluateAttemptRelease(statuses, coverage, minCoverage);
+            var decision = gate.evaluateAttemptRelease(statuses, coverage, minCoverage, HARD_SKILLS, false);
             assertThat(decision.autoReleased()).isEqualTo(expectAuto);
             assertThat(decision.releaseStatus())
                     .isEqualTo(expectAuto ? ReleaseStatus.AUTO_RELEASED : ReleaseStatus.FLAGGED);
@@ -812,16 +814,18 @@ class EvaluationSpecInvariantPropertyTest {
                     lowered.add(flags((boolean) p[0], (boolean) p[1], (Integer) p[2], (Integer) p[3],
                             (BigDecimal) p[4], lowerThr, (boolean) p[6], (boolean) p[7]).reviewStatus());
                 }
-                assertThat(gate.evaluateAttemptRelease(lowered, coverage, minCoverage).autoReleased())
+                assertThat(gate.evaluateAttemptRelease(lowered, coverage, minCoverage, HARD_SKILLS, false).autoReleased())
                         .as("lower threshold must keep auto_released").isTrue();
                 // lowering the minimum coverage or raising coverage also keeps it
-                assertThat(gate.evaluateAttemptRelease(statuses, coverage, minCoverage.multiply(unit(rnd))).autoReleased())
+                assertThat(gate.evaluateAttemptRelease(
+                        statuses, coverage, minCoverage.multiply(unit(rnd)), HARD_SKILLS, false).autoReleased())
                         .isTrue();
             }
             // any flagged response blocks release whatever the coverage
             List<ReleaseStatus> withFlag = new ArrayList<>(statuses);
             withFlag.add(rnd.nextInt(withFlag.size() + 1), ReleaseStatus.FLAGGED);
-            assertThat(gate.evaluateAttemptRelease(withFlag, BigDecimal.ONE, BigDecimal.ZERO).autoReleased()).isFalse();
+            assertThat(gate.evaluateAttemptRelease(withFlag, BigDecimal.ONE, BigDecimal.ZERO, HARD_SKILLS, false)
+                    .autoReleased()).isFalse();
         }
         assertThat(auto).as("generator exercised auto_released").isGreaterThan(20);
         assertThat(notAuto).as("generator exercised blocked attempts").isGreaterThan(50);

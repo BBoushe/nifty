@@ -20,9 +20,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * REQ-IS-01, REQ-IS-12, Decision 2.21: one-shot immutable assessment creation with per-professor
@@ -38,6 +41,7 @@ public class ConfigCreationService {
     private final ConfigValidator validator;
     private final AuthContextService authContext;
     private final AuditService auditService;
+    private final TransactionTemplate tx;
 
     ConfigCreationService(
             AssessmentConfigRepository configRepository,
@@ -45,7 +49,9 @@ public class ConfigCreationService {
             CoreQuestionRepository questionRepository,
             ConfigValidator validator,
             AuthContextService authContext,
-            AuditService auditService) {
+            AuditService auditService,
+            TransactionTemplate tx) {
+        this.tx = tx;
         this.configRepository = configRepository;
         this.skillRepository = skillRepository;
         this.questionRepository = questionRepository;
@@ -54,7 +60,8 @@ public class ConfigCreationService {
         this.auditService = auditService;
     }
 
-    @Transactional
+    // Not transactional itself: a lost race fails at commit, and the replay needs a fresh transaction.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public CreatedAssessment create(UUID idempotencyKey, CreateAssessmentRequest request) {
         if (idempotencyKey == null) {
             throw new FieldValidationException(List.of(
@@ -62,17 +69,32 @@ public class ConfigCreationService {
         }
 
         UUID professorId = authContext.currentProfessorId();
+        try {
+            return tx.execute(status -> createOnce(professorId, idempotencyKey, request));
+        } catch (DataIntegrityViolationException ex) {
+            // Decision 2.21, REQ-IS-14: a parallel create with the same key won the unique constraint. Replay it.
+            // Any other violation finds no winner and is rethrown.
+            return tx.execute(status -> replayExisting(professorId, idempotencyKey).orElseThrow(() -> ex));
+        }
+    }
 
-        // shortcut: checks existing key in-transaction before insert; under simultaneous parallel double-submit
-        // with the same key, upgrade to catch DataIntegrityViolationException and replay if owned by professorId.
+    /** REQ-IS-12: replays the professor's own create, answers 400 for another professor's key. */
+    private Optional<CreatedAssessment> replayExisting(UUID professorId, UUID idempotencyKey) {
         Optional<AssessmentConfigEntity> existing = configRepository.findByIdempotencyKey(idempotencyKey);
-        if (existing.isPresent()) {
-            AssessmentConfigEntity found = existing.get();
-            if (found.getProfessorId().equals(professorId)) {
-                return new CreatedAssessment(found.getId(), false);
-            }
-            // REQ-IS-12: another professor already used this key -> 400 ProblemDetail, save nothing.
-            throw new DomainException(HttpStatus.BAD_REQUEST, "Idempotency-Key is not available.");
+        if (existing.isEmpty()) {
+            return Optional.empty();
+        }
+        AssessmentConfigEntity found = existing.get();
+        if (found.getProfessorId().equals(professorId)) {
+            return Optional.of(new CreatedAssessment(found.getId(), false));
+        }
+        throw new DomainException(HttpStatus.BAD_REQUEST, "Idempotency-Key is not available.");
+    }
+
+    private CreatedAssessment createOnce(UUID professorId, UUID idempotencyKey, CreateAssessmentRequest request) {
+        Optional<CreatedAssessment> replay = replayExisting(professorId, idempotencyKey);
+        if (replay.isPresent()) {
+            return replay.get();
         }
 
         validator.validateOrThrow(request);
@@ -84,7 +106,7 @@ public class ConfigCreationService {
                 s.vision().trim(),
                 s.minCoverage(),
                 s.maxAttempts(),
-                Boolean.TRUE.equals(s.inventedQuestions()),
+                false, // Decision 2.32: column kept, setting removed
                 Boolean.TRUE.equals(s.bfi10Enabled()),
                 s.teamSize(),
                 s.groupingMode().name(),

@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
+import Button from 'primevue/button'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { formatRatioPercent, formatScore, getCandidateResults } from '@/api/evaluation'
+import { formatRatioPercent, formatScore, getCandidateResults, POLL_INTERVAL_MS } from '@/api/evaluation'
 import ScoreBadge from '@/components/ScoreBadge.vue'
+import TranscriptDialog from '@/components/TranscriptDialog.vue'
+import { fromCandidateTurn } from '@/components/transcript'
 
 const route = useRoute()
 const configId = computed(() => (typeof route.params.configId === 'string' ? route.params.configId : ''))
+const conversationOpen = ref(false)
 
 const resultsQuery = useQuery({
   queryKey: computed(() => ['candidate-results', configId.value]),
   queryFn: () => getCandidateResults(configId.value),
   enabled: computed(() => Boolean(configId.value)),
+  // REQ-CR-07: while the results are not released, check again until the professor releases them.
+  refetchInterval: (query) => (query.state.data?.released === false ? POLL_INTERVAL_MS : false),
 })
 </script>
 
@@ -45,8 +51,16 @@ const resultsQuery = useQuery({
       <h2 class="text-lg font-semibold text-ink">Your results are pending review</h2>
       <p class="text-sm text-ink-muted">
         Your assessment is currently being reviewed. Scores, evidence quotes, formula weights, and full
-        transcript details will appear here once released.
+        transcript details will appear here once released. This page checks again every few seconds.
       </p>
+      <Button
+        label="Refresh"
+        size="small"
+        severity="secondary"
+        :loading="resultsQuery.isFetching.value"
+        data-testid="results-refresh-btn"
+        @click="resultsQuery.refetch()"
+      />
     </div>
 
     <!-- REQ-CR-01, REQ-CR-04..06: Post-release transparency -->
@@ -190,23 +204,27 @@ const resultsQuery = useQuery({
       </div>
 
       <!-- REQ-CR-04: Own Conversation Log -->
-      <div class="rounded-xl border border-slate-200 bg-surface p-5 space-y-3">
-        <h2 class="text-base font-semibold text-ink">Conversation Log</h2>
-        <ol class="space-y-3">
-          <li
-            v-for="turn in resultsQuery.data.value.conversationLog ?? []"
-            :key="turn.entryId"
-            class="rounded-lg border border-slate-200 p-3 text-sm space-y-1"
-          >
-            <div class="flex items-center justify-between text-xs text-ink-muted">
-              <span>Turn #{{ turn.seq }} ({{ turn.origin }})</span>
-              <span>{{ turn.askedAt }}</span>
-            </div>
-            <p class="font-medium text-ink">Q: {{ turn.questionText }}</p>
-            <p class="text-ink-muted">A: {{ turn.answerText || '(No answer submitted)' }}</p>
-          </li>
-        </ol>
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-surface p-5">
+        <div>
+          <h2 class="text-base font-semibold text-ink">Your conversation</h2>
+          <p class="text-xs text-ink-muted">Read the questions and your answers as you gave them.</p>
+        </div>
+        <Button
+          label="Open conversation"
+          size="small"
+          severity="secondary"
+          data-testid="open-conversation-btn"
+          @click="conversationOpen = true"
+        />
       </div>
+
+      <!-- REQ-CR-07: the candidate reads the same dialog as the professor, without professor markers. -->
+      <TranscriptDialog
+        v-model:visible="conversationOpen"
+        title="Your conversation"
+        :turns="(resultsQuery.data.value.conversationLog ?? []).map(fromCandidateTurn)"
+        :show-markers="false"
+      />
     </div>
   </section>
 </template>

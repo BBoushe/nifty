@@ -13,6 +13,8 @@ import {
   formatRatioPercent,
   formatScore,
   getSkillsMatrix,
+  isEvaluationPending,
+  POLL_INTERVAL_MS,
   type MatrixCell,
 } from '@/api/evaluation'
 
@@ -27,6 +29,9 @@ const matrixQuery = useQuery({
   queryKey: computed(() => ['evaluation-matrix', props.configId]),
   queryFn: () => getSkillsMatrix(props.configId),
   enabled: computed(() => Boolean(props.configId)),
+  // REQ-SM-11: poll while any attempt still waits for the evaluator.
+  refetchInterval: (query) =>
+    query.state.data?.rows.some((row) => isEvaluationPending(row.evaluationStatus)) ? POLL_INTERVAL_MS : false,
 })
 
 const visibleRows = computed(() => {
@@ -41,7 +46,7 @@ const heatmapOption = computed(() => {
     return {}
   }
   const skillNames = data.skills.map((s) => s.skillName)
-  const candidateLabels = visibleRows.value.map((r) => `${r.inviteId.slice(0, 8)} (#${r.attemptNo})`)
+  const candidateLabels = visibleRows.value.map((r) => `${r.candidateRef} (#${r.attemptNo})`)
   const points: Array<{
     value: [number, number, number | null]
     itemStyle?: Record<string, unknown>
@@ -138,6 +143,14 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
       <!-- Decision 2.30: professors review and approve every student attempt individually (no bulk approval). -->
       <div class="flex flex-wrap items-center gap-2">
         <Button
+          label="Refresh"
+          severity="secondary"
+          size="small"
+          :loading="matrixQuery.isFetching.value"
+          data-testid="matrix-refresh-btn"
+          @click="matrixQuery.refetch()"
+        />
+        <Button
           :label="needsAttentionOnly ? 'Showing Needs Attention' : 'Filter: Needs Attention'"
           :severity="needsAttentionOnly ? 'warn' : 'secondary'"
           size="small"
@@ -190,7 +203,7 @@ function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' 
           <tbody class="divide-y divide-slate-100">
             <tr v-for="row in visibleRows" :key="row.attemptId" class="hover:bg-slate-50">
               <td class="px-4 py-3 font-mono text-xs text-ink">
-                {{ row.inviteId.slice(0, 8) }} <span class="text-ink-muted">(#{{ row.attemptNo }})</span>
+                {{ row.candidateRef }} <span class="text-ink-muted">(#{{ row.attemptNo }})</span>
               </td>
               <td class="px-4 py-3">
                 <Tag

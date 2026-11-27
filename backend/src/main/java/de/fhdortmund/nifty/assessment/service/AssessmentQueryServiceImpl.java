@@ -6,8 +6,10 @@ import de.fhdortmund.nifty.assessment.repository.BfiResponseEntity;
 import de.fhdortmund.nifty.assessment.repository.BfiResponseRepository;
 import de.fhdortmund.nifty.assessment.repository.ConversationEntryEntity;
 import de.fhdortmund.nifty.assessment.repository.ConversationEntryRepository;
+import de.fhdortmund.nifty.shared.config.AttemptCompletedEvent;
 import de.fhdortmund.nifty.shared.exception.DomainException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +90,18 @@ class AssessmentQueryServiceImpl implements AssessmentQueryService {
     @Override
     public Optional<StudentSoftSkillProfile> getSoftSkillProfileForAttempt(UUID attemptId) {
         return attempts.findById(attemptId).filter(a -> COMPLETED.equals(a.getStatus())).map(this::profileOf);
+    }
+
+    @Override
+    public List<AttemptCompletedEvent> completedAttemptsSince(Instant since) {
+        List<AssessmentAttemptEntity> completed =
+                attempts.findByStatusAndCompletedAtGreaterThanEqual(COMPLETED, since);
+        List<AttemptCompletedEvent> events = new ArrayList<>(completed.size());
+        for (int i = 0; i < completed.size(); i++) {
+            AssessmentAttemptEntity attempt = completed.get(i);
+            events.add(new AttemptCompletedEvent(attempt.getId(), attempt.getConfigId(), attempt.getInviteId()));
+        }
+        return events;
     }
 
     // shortcut: one BFI-10 lookup per invite; batch the read if a cohort grows past a few hundred candidates.

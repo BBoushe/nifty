@@ -8,7 +8,6 @@ export interface SettingsInputPayload {
   vision: string
   minCoverage: number
   maxAttempts: number
-  inventedQuestions: boolean
   bfi10Enabled: boolean
   teamSize: number
   groupingMode: GroupingMode
@@ -78,7 +77,6 @@ export interface AssessmentDetail {
   vision: string
   minCoverage: number
   maxAttempts: number
-  inventedQuestions: boolean
   bfi10Enabled: boolean
   teamSize: number
   groupingMode: GroupingMode
@@ -94,6 +92,9 @@ export interface AssessmentDetail {
 }
 
 const STUDIO_BASE = '/api/v1/ranking/studio/configs'
+
+// REQ-NAV-11: Studio and Ranking read the list under one key, so a delete in Studio refreshes both.
+export const ASSESSMENTS_KEY = ['studio', 'assessments'] as const
 
 export function listAssessments(): Promise<AssessmentSummary[]> {
   return apiFetch<AssessmentSummary[]>(STUDIO_BASE)

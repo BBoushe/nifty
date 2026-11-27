@@ -16,8 +16,7 @@ public record InterviewerPreviewRequest(
         @NotEmpty List<@NotBlank String> targetSkillNames,
         @NotBlank String questionText,
         // Boxed on purpose: Jackson 3 rejects a missing primitive with an unnamed 400. A boxed @NotNull names the field.
-        @NotNull @Min(0) @Max(3) Integer followUpLimit,
-        Boolean inventedQuestionsEnabled // absent means false
+        @NotNull @Min(0) @Max(3) Integer followUpLimit
 ) {
 
     private static final UUID PREVIEW_ID = new UUID(0, 0);
@@ -27,7 +26,6 @@ public record InterviewerPreviewRequest(
     InterviewerContextInput toInput() {
         CoreQuestionPromptView question =
                 new CoreQuestionPromptView(PREVIEW_ID, questionText, targetSkillNames, followUpLimit, 0);
-        return new InterviewerContextInput(PREVIEW_ID, "preview", vision, targetSkillNames, question, 0,
-                Boolean.TRUE.equals(inventedQuestionsEnabled), List.of());
+        return new InterviewerContextInput(PREVIEW_ID, "preview", vision, targetSkillNames, question, 0, List.of());
     }
 }

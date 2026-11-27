@@ -29,6 +29,7 @@ import de.fhdortmund.nifty.studio.service.StudioQueryService;
 import de.fhdortmund.nifty.studio.service.view.GroupingMode;
 import de.fhdortmund.nifty.studio.service.view.SoftPreset;
 import de.fhdortmund.nifty.studio.service.view.TeamView;
+import de.fhdortmund.nifty.teams.repository.TeamProposalRepository;
 import de.fhdortmund.nifty.teams.service.RecalculateTeamsRequest.Assignment;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -49,6 +50,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * US-TB-04, REQ-TB-03, REQ-TB-04, REQ-TB-05, REQ-TB-08, REQ-TB-11: the cross-slice contracts are mocked, the
@@ -69,6 +71,8 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
     @Autowired
     private EntityManager entityManager;
 
+    @MockitoSpyBean
+    private TeamProposalRepository proposalRepository;
     @MockitoBean
     private StudioQueryService studio;
     @MockitoBean
@@ -258,14 +262,8 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
 
     @Test
     void recalculateMovesAMemberUpdatesDiagnosticsAndRequiresEveryCandidateExactlyOnce() {
-        evaluationReturns(release(6), List.of());
-        TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 9L, null));
-        List<Assignment> placement = new ArrayList<>();
-        for (TeamProposalResponse.TeamCard team : draft.teams()) {
-            for (TeamProposalResponse.TeamMember member : team.members()) {
-                placement.add(new Assignment(member.inviteId(), team.teamNo()));
-            }
-        }
+        TeamProposalResponse draft = generateDraft(6, 9L);
+        List<Assignment> placement = placementOf(draft);
         UUID moved = placement.get(0).inviteId();
         int from = placement.get(0).teamNo();
         placement.set(0, new Assignment(moved, from == 1 ? 2 : 1));
@@ -294,14 +292,13 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
 
     @Test
     void publishFlipsDraftToPublishedAuditsOnceAndLocksTheProposal() {
-        evaluationReturns(release(6), List.of());
-        TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 9L, null));
-        verify(audit, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+        TeamProposalResponse draft = generateDraft(6, 9L);
 
         TeamProposalResponse published = service.publish(draft.proposalId());
 
         assertThat(published.status()).isEqualTo("PUBLISHED");
         assertThat(published.publishedAt()).isBefore(Instant.now().plusSeconds(5)).isNotNull();
+        verify(proposalRepository).findByIdForUpdate(draft.proposalId()); // REQ-TB-04: publish locks the row
         verify(audit).record(eq(PROFESSOR.toString()), eq(AuditActorRole.PROFESSOR), eq("TEAM_PROPOSAL"),
                 eq(draft.proposalId()), eq("TEAMS_PUBLISHED"), eq("DRAFT"), eq("PUBLISHED"), eq(null));
         assertThatThrownBy(() -> service.publish(draft.proposalId())).isInstanceOfSatisfying(DomainException.class,
@@ -336,6 +333,21 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
         assertThat(listed.get(0).teams().stream().flatMap(t -> t.members().stream())
                 .filter(m -> m.inviteId().equals(invites.get(0))).findFirst().orElseThrow().candidateRef())
                 .isEqualTo("cand_001");
+    }
+
+    private TeamProposalResponse generateDraft(int count, long seed) {
+        evaluationReturns(release(count), List.of());
+        return service.generate(configId, new GenerateTeamsRequest(2, null, null, null, seed, null));
+    }
+
+    private static List<Assignment> placementOf(TeamProposalResponse draft) {
+        List<Assignment> placement = new ArrayList<>();
+        for (TeamProposalResponse.TeamCard team : draft.teams()) {
+            for (TeamProposalResponse.TeamMember member : team.members()) {
+                placement.add(new Assignment(member.inviteId(), team.teamNo()));
+            }
+        }
+        return placement;
     }
 
     private String costMetrics(UUID proposalId) {
@@ -424,17 +436,25 @@ class TeamBuilderServiceTest extends PostgresContainerBase {
     }
 
     @Test
+    void recalculateStoresTheSameFullPrecisionDiagnosticsAsAFreshGenerate() { // REQ-TB-13
+        TeamProposalResponse draft = generateDraft(7, 4L);
+        String generated = costMetrics(draft.proposalId());
+
+        TeamProposalResponse recalculated = service.recalculate(draft.proposalId(),
+                new RecalculateTeamsRequest(placementOf(draft)));
+
+        assertThat(costMetrics(draft.proposalId())).isEqualTo(generated);
+        assertThat(recalculated.diagnostics()).isEqualTo(draft.diagnostics());
+        verify(proposalRepository).findByIdForUpdate(draft.proposalId()); // REQ-TB-03: recalculate locks the row
+    }
+
+    @Test
     void onlyGenerateAndRecalculateWriteCostMetrics() {
         List<CandidateHardSkillProfile> profiles = release(6);
         evaluationReturns(profiles, List.of());
         TeamProposalResponse draft = service.generate(configId, new GenerateTeamsRequest(2, null, null, null, 9L, null));
         String stored = costMetrics(draft.proposalId());
-        List<Assignment> placement = new ArrayList<>();
-        for (TeamProposalResponse.TeamCard team : draft.teams()) {
-            for (TeamProposalResponse.TeamMember member : team.members()) {
-                placement.add(new Assignment(member.inviteId(), team.teamNo()));
-            }
-        }
+        List<Assignment> placement = placementOf(draft);
         // The released scores change after generation: reads must show them but must not store them.
         evaluationReturns(withSkills(profiles, (i, skills) -> List.of(scored(gitSkill, "git", (i * i) % 5),
                 scored(dockerSkill, "docker", (i + 2) % 5))), List.of());

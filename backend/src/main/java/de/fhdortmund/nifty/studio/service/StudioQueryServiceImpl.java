@@ -89,7 +89,6 @@ class StudioQueryServiceImpl implements StudioQueryService {
                 "v" + config.getVersion(),
                 config.getVision(),
                 config.getMaxAttempts(),
-                config.isInventedQuestions(),
                 config.isBfi10Enabled(),
                 GroupingMode.valueOf(config.getGroupingMode()),
                 List.copyOf(questions));

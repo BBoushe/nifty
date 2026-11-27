@@ -40,9 +40,12 @@ class AuthContextServiceImpl implements AuthContextService {
         if (principal.role() != Role.CANDIDATE || principal.inviteId() == null) {
             throw new DomainException(HttpStatus.FORBIDDEN, NOT_CANDIDATE);
         }
-        if (!inviteRepository.existsByIdAndRevokedFalse(principal.inviteId())) {
+        // Decision 2.34: a null hash (a session from before the hash existed) or a rotated hash fails closed.
+        if (principal.tokenHash() == null
+                || !inviteRepository.existsByIdAndTokenHashAndRevokedFalse(principal.inviteId(), principal.tokenHash())) {
             throw new DomainException(HttpStatus.UNAUTHORIZED, REVOKED_INVITE);
         }
-        return new CandidateSessionPrincipal(principal.inviteId(), principal.configId(), principal.candidateRef());
+        return new CandidateSessionPrincipal(
+                principal.inviteId(), principal.configId(), principal.candidateRef(), principal.tokenHash());
     }
 }
