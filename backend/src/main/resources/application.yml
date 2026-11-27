@@ -1,0 +1,91 @@
+spring:
+  application:
+    name: nifty-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/nifty}
+    username: ${SPRING_DATASOURCE_USERNAME:nifty}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  # assessment-chat: interviewer replies stream through MVC async requests (Tomcat's default timeout is 30 s).
+  mvc:
+    async:
+      request-timeout: 180s
+
+  # Spring AI 2.0 OpenAI-compatible client configured for ki:connect NRW / FH AI (LLM Evaluator).
+  # Hosted in Aachen / NRW (EU, GDPR-compliant, free for students).
+  # Boots cleanly even when KICONNECT_API_KEY is unset or blank.
+  ai:
+    openai:
+      api-key: ${KICONNECT_API_KEY:not-configured}
+      base-url: ${AI_EVALUATOR_BASE_URL:https://chat.kiconnect.nrw/api/v1}
+      chat:
+        model: ${AI_EVALUATOR_MODEL:GPT-OSS-120B}
+
+nifty:
+  frontend-base-url: ${NIFTY_FRONTEND_BASE_URL:http://localhost:5173}
+  # Decision 1.24: optional bootstrap professor account. Values come from the environment only.
+  bootstrap:
+    professor:
+      email: ${NIFTY_BOOTSTRAP_PROFESSOR_EMAIL:}
+      password: ${NIFTY_BOOTSTRAP_PROFESSOR_PASSWORD:}
+  # REQ-AC-24: bounded pool for interviewer streams. A full pool and queue answers 503.
+  assessment:
+    stream:
+      core-size: 8
+      max-size: 32
+      queue-capacity: 100
+  # Decision 2.28: bounded retry of QUEUED, FAILED, and stale RUNNING evaluation runs.
+  evaluation:
+    retry:
+      enabled: true
+      max-attempts: 3
+      fixed-delay: PT1M
+      stale-after: PT30M
+  ai:
+    provider-mode: ${AI_EVALUATOR_PROVIDER:kiconnect-nrw}
+    evaluator:
+      provider: ${AI_EVALUATOR_PROVIDER:kiconnect-nrw}
+      base-url: ${AI_EVALUATOR_BASE_URL:https://chat.kiconnect.nrw/api/v1}
+      model: ${AI_EVALUATOR_MODEL:GPT-OSS-120B}
+      # Documentation only: nothing validates the model against this list; a wrong ID fails at run time with 404.
+      allowed-models:
+        - "GPT-OSS-120B"
+        - "Qwen3.8 27B"
+        - "mistralai-mistral-small-4"
+
+server:
+  port: ${BACKEND_PORT:8080}
+  error:
+    include-stacktrace: never
+  # Decision 1.23: session cookie for both roles. Set NIFTY_SESSION_COOKIE_SECURE=false only for local HTTP dev.
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${NIFTY_SESSION_COOKIE_SECURE:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

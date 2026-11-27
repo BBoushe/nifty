@@ -1,0 +1,151 @@
+# Domain Spec: Evidence Pipeline (`evidence-pipeline`)
+
+> **Status:** Seed baseline (from `docs/discovery-canvas.md` §9, §10, §11 & §14), updated 2026-11-25 by `nov24-reconciliation` and `five-service-convergence`
+> **Owner Layer:** Backend (`Spring AI 2.0` + deterministic Java verifiers/calculators)
+
+## Purpose
+
+Transform completed `assessment-transcript/v1` transcripts into verified, auditable evidence items, rubric levels, and confidence values. The system computes the confidence values deterministically. This removes hallucinated quotes and unsupported scores.
+
+## Requirements
+
+### Requirement: REQ-EP-01 Verbatim Quote Verification
+**WHEN** the extractor returns an evidence item **THE SYSTEM SHALL** verify that its quote has at least 8 characters and appears word-for-word in the answer text of the referenced ledger entry, and discard it if it does not. The verifier collapses runs of whitespace in both the quote and the answer text before it compares them. It does not change any other character, and the stored ledger text stays unchanged.
+
+#### Scenario: Hallucinated quote rejected by deterministic verifier
+- **WHEN** the LLM extractor emits an evidence item whose `quote` is not an exact substring of the referenced `entryId` answer text
+- **THEN** the deterministic quote verifier discards the item before scoring.
+
+#### Scenario: Line break inside a quote
+- **WHEN** the answer text has "wrap it in a\ntransaction" and the quote is "wrap it in a transaction"
+- **THEN** the verifier accepts the quote, and the ledger text keeps its line break.
+
+### Requirement: REQ-EP-02 Explicit N/A for Missing Evidence
+**IF** a skill has no verified evidence **THEN THE SYSTEM SHALL** record its score as `N/A` and exclude it from fit calculations.
+
+#### Scenario: Untested skill produces N/A instead of 0 or 1
+- **WHEN** a candidate transcript has zero verified evidence items for skill `spring_boot`
+- **THEN** the scorer records `spring_boot = N/A` and omits `spring_boot` from both the numerator and denominator of the candidate's fit score.
+
+### Requirement: REQ-EP-03 Deterministic Confidence Calculation
+**THE SYSTEM SHALL** compute confidence for each (question, skill) score deterministically from measurable signals (evidence count, quote verification ratio, judge agreement between the two judge runs, question origin, answer length, and prompted vs. unprompted terms) and **SHALL NOT** use LLM self-reported confidence values (Decision 2.11).
+
+#### Scenario: Judge disagreement lowers calculated confidence
+- **WHEN** two independent judge runs disagree on a rubric level boundary for skill `spring_boot` on core question 2
+- **THEN** the deterministic confidence calculator reduces the `0..1` confidence of the (question 2, `spring_boot`) score based on the documented signal formula.
+
+#### Scenario: One answer scores two skills
+- **WHEN** one answer gives verified evidence for `spring_boot` and `testing`
+- **THEN** the calculator stores a separate confidence for (question, `spring_boot`) and (question, `testing`).
+
+### Requirement: REQ-EP-04 Deterministic Numerical Aggregation
+**THE SYSTEM SHALL** calculate all totals, rankings and team-balance metrics in code, and **SHALL NOT** take any numerical value from LLM output without validation.
+
+#### Scenario: Pipeline discards unvalidated LLM totals
+- **WHEN** the evidence pipeline processes a completed transcript
+- **THEN** all skill averages, fit totals, coverage ratios, and cohort metrics are computed exclusively in deterministic Java/SQL code.
+
+### Requirement: REQ-EP-05 Asynchronous Evaluation After Commit
+**WHEN** an attempt completes and its transaction commits **THE SYSTEM SHALL** start the evaluator asynchronously (`@TransactionalEventListener(phase = AFTER_COMMIT)` on `AttemptCompletedEvent`) with only the attempt's ledger entries and the hidden rubric as input (Decisions 1.12, 1.21). **THE SYSTEM SHALL** run two independent judge calls with fresh contexts for each (entry, skill) pair, with prompts from `ContextCreationService.buildJudgeContext` (Decision 1.18).
+
+#### Scenario: Evaluator starts after the last answer
+- **WHEN** the candidate's final answer commits
+- **THEN** the evaluator runs outside the request thread, and the candidate's request returns without waiting for it.
+
+#### Scenario: Rolled-back completion
+- **WHEN** the transaction that completes an attempt rolls back
+- **THEN** the evaluator does not start.
+
+### Requirement: REQ-EP-06 Unanswered Questions Produce N/A
+**IF** a core question or follow-up has no answer text (empty, rejected after the grace period, or never sent) **THEN THE SYSTEM SHALL** record `N/A` for every (question, skill) score that only that entry could support, and **SHALL NOT** send the entry to the evaluator. **THE SYSTEM SHALL** evaluate an answer with `timedOut = true` and text like any other answer (Decision 2.20).
+
+#### Scenario: Partial answer at timeout
+- **WHEN** question 3 has a ledger answer with `timedOut = true` and the text "I would wrap it in a transaction"
+- **THEN** the evaluator receives the entry, and the (question 3, skill) scores come from its verified evidence like any other answer.
+
+#### Scenario: No answer text
+- **WHEN** question 4 timed out with no answer text and has no other answered entry
+- **THEN** every (question 4, skill) score is `N/A`, and the evaluator input contains no entry of question 4.
+
+### Requirement: REQ-EP-07 Paste-Suspected Scores Are Flagged
+**WHEN** a ledger entry has `pasteSuspected = true` or `injectionSuspected = true` **THE SYSTEM SHALL** mark every (question, skill) score that uses evidence from that entry as flagged and store the flag reason (Decision 2.24).
+
+#### Scenario: Pasted answer reaches review
+- **WHEN** evidence for `testing` comes from an entry with `pasteSuspected = true`
+- **THEN** the (question, `testing`) score has review status `flagged`.
+
+#### Scenario: Injection attempt reaches review
+- **WHEN** evidence for `testing` comes from an entry with `injectionSuspected = true`
+- **THEN** the (question, `testing`) score has review status `flagged`, and the attempt cannot release automatically.
+
+### Requirement: REQ-EP-08 Machine-Parsable Evaluator Output
+**THE SYSTEM SHALL** make each judge call return one JSON object with exactly the fields `level` (integer `0..4`), `verbatimQuote`, `rationale` and an optional `suggestion`. **THE SYSTEM SHALL** parse each object in code and discard it if it breaks the schema or the level range. **THE SYSTEM SHALL NOT** accept totals, fit, coverage, confidence, rankings or team-balance numbers from the LLM. Code computes these from the validated levels (Decision 2.25).
+
+#### Scenario: Valid judge output
+- **WHEN** a judge call returns `{"level": 3, "verbatimQuote": "I would add an index on email", "rationale": "Names the fix", "suggestion": "Explain the trade-off"}`
+- **THEN** the parser accepts the object, and the quote goes to the verifier (REQ-EP-01).
+
+#### Scenario: Judge output with a ranking
+- **WHEN** a judge call returns `{"level": 5, "rank": 1}`
+- **THEN** the parser discards the object, records the parse failure, and uses no number from it.
+
+### Requirement: REQ-EP-09 Idempotent Evaluation Run
+**THE SYSTEM SHALL** store one `evaluation_run` per attempt and formula version, so a repeated `AttemptCompletedEvent` starts no second run.
+
+#### Scenario: Duplicate event
+- **WHEN** two `AttemptCompletedEvent` notifications arrive for the same attempt and formula version
+- **THEN** the system keeps one `evaluation_run` and makes no second set of LLM calls.
+
+### Requirement: REQ-EV-01 Unified Evaluation Slice Query Contract for Team Builder
+**THE SYSTEM SHALL** expose a read-only `EvaluationQueryService` that returns a `CandidateHardSkillProfile` (fit, coverage, and each skill as `SCORED` `0.00..4.00` or `N/A`) for each candidate whose latest completed attempt is released (`AUTO_RELEASED`, `APPROVED` or `OVERRIDDEN`). It lists the other candidates in `pendingInviteIds` with no scores. `teams` never reads `evaluation/repository` (Decisions 1.18, 2.10, 2.13, REQ-TB-11).
+
+#### Scenario: Team builder reads released profiles with explicit N/A
+- **WHEN** `teams` calls `EvaluationQueryService.getCandidateProfilesForConfig(configId)`
+- **THEN** each released candidate appears once (latest completed attempt) with `status = "SCORED"` + `0.00..4.00` or `status = "N/A"` + `null`, never `0` for untested skills.
+
+#### Scenario: Flagged attempt stays out of team building
+- **WHEN** the latest attempt of candidate `cand_007` has one `flagged` evaluation
+- **THEN** no profile of `cand_007` is returned, and `cand_007`'s invite ID is in `pendingInviteIds`.
+
+### Requirement: REQ-EV-02 GDPR Purge Listener for Evaluation Tables
+**WHEN** `AssessmentDeletedEvent(configId, actorId)` fires **THE SYSTEM SHALL** delete all `skill_score`, `response_evaluation`, `candidate_evaluation_summary`, `evaluation_run`, and `formula_version` rows for `configId` inside the same transaction (Decision 4.4).
+
+#### Scenario: Deleting an assessment removes all evaluation rows
+- **WHEN** `AssessmentDeletedEvent` fires for `configId`
+- **THEN** zero evaluation rows remain for `configId`.
+
+### Requirement: REQ-EP-10 Tolerant Judge Output Envelope
+**WHEN** a judge reply wraps its JSON object in a code fence or other text **THE SYSTEM SHALL** extract the object and validate it strictly (REQ-EP-08). **THE SYSTEM SHALL** call the judge with temperature `0`.
+
+#### Scenario: Fenced JSON
+- **WHEN** the judge replies with the JSON object inside a code fence marked `json`
+- **THEN** the run is parsed, and no `JUDGE_PARSE_FAILED` flag is set.
+
+#### Scenario: Invalid object
+- **WHEN** the extracted object has `level` 7
+- **THEN** the run fails parsing, as before.
+
+### Requirement: REQ-EP-11 Failed Final Try
+**IF** an evaluation run stays `RUNNING` past the stale limit on its last allowed try **THEN THE SYSTEM SHALL** set it to `FAILED`.
+
+#### Scenario: Crash on try 3
+- **WHEN** the backend stops during try 3 of a run and restarts
+- **THEN** the retry scheduler sets the run to `FAILED`, and the matrix shows "evaluation failed".
+
+### Requirement: REQ-EP-12 Professor Re-Run
+**WHEN** the professor sends `POST /api/v1/ranking/attempts/{attemptId}/evaluation/retry` for an attempt with a `FAILED` run **THE SYSTEM SHALL** reset the tries, queue the run and write an `EVALUATION_RETRIED` audit log entry. **IF** the run is not `FAILED` **THEN THE SYSTEM SHALL** answer `409`.
+
+#### Scenario: Re-run after 3 failures
+- **WHEN** the professor re-runs a run that failed 3 times
+- **THEN** the run is `QUEUED` with 0 tries, and the scheduler picks it up.
+
+#### Scenario: Re-run of a completed run
+- **WHEN** the professor re-runs a `COMPLETED` run
+- **THEN** the system answers `409` and changes nothing.
+
+### Requirement: REQ-EP-13 Recovery of Missed Completions
+**IF** an attempt is `COMPLETED` and has no evaluation run **THEN THE SYSTEM SHALL** create the run on the next retry-scheduler pass.
+
+#### Scenario: Crash before enqueue
+- **WHEN** the backend stops after an attempt commits and before the evaluation run is created
+- **THEN** the run exists after the next scheduler pass, and exactly one run exists for the attempt.

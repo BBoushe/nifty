@@ -1,0 +1,341 @@
+# Category 2 — Design Decisions (`2.x`)
+
+Domain model, scoring/evidence contracts, API documentation, and UX design decisions. See [index.md](./index.md) for the full registry.
+
+---
+
+## 2.1 — Inferred tags from answers
+- **Legacy ID:** D1
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** Free-form candidate answers mention technologies and concepts outside the pre-defined skill taxonomy.
+- **Decision:** Evidence extractor suggests inferred tags with `status: pending`; professors approve, merge, or reject them into the controlled taxonomy.
+- **Alternatives Considered:** Auto-accepting LLM-extracted tags directly into the taxonomy.
+- **Rationale / Justification:** Prevents tag sprawl (e.g., "Docker" vs. "containers") and keeps cross-candidate calibration consistent.
+- **Affected Files / Pointers:** `docs/architecture.md`, `openspec/specs/evidence-pipeline/spec.md`
+
+## 2.2 — Multi-skill answers
+- **Legacy ID:** D2
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** A single conversational answer frequently demonstrates competency across multiple skills simultaneously.
+- **Decision:** Allow one Q/A entry to produce evidence for multiple skills, each with its own level and confidence; cap single-Q/A impact per skill in the default formula.
+- **Alternatives Considered:** Restricting each Q/A pair to a single target skill.
+- **Rationale / Justification:** Reflects realistic interviews without allowing one verbose answer to dominate all scores.
+- **Affected Files / Pointers:** `openspec/specs/evidence-pipeline/spec.md`, `openspec/specs/formula-engine/spec.md`
+
+## 2.3 — Question & skill weights
+- **Legacy ID:** D3
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** Professors need to weight both individual core questions and overall skill importance while keeping scores explainable.
+- **Decision:** Support both question weights (`w_q`) and skill weights (`w_s`) and display every multiplication step inside the Evidence Drawer.
+- **Alternatives Considered:** Skill weights only without per-question weighting.
+- **Rationale / Justification:** Full numerical transparency for professors and candidates.
+- **Affected Files / Pointers:** `openspec/specs/formula-engine/spec.md`, `openspec/specs/skills-matrix-review/spec.md`
+
+## 2.4 — Invented questions
+- **Legacy ID:** D4
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** Adaptive probing helps clarify edge-case answers, but unstandardized questions can skew cohort comparisons.
+- **Decision:** Make invented questions optional via an Interviewer Studio toggle; tag them `origin: invented` with lower default weight and optional exclusion from cross-candidate ranking.
+- **Alternatives Considered:** Disallowing adaptive follow-ups completely; treating invented questions identically to core questions.
+- **Rationale / Justification:** Preserves cohort comparability while allowing targeted adaptive probing.
+- **Affected Files / Pointers:** `openspec/specs/interviewer-studio/spec.md`, `docs/architecture.md`
+
+## 2.5 — Turn budget vs. skill count
+- **Legacy ID:** D5
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** Finite interview turn budgets mean not every skill can always be probed deeply.
+- **Decision:** Core questions guarantee baseline coverage; any untested skill with zero verified evidence MUST be recorded as explicit `N/A` (never `0` or `1`) and excluded from fit calculations.
+- **Alternatives Considered:** Scoring unasked skills as `0` or `1`.
+- **Rationale / Justification:** Prevents penalizing candidates for unasked domains and separates `fit` from `coverage`.
+- **Affected Files / Pointers:** `AGENTS.md`, `docs/architecture.md`, `openspec/specs/formula-engine/spec.md`
+
+## 2.6 — Post-interview config changes
+- **Legacy ID:** D6
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** Professors may tweak weights/formulas or add new skills/questions after some candidates have already completed interviews.
+- **Decision:** Weight and formula changes recompute deterministically immediately; adding skills or core questions creates a new config version and flags earlier candidates as incomplete.
+- **Alternatives Considered:** Mutating existing config versions in place.
+- **Rationale / Justification:** Protects evidence integrity and auditability across versioned configurations.
+- **Affected Files / Pointers:** `openspec/specs/interviewer-studio/spec.md`, `openspec/specs/formula-engine/spec.md`
+
+## 2.7 — Ranking View UX framing
+- **Legacy ID:** D9
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** EU AI Act Annex III and educational fairness discourage opaque, single-number student leaderboards.
+- **Decision:** Keep the internal module name "Ranking View" for continuity, while emphasizing skill-spec fit, coverage, and team balance in the UI instead of a global leaderboard.
+- **Alternatives Considered:** Single-score ranked leaderboard table.
+- **Rationale / Justification:** Reduces EU AI Act / discrimination liability and better serves balanced team formation.
+- **Affected Files / Pointers:** `openspec/specs/skills-matrix-review/spec.md`, `frontend/src/views/`
+
+## 2.8 — Candidate transparency timing
+- **Legacy ID:** D10
+- **Date:** 2026-11-22
+- **Triggered By:** baseline
+- **Context:** Candidates deserve full explainability of how their assessment was evaluated without gaming live prompts.
+- **Decision:** Reveal formula, weights, and verified evidence quotes to the candidate **only after human approval** (with a mocked dispute flow in MVP); never display scores or weights during an active interview.
+- **Alternatives Considered:** Showing live running scores during chat; hiding formulas permanently.
+- **Rationale / Justification:** Prevents mid-interview gaming while providing full post-approval GDPR/EU AI Act explainability.
+- **Affected Files / Pointers:** `AGENTS.md`, `openspec/specs/assessment-chat/spec.md`, `openspec/specs/candidate-results/spec.md`
+
+## 2.9 — Living `docs/api.md` synced with `springdoc-openapi`
+- **Date:** 2026-11-23
+- **Triggered By:** prompter-change
+- **Context:** Frontend/backend teammates, AI agents, and course graders need fast, readable API documentation without booting the backend first.
+- **Decision:** Maintain a concise living `docs/api.md` (endpoint table, auth roles, DTO shapes, error envelope, SSE contracts) updated in every PR that modifies backend controllers, complemented by live `springdoc-openapi` (`/v3/api-docs`, `/swagger-ui.html`).
+- **Alternatives Considered:** Relying solely on runtime Swagger UI; committing large auto-generated OpenAPI dumps without human summary.
+- **Rationale / Justification:** Gives humans and agents immediate offline contract visibility while keeping runtime OpenAPI schemas authoritative for TypeScript codegen.
+- **Affected Files / Pointers:** `docs/api.md`, `.agents/rules/coding-standards.md`, `.claude/agents/reviewer.md`
+
+## 2.10 — Threshold-gated release of results (supersedes 2.8 timing)
+- **Resolves:** O6
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The feature list replaces 'a human approves every score' with professor-set trust thresholds.
+- **Decision:** WHEN every question meets its confidence threshold, coverage meets the minimum, and no answer is flagged, the result is released to the student automatically (reviewStatus auto_released). Otherwise the assessment goes to the professor's review queue; the student sees results only after approval. Configuration approval and team publishing stay mandatory human gates. Students see results as soon as they are released, not after teams are published.
+- **Alternatives Considered:** Keep human approval of every score (2.8); release only after teams are published.
+- **Rationale / Justification:** Professors spend review time where the evidence is weak. Human oversight (EU AI Act Art. 14) stays: a human sets every threshold, reviews everything below them, and can override any released score with a reason in audit_log.
+- **Affected Files / Pointers:** AGENTS.md, openspec/config.yaml, openspec/specs/skills-matrix-review/spec.md, openspec/specs/candidate-results/spec.md
+
+## 2.11 — Confidence per (question, skill) with a per-question threshold
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The feature list sets a confidence threshold per question. Decision 2.2 lets one answer give evidence for several skills.
+- **Decision:** Code calculates confidence for each (question, skill) score from measurable signals. The professor sets one minimum confidence per question. A question passes only when every skill it scores meets that threshold. This replaces the per-skill lower/upper bounds of UX-04.
+- **Alternatives Considered:** One confidence per question; keep the per-skill two-bound model.
+- **Rationale / Justification:** Keeps Decision 2.2 and the deterministic-confidence invariant, and matches the feature list. A weak skill cannot hide behind a strong one.
+- **Affected Files / Pointers:** openspec/specs/evidence-pipeline/spec.md, openspec/specs/skills-matrix-review/spec.md
+
+## 2.12 — Coverage over weighted questions with a professor-set minimum
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** Canvas section 11.2 and REQ-FE-03 compute coverage over weighted skills. The feature list uses weighted questions.
+- **Decision:** coverage = sum of weights of answered, scored questions / sum of weights of all core questions. A timed-out question counts as unanswered (N/A). The professor sets the minimum coverage per assessment (for example 70%). Below the minimum, the assessment goes to review.
+- **Alternatives Considered:** Weighted skills (canvas 11.2).
+- **Rationale / Justification:** Questions are what the professor configures and what can time out, so the gate is easy to explain.
+- **Affected Files / Pointers:** openspec/specs/formula-engine/spec.md, openspec/specs/interviewer-studio/spec.md
+
+## 2.13 — Attempt limit; the latest attempt counts
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The feature list adds an attempt limit and leaves open which attempt counts.
+- **Decision:** The professor sets the maximum number of attempts per assessment. The latest completed attempt counts. Older attempts stay in the ledger for audit but leave the matrix, cohort statistics and team building.
+- **Alternatives Considered:** Best attempt counts; professor chooses per assessment.
+- **Rationale / Justification:** A retake is a real second try, not a lottery, and one rule is simpler to build and explain.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, openspec/specs/assessment-chat/spec.md
+
+## 2.14 — Min/max time per question; no pause and resume
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The feature list replaces AI detectors with a minimum and maximum time per question and removes pause/resume from UX-09.
+- **Decision:** The professor sets a minimum and maximum time for each core question. The server measures time from its own timestamps in the ledger. An answer under the minimum is flagged paste_suspected for review. WHEN the maximum passes, the question is N/A (unanswered, not wrong). The chat shows a countdown and the questions-left indicator. Pause and resume is removed. Follow-up questions use the time limits of their core question. A follow-up that times out drops only that follow-up entry. The core question keeps its other entries.
+- **Alternatives Considered:** AI text detectors; client-side timers; keep pause and resume.
+- **Rationale / Justification:** Server timestamps cannot be faked by the client, and timing signals are deterministic, unlike AI detectors.
+- **Affected Files / Pointers:** openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md
+
+## 2.15 — Full conversation log visible to the student after release
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** The feature list asks for a full, timestamped, unchangeable log of the interview.
+- **Decision:** Every student answer and every AI reply is recorded with a server timestamp and cannot change afterwards. The professor sees the full log. The student sees their own full interview after release.
+- **Alternatives Considered:** Show the student only the verified quotes.
+- **Rationale / Justification:** Full transparency of the evidence base, and the same ledger feeds the evaluator.
+- **Affected Files / Pointers:** openspec/specs/assessment-chat/spec.md, openspec/specs/candidate-results/spec.md
+
+## 2.16 — Results page advice is deterministic first
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** The feature list adds friendly advice to UX-10: strongest skills and where to improve.
+- **Decision:** Code selects the strongest skills and the improvement areas from approved or released scores. An optional AI sentence may phrase them; it is labelled as AI, uses only those computed values, and is encouraging but specific (at most 2 sentences).
+- **Alternatives Considered:** Let the LLM choose strengths and weaknesses; no advice.
+- **Rationale / Justification:** Keeps the 'no LLM math' invariant while making the page friendlier.
+- **Affected Files / Pointers:** openspec/specs/candidate-results/spec.md, docs/design_system.md
+
+## 2.17 — Assessment configuration is a professor form, nothing hard-coded
+- **Resolves:** O3
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** O3 (taxonomy size) and O4 (team size and constraints) assumed fixed values. The professor fills a form when creating an assessment.
+- **Decision:** The professor sets per assessment: skills and their weights, core questions with weights, target skills, confidence threshold and min/max time, minimum coverage, maximum attempts, BFI-10 on/off, team size, and the soft-constraint weights. The code holds no fixed taxonomy size or team size. Resolves O3 and O4.
+- **Alternatives Considered:** Fixed 6-8 core skills; fixed team size 5.
+- **Rationale / Justification:** Each course is different; a form is easy to change without code changes.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, openspec/specs/team-builder/spec.md
+
+## 2.18 — Team size and solver constraints come from the assessment form
+- **Resolves:** O4
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** O4 asked for the lecturer's team size and constraints.
+- **Decision:** Team size and soft-constraint weights come from the assessment form (Decision 2.17). Hard constraints: every candidate is in exactly one team; team sizes differ by at most one. Soft constraints: balanced average fit, at least one strong member per key skill, and the BFI-10 balance when it is on.
+- **Alternatives Considered:** Fixed team size 5 in code.
+- **Rationale / Justification:** Same as Decision 2.17.
+- **Affected Files / Pointers:** openspec/specs/team-builder/spec.md
+
+## 2.19 — Formula presets only in MVP
+- **Resolves:** O5
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** O5 asked whether the sandboxed SpEL expression editor is in MVP.
+- **Decision:** MVP ships formula presets only. The SpEL expression editor is Post-MVP.
+- **Alternatives Considered:** Ship the sandboxed SpEL editor in MVP.
+- **Rationale / Justification:** Presets cover the demo and avoid sandbox security work in block week.
+- **Affected Files / Pointers:** openspec/specs/formula-engine/spec.md, docs/feature_backlog.md
+
+## 2.20 — Answers submitted at timeout are evaluated
+- **Date:** 2026-11-25
+- **Triggered By:** prompter-change
+- **Context:** Decisions 2.12 and 2.14 made a timed-out question N/A. The browser auto-submits the typed text at zero, and no static check can tell a partial answer from a complete one.
+- **Decision:** An answer that arrives after expiresAt but within the grace period is stored with timedOut = true and evaluated like any other answer. A question is N/A only when no answer text arrives: the answer is empty, arrives after the grace period, or never arrives. Coverage counts only such questions as unanswered. timedOut stays a visible marker in the conversation log; it does not flag the score. Supersedes the timeout parts of 2.12 and 2.14.
+- **Alternatives Considered:** Treat every timed-out answer as N/A (feature list); flag timed-out answers for review.
+- **Rationale / Justification:** Partial text can hold real evidence, and quote verification plus confidence already handle weak answers.
+- **Affected Files / Pointers:** openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md, openspec/specs/formula-engine/spec.md
+
+## 2.21 — One-shot immutable assessment creation with browser localStorage draft
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** AssessmentCreationService replaces backend draft/version CRUD with a browser localStorage form submitted once via Idempotency-Key and locked by DB triggers.
+- **Decision:** Professors draft in browser localStorage and submit once via POST /api/v1/ranking/studio/configs with Idempotency-Key, creating an immutable PUBLISHED v1 config protected by PostgreSQL mutation triggers (allowing DELETE only under SET LOCAL nifty.allow_purge = 'on'). Keep max_attempts (default 1), invented_questions (default false), and DELETE /api/v1/ranking/studio/configs/{id} (Decision 4.4). Defer backend drafts, config versioning, and inferredTags UI to Post-MVP. Supersedes 2.6 (post-interview config versions) and the MVP scope of 2.1 (inferred tags).
+- **Alternatives Considered:** Full backend draft and multi-version config CRUD in MVP; drop max_attempts and DELETE
+- **Rationale / Justification:** Cuts studio complexity while preserving immutability, multi-attempt support, and GDPR deletion.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, docs/architecture.md, docs/api.md
+
+## 2.22 — Question-weighted scoring without skill weights; D2 cap and 1.0 follow-up inheritance
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** studio removed SKILL.weight while evaluation and architecture.md still assumed w_s and 0.70 follow-up multipliers.
+- **Decision:** Skills carry no grading weight (no SKILL.weight column). Only core questions have weight > 0, and follow-ups inherit 1.0 * coreQuestion.weight. Multi-skill answers give each targeted skill the full question weight capped per entry at max_entry_skill_weight_share = 0.50 (Decision 2.2). fit is the unweighted mean across SCORED skills; coverage remains weighted over answered core questions (Decision 2.12). Ratios and thresholds are 0..1 decimals in DB/API (UI displays percent). An invented-question entry keeps the lower weight of 2.4: 0.5 * the weight of the active core question, and it never counts toward coverage. Supersedes the skill weights w_s of 2.3 and 2.17.
+- **Alternatives Considered:** Keep both skill and question weights; apply 0.70 follow-up multiplier
+- **Rationale / Justification:** One clear weighting axis configured by the professor, zero double-weighting confusion, aligned across studio and evaluation.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, openspec/specs/formula-engine/spec.md, docs/architecture.md
+
+## 2.23 — Grouping config fields and SOFT_SKILLS-only mode
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** teams and assessment need grouping_mode, soft_preset, combined_hard_weight, alpha, and SOFT_SKILLS-only routing while studio rejected empty question lists.
+- **Decision:** Store team_size, grouping_mode (HARD_SKILLS | SOFT_SKILLS | COMBINED), soft_preset (ENGINEERING_DEFAULT | EQUAL_WEIGHTS | CUSTOM), combined_hard_weight, alpha, and constraint_weights on assessment_config (deriving numTeams = ceil(N / teamSize) with optional run-time override in Team Builder). Allow 0 skills and 0 core questions ONLY when grouping_mode == SOFT_SKILLS and bfi10_enabled == true; otherwise require >=1 skill, >=1 core question, and no unused skills.
+- **Alternatives Considered:** Forbid SOFT_SKILLS-only mode in MVP
+- **Rationale / Justification:** Aligns studio, assessment, and teams on one schema while supporting BFI-10-only workshops.
+- **Affected Files / Pointers:** openspec/specs/interviewer-studio/spec.md, openspec/specs/assessment-chat/spec.md, openspec/specs/team-builder/spec.md
+
+## 2.24 — Deterministic prompt-injection and character-velocity anomaly flags
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** Team rules require prompt-injection resistance and deterministic cheating anomaly flagging without LLM-guessed probabilities.
+- **Decision:** context owns deterministic PromptSanitizer and InjectionDetector, returning injectionSuspected + matchedRuleIds and logging security events via AuditService with zero raw PII. assessment persists injection_suspected alongside server-timed paste_suspected (including a character-velocity check). evaluation forces reviewStatus = flagged on any score supported by an entry with pasteSuspected or injectionSuspected.
+- **Alternatives Considered:** Prompt-only guardrails without deterministic detection or flagging
+- **Rationale / Justification:** Defense-in-depth keeps every suspected cheat or injection routed to human professor review with zero LLM math.
+- **Affected Files / Pointers:** openspec/specs/context-creation/spec.md, openspec/specs/assessment-chat/spec.md, openspec/specs/evidence-pipeline/spec.md
+
+## 2.25 — Evaluator returns machine-parsable output; code computes every aggregate and ranking
+- **Date:** 2026-11-25
+- **Triggered By:** question-round
+- **Context:** The cold review found that no spec still said that LLMs never compute rankings or team-balance numbers. The user confirmed the split between the evaluator LLM and code.
+- **Decision:** For each (entry, skill) the evaluator LLM returns one JSON object in a fixed schema: level (0..4), verbatimQuote, rationale and an optional improvement suggestion. A deterministic parser validates the object against the schema and the rubric range and rejects anything else. The LLM never returns totals, fit, coverage, confidence, rankings or team-balance numbers. Java and SQL functions compute those from all the validated levels.
+- **Alternatives Considered:** Free-text evaluator output parsed with heuristics; letting the LLM rank candidates
+- **Rationale / Justification:** A fixed schema makes the LLM output testable and keeps every number that affects a student deterministic (AGENTS.md §2.1).
+- **Affected Files / Pointers:** openspec/specs/evidence-pipeline/spec.md, openspec/specs/context-creation/spec.md, docs/architecture.md
+
+## 2.26 — Candidate answers are capped at 4000 characters at the assessment API
+- **Date:** 2026-11-26
+- **Triggered By:** prompter-change
+- **Context:** Review and mutation testing of context-creation found that injection checks read the full raw answer, and nothing limited answer size. Large answers cost CPU on every interviewer turn. The prompt sanitizer already cuts prompt text at 4000 characters.
+- **Decision:** POST /api/v1/assessment/sessions/{id}/answers rejects an answer content longer than 4000 characters with 400 ProblemDetail, errors[].field = content, and stores nothing (REQ-AC-20). The chat textarea sets maxlength=4000 and shows a counter. The limit equals PromptSanitizer.MAX_CHARS, so the ledger never holds text the models cannot see.
+- **Alternatives Considered:** No API cap (rely on the sanitizer cut and linear regexes); a larger cap such as 16000 with the prompt still cut at 4000; a request-body size limit only.
+- **Rationale / Justification:** One limit for ledger and prompt keeps quote verification and judging aligned, bounds CPU per turn, and gives the candidate a clear rule instead of silent truncation.
+- **Affected Files / Pointers:** openspec/changes/assessment-chat/specs/assessment-chat/spec.md, openspec/changes/assessment-chat/tasks.md, docs/tickets/03-assessment-chat.md, backend/src/main/java/de/fhdortmund/nifty/context/service/PromptSanitizer.java
+
+## 2.27 — SOFT_SKILLS and COMBINED grouping require BFI-10
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** Studio rejected SOFT_SKILLS and COMBINED assessments without BFI-10, but no spec or decision asked for it. REQ-TB-06 let COMBINED run without BFI-10 by dropping the trait term, and REQ-TB-08 rejected SOFT_SKILLS without BFI-10 only at team generation.
+- **Decision:** Studio rejects a configuration whose grouping mode is SOFT_SKILLS or COMBINED while bfi10Enabled is false: 400 ProblemDetail, errors[].field = settings.bfi10Enabled, code BFI10_REQUIRED (REQ-IS-13). HARD_SKILLS works with or without BFI-10. The team builder therefore always has trait data in SOFT_SKILLS and COMBINED, and REQ-TB-06 drops its COMBINED-without-BFI-10 fallback.
+- **Alternatives Considered:** SOFT_SKILLS only (allow COMBINED without BFI-10 as skills-only grouping); no studio rule (team builder rejects SOFT_SKILLS later).
+- **Rationale / Justification:** COMBINED means skills plus personality. Without BFI-10 it silently equals HARD_SKILLS, which misleads the professor. Rejecting at creation is cheaper than failing at team generation after candidates have finished.
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/studio/service/SettingsRules.java, openspec/specs/interviewer-studio/spec.md, openspec/specs/team-builder/spec.md, openspec/changes/team-builder/specs/team-builder/spec.md
+
+## 2.28 — Durable evaluation queue with bounded retry
+- **Date:** 2026-11-26
+- **Triggered By:** prompter-change
+- **Context:** Cold review of PR #29: an evaluation could be lost for good (full executor queue, one transient LLM error ended the attempt, waiting attempts vanished from the matrix and pendingInviteIds).
+- **Decision:** After the attempt commits, persist a QUEUED evaluation_run and summary before dispatch. A scheduled pass retries QUEUED, FAILED and stale RUNNING runs (stale after 30 minutes, at most nifty.evaluation.retry.max-attempts = 3 tries); one atomic UPDATE claims a run, so two workers never evaluate one attempt. LLM calls run outside DB transactions. Waiting and failed attempts show as pending; once a newer attempt exists, the older one never counts. Known MVP gaps: a crash before enqueue drops the event; a run that crashes on its last try stays RUNNING.
+- **Alternatives Considered:** Message broker; synchronous evaluation in the request; CallerRunsPolicy only; BEFORE_COMMIT insert of the queue rows.
+- **Rationale / Justification:** Uses the existing V7 status and attempt_count columns and plain Spring scheduling, with no new infrastructure, and makes every completed attempt either scored or visibly pending.
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/evaluation/service/AsyncEvaluationRunner.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/service/EvaluationRetryScheduler.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/repository/EvaluationRunRepository.java, openspec/changes/archive/2026-11-26-evaluation-service/design.md
+
+## 2.29 — Assessment interview gap-fills: grace, resume, fallbacks, stale recovery, server clock
+- **Date:** 2026-11-26
+- **Triggered By:** team
+- **Context:** The assessment-chat spec leaves several runtime details open (grace length, a start while an attempt is open, interviewer failures, lost replies, client clock skew). The cold review asked to record the builder's choices.
+- **Decision:** Grace period 5 s (nifty.assessment.grace-seconds). POST /api/v1/assessment/sessions with an unfinished attempt returns that attempt as JSON, so a reload never uses up a retake; a parallel start that loses UNIQUE (invite_id, attempt_no) gets 409. If the interviewer LLM fails or sends no text, the ledger stores the configured core question text; partial streamed text is kept, so the ledger holds what the candidate saw. A blank, timed-out or too-late answer skips follow-ups. The expiry sweep also opens the next core question when no interviewer reply reached the ledger for 240 s (nifty.assessment.stale-reply-seconds). The question SSE event and the session state carry serverTime; the browser counts down on the server clock and polls the state while the reply is missing.
+- **Alternatives Considered:** Grace 0-2 s or 30 s; 409 for a start with an open attempt; an SSE error event and a stuck attempt on LLM failure; no stale recovery; browser clock only.
+- **Rationale / Justification:** Each choice keeps the candidate able to finish without a human, keeps the ledger equal to what the candidate saw, and stays deterministic (no LLM decides the flow).
+- **Affected Files / Pointers:** backend/src/main/java/de/fhdortmund/nifty/assessment/service/AttemptService.java, backend/src/main/java/de/fhdortmund/nifty/assessment/service/AssessmentSessionService.java, backend/src/main/java/de/fhdortmund/nifty/assessment/service/AttemptExpiryScheduler.java, frontend/src/views/assessment/AssessmentChatView.vue, docs/api.md
+
+## 2.30 — Individual professor approval only (no bulk approval)
+- **Date:** 2026-11-26
+- **Triggered By:** prompter-change
+- **Context:** Cold review and prompter review of the evaluation slice identified bulk approval of unflagged evaluations as undesired.
+- **Decision:** Remove bulk approval completely from the backend API and professor UI. Professors must review and approve or override student evaluations and release attempts individually. Threshold-gated auto_released (Decision 2.10) remains unchanged.
+- **Alternatives Considered:** Keep bulk approval for unflagged pending items only while skipping flagged items (original REQ-SM-03).
+- **Rationale / Justification:** Eliminates rubber-stamping risk in human-in-the-loop review under EU AI Act Annex III and simplifies the review state machine.
+- **Affected Files / Pointers:** openspec/specs/skills-matrix-review/spec.md, docs/api.md, docs/architecture.md, .agents/rules/frontend-vue.md, backend/src/main/java/de/fhdortmund/nifty/evaluation/service/EvaluationReviewService.java, backend/src/main/java/de/fhdortmund/nifty/evaluation/web/RankingEvaluationController.java, frontend/src/views/ranking/SkillsMatrixPanel.vue
+
+## 2.31 — Soft-skills-only attempts auto-release
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** An assessment with zero hard skills (SOFT_SKILLS + BFI-10) has no evaluated pairs, so the fail-closed release gate always returns PENDING and Team Builder never places those students.
+- **Decision:** WHEN an assessment has zero hard skills AND the attempt has a completed BFI-10 profile, the release gate auto-releases the attempt. Assessments with hard skills keep the fail-closed gate of Decision 2.10.
+- **Alternatives Considered:** Team Builder places completed but unreleased soft-only attempts; keep manual release per student.
+- **Rationale / Justification:** Nothing exists to review for a soft-only attempt (BFI-10 scores are deterministic), so manual release adds clicks without oversight value.
+- **Affected Files / Pointers:** backend/.../evaluation/service/ReleaseGateEvaluator.java, openspec/changes/mvp-hardening/
+
+## 2.32 — Remove the interviewer-invented-questions toggle for the MVP
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** The Studio toggle is saved and mentioned in the prompt, but AttemptStateMachine never asks an invented question.
+- **Decision:** Remove the toggle from the Studio UI and from the interviewer prompt. Keep the database column (no migration). The LLM keeps wording core questions and asking follow-ups up to each question's followUpLimit.
+- **Alternatives Considered:** Implement invented questions and early topic end in the state machine.
+- **Rationale / Justification:** A setting that does nothing misleads professors; implementing it would weaken the deterministic question flow.
+- **Affected Files / Pointers:** frontend/src/views/studio/SettingsSection.vue, backend/.../context/service/PromptTemplates.java
+
+## 2.33 — Expired attempts complete without BFI-10 and are evaluated
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** With BFI-10 on, a candidate who leaves before the BFI-10 form leaves the attempt open forever, so the interview is never evaluated.
+- **Decision:** WHEN an attempt with BFI-10 expires after the interview part, the expiry scheduler completes it without a soft-skill profile (traits stay N/A) and publishes AttemptCompletedEvent, so the interview answers are evaluated.
+- **Alternatives Considered:** Leave the attempt incomplete.
+- **Rationale / Justification:** The interview evidence is valid on its own; N/A for missing traits follows the missing-evidence invariant.
+- **Affected Files / Pointers:** backend/.../assessment/service/AttemptExpiryScheduler.java
+
+## 2.34 — Allow a new invite after a revoke
+- **Date:** 2026-11-26
+- **Triggered By:** question-round
+- **Context:** A revoked student cannot be invited again, so a lost or leaked link cannot be replaced.
+- **Decision:** After a revoke, the professor can create a new invite for the same student in the same assessment. The revoked token stays invalid. Both the revoke and the new invite are audited.
+- **Alternatives Considered:** Keep revoke final per student and assessment.
+- **Rationale / Justification:** Replacing a leaked link is the main reason to revoke.
+- **Affected Files / Pointers:** backend/.../auth/service/InviteService.java
+
+## 2.35 — Retake gap in a new tab accepted
+- **Date:** 2026-11-27
+- **Triggered By:** question-round
+- **Context:** A candidate in a new tab has no stored attempt ID, so the page cannot read attemptsLeft before Start.
+- **Decision:** Keep the Start button. A 409 on start shows No attempts left. Add no new read endpoint.
+- **Alternatives Considered:** Add a read endpoint for attemptsLeft before start.
+- **Rationale / Justification:** The gap costs one click. A new endpoint adds API surface for a rare case.
+- **Affected Files / Pointers:** frontend/src/views/assessment/AssessmentChatView.vue, openspec/changes/mvp-hardening/tasks.md
+
+## 2.36 — No sign-out button for candidates
+- **Date:** 2026-11-27
+- **Triggered By:** prompter-change
+- **Context:** The candidate header showed a Sign out button. The candidate enters only through the invite link.
+- **Decision:** Show Sign out only to professors. Candidates get no sign-out button. REQ-NAV-02 and REQ-NAV-05 change.
+- **Alternatives Considered:** Keep Sign out for both roles.
+- **Rationale / Justification:** User request. A candidate who signs out by mistake can only return through the invite link.
+- **Affected Files / Pointers:** frontend/src/App.vue, openspec/changes/mvp-hardening/specs/app-navigation/spec.md

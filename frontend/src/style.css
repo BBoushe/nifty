@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens (docs/design_system.md, Decision 1.14).
+ * Tailwind reads these as utilities (bg-brand-green, text-ink-muted, rounded-lg).
+ * src/theme/preset.ts maps the same variables into the one PrimeVue preset.
+ * Text pairs meet 4.5:1 (on-green on brand-green is 4.9:1). Dark mode is not defined yet.
+ */
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-yellow: #f8cb46;
+  --color-on-yellow: #1a1a1a;
+  --color-brand-yellow-soft: #fff3c4;
+  --color-warning-ink: #7a5a00;
+  --color-brand-green: #0c831f;
+  --color-on-green: #ffffff;
+  --color-green-soft: #ddf3e1;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbe4e2;
+
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #5c5f66;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f3f4f6;
+
+  /* AI blue marks model output and nothing else. */
+  --color-ai-blue: #2563eb;
+  --color-ai-soft: #e8effe;
+  --color-ai-ink: #1e3a8a;
+
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-pill: 9999px;
+
+  --shadow-card: 0 1px 2px rgb(26 26 26 / 0.06), 0 1px 3px rgb(26 26 26 / 0.08);
+  --shadow-float: 0 8px 24px rgb(26 26 26 / 0.16);
+}
+
+@layer components {
+  /* N/A is a diagonal hatch on surface-sunken, never a number (REQ-FF-01). */
+  .score-hatch {
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 4px,
+      color-mix(in srgb, var(--color-ink-muted) 30%, transparent) 4px 5px
+    );
+  }
+}

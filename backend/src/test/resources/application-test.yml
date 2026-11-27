@@ -1,0 +1,27 @@
+spring:
+  main:
+    banner-mode: off
+  # The datasource comes from PostgresContainerBase (@ServiceConnection).
+  datasource:
+    hikari:
+      # Keep cached Spring test contexts well under PostgreSQL's default max_connections=100.
+      maximum-pool-size: 3
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+nifty:
+  # Tests call the runner directly; a background retry pass would race with their fixtures.
+  evaluation:
+    retry:
+      enabled: false
+  # Tests call AttemptExpiryScheduler.sweep() directly; "-" turns the cron trigger off.
+  assessment:
+    expiry-sweep-cron: "-"
+
+# Quiet test output for humans and agents (REQ-BA-07)
+logging:
+  level:
+    root: WARN

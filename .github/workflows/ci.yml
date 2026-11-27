@@ -1,0 +1,209 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, alpha, main, master]
+  push:
+    branches: [dev, alpha, main, master]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Java 21 & Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
+      - name: Run Maven tests
+        run: ./mvnw -B test
+
+  frontend:
+    name: Frontend (Vue 3.5 & Vite 8)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  hook-tests:
+    name: Hook Tests (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run harness hook and script unit tests
+        run: node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs
+
+  # Decision 1.9: same docker build commands as .gitlab-ci.yml (no registry, no push).
+  backend-image:
+    name: Backend Image (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build --pull -t "nifty-backend:${{ github.sha }}" backend
+
+  frontend-image:
+    name: Frontend Image (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build frontend image
+        run: docker build --pull --target prod -t "nifty-frontend:${{ github.sha }}" frontend
+
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMITS="$(git rev-list "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}")"
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              COMMITS="$(git rev-list --max-count=20 "${{ github.sha }}")"
+            else
+              COMMITS="$(git rev-list "${BEFORE}..${{ github.sha }}")"
+            fi
+          fi
+
+          PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|hotfix)(\([a-z0-9._/-]+\))?!?: .+'
+          FAILED=0
+          while IFS= read -r sha; do
+            [ -z "$sha" ] && continue
+            subject="$(git show -s --format=%s "$sha")"
+            if [[ "$subject" == Merge\ * || "$subject" == Revert\ * ]]; then
+              continue
+            fi
+            if ! printf '%s\n' "$subject" | grep -Eq "$PATTERN"; then
+              echo "::error::Non-conventional commit ${sha}: ${subject}"
+              FAILED=1
+            fi
+          done <<< "$COMMITS"
+
+          exit "$FAILED"
+
+  branch-policy:
+    name: Branch Promotion Policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce PR promotion path (dev -> alpha -> master/main)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+          if [[ "$BASE" == "main" || "$BASE" == "master" ]]; then
+            if [[ "$HEAD" != "alpha" ]]; then
+              echo "::error::Pull requests into '${BASE}' must come from 'alpha' (received '${HEAD}')."
+              exit 1
+            fi
+          elif [[ "$BASE" == "alpha" ]]; then
+            if [[ "$HEAD" != "dev" ]]; then
+              echo "::error::Pull requests into 'alpha' must come from 'dev' (received '${HEAD}')."
+              exit 1
+            fi
+          fi
+          echo "OK: PR promotion ${HEAD} -> ${BASE} is valid."
+
+      - name: Enforce docs/hotfix-only direct push policy on dev
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "Initial push to dev; skipping direct-push diff check."
+            exit 0
+          fi
+
+          # Allow commits arriving from a merged Pull Request (merge, squash, or rebase-and-merge)
+          PARENTS="$(git show -s --format=%P "${{ github.sha }}" | wc -w | tr -d ' ')"
+          PR_COUNT="$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq 'length' 2>/dev/null || echo "0")"
+          if [ "$PARENTS" -ge 2 ] || [ "${PR_COUNT:-0}" -ge 1 ]; then
+            echo "OK: Push to dev originates from a merged Pull Request."
+            exit 0
+          fi
+
+          FAILED=0
+          while IFS= read -r sha; do
+            [ -z "$sha" ] && continue
+            subject="$(git show -s --format=%s "$sha")"
+            if ! printf '%s\n' "$subject" | grep -Eq '^(docs|hotfix)(\([a-z0-9._/-]+\))?!?: '; then
+              echo "::error::Direct push to 'dev' blocked by policy — commit ${sha} ('${subject}') is not prefixed with 'docs:' or 'hotfix:'. Open a PR from a feature branch instead."
+              FAILED=1
+            fi
+          done < <(git rev-list "${BEFORE}..${{ github.sha }}")
+
+          exit "$FAILED"

@@ -1,0 +1,58 @@
+schema: spec-driven
+
+context: |
+  Project: Evidence-First Skill Assessment Platform (FH Dortmund Block Week, 5-person team).
+  Source of truth for product vision: docs/discovery-canvas.md. Decisions in docs/decisions/index.md win over it.
+
+  Mandatory Tech Stack:
+  - Backend: Java 21, Spring Boot 4.x, Spring Security (2 roles: PROFESSOR, CANDIDATE; extensible),
+    Spring Web (SSE streaming), Spring Data JPA, Spring AI 2.0, PostgreSQL (append-only
+    conversation ledger; assessment-transcript/v1 export), Flyway migrations, springdoc-openapi, JUnit 5, Mockito, Testcontainers.
+  - Frontend: Vue 3.5 (stable — DO NOT upgrade to 3.6 RC), TypeScript, Vite 8, Vue Router, Pinia,
+    TanStack Query (Vue), Tailwind CSS v4, Apache ECharts (vue-echarts). UI kit: PrimeVue (Decision 1.14).
+  - Cross-platform: All workflows, scripts, and Docker setups must work on macOS, Windows, and Linux.
+
+  Non-Negotiable Domain & Regulatory Invariants:
+  - Deterministic math only: LLMs MUST NEVER calculate totals, rankings, cohort statistics, or team-balance numbers.
+  - Explicit N/A: Skills with zero verified evidence MUST be scored as N/A (never 0 or 1) and excluded from fit.
+  - Verbatim quotes: Every extracted quote MUST appear word-for-word in its referenced transcript entry or be discarded.
+  - Calculated confidence: Confidence (0..1) per (question, skill) is computed deterministically from measurable signals, never LLM self-report.
+  - EU AI Act (Annex III) & GDPR human-in-the-loop: A human MUST approve configurations and team placements. The professor
+    sets per-question confidence thresholds and a minimum coverage; an attempt below them, or with a flag, needs human
+    approval before release. Every override requires a reason and writes an immutable audit log entry.
+  - Candidate transparency: Formula, weights, and verified evidence are revealed to the candidate only AFTER release.
+  - Rubric-blind interviewer: the interviewer LLM never receives rubrics, level descriptions, or scores.
+  - Append-only ledger: every answer and reply is appended with a server timestamp and never changed.
+  - Privacy & security: Prefer EU-hosted LLM endpoints; never commit secrets or real student data.
+
+rules:
+  proposal:
+    - State clear scope, out-of-scope items, and link to relevant sections of docs/discovery-canvas.md.
+    - Keep proposals concise and reviewable in under 2 minutes.
+  specs:
+    - Write all functional and non-functional acceptance criteria in EARS notation
+      (WHEN / WHILE / WHERE / IF...THEN / THE SYSTEM SHALL).
+    - Explicitly state deterministic vs. LLM responsibilities and human-in-the-loop gates.
+  design:
+    - Specify PostgreSQL/Flyway schema changes, REST/SSE/OpenAPI contracts, and deterministic validation boundaries.
+    - Respect assessment-transcript/v1 JSON Schema for any transcript interaction.
+  tasks:
+    - Break work into small, verifiable tasks with explicit test or verification commands.
+    - Mark tasks complete only after running and observing passing exit codes.
+    - "Use the resumable layout (Decision 3.9) in this order: `## Status` (overwritten at every stop: Branch, Worktree, Current, Next action, Uncommitted changes, PR / MR, Open review findings), `## Tasks` (each task has nested step checkboxes and its Conventional Commit), `## Delivery` (rebase, archive, push, PR/MR, review, CI, merge, sync, cleanup), and `## Handoff Log`."
+    - Never add an "archive" task above `## Delivery`. The archive gate treats a change as complete when every checkbox above `## Delivery` is ticked.
+    - Include a `## Handoff Log` section at the bottom of `tasks.md` recording Commits, Verification, Contracts/Migrations added, Decisions, and Open Questions after each completed task.
+    - "Write the Verification line as `RED: <cmd> → FAIL (<one-line reason>); GREEN: <cmd> → exit 0`. Doc-only or config-only tasks write `RED: n/a (no behaviour)` (Decision 3.7)."
+
+operations:
+  apply:
+    guidance:
+      - "Implement one logical milestone at a time and use Conventional Commits."
+      - "Never skip verification — run real Maven, npm, and Docker checks before marking tasks done."
+      - "Append a compact 5-line entry to `## Handoff Log` in `tasks.md` at the end of each completed milestone for cross-session and multi-agent continuity."
+      - "Follow the Build Loop in `.claude/agents/spec-builder.md`: failing test first (RED), minimal code (GREEN), systematic debugging on any failure, verification before ticking `[x]`."
+      - "Tick each step as you finish it. Overwrite `## Status` before every stop. Commit and push the feature branch after every task."
+      - "After the last task, run `## Delivery` in order. Archive before pushing, because the pre-push archive gate blocks the push otherwise."
+  archive:
+    guidance:
+      - "Sync updated domain requirements into openspec/specs/<module>/spec.md before archiving."
