@@ -6,7 +6,7 @@
 - **Next action:** ask the human, then push and open the PR; then the cold review.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
-- **Open review findings:** none
+- **Open review findings:** Blocking: soft-only configs show coverage 0% (N/A invariant); return null coverage in the DTOs when the config has no core questions. CCs: stream pool core=max=32, rate-limit slot reservation, fail-closed stored weight.
 
 Rules for every code task: RED test first, then the code, then GREEN. Write the Handoff entry. Tick the boxes. Overwrite `## Status`. Commit with the files named (no `git add -A`, no chained `git add && git commit`). Change files under `backend/**` only after you read `.agents/rules/backend-java.md`, and under `frontend/**` only after you read `.agents/rules/frontend-vue.md`. A controller change also updates `docs/api.md` in the same commit.
 
@@ -215,7 +215,7 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ### User request: no candidate sign-out (Decision 2.36)
 - Commits: (this commit) feat(frontend): hide sign-out for candidates
-- Verification: RED: n/a (one-line template guard; existing App header test updated); GREEN: `npx vitest run src/App.test.ts` → exit 0 (7 run); `npm run typecheck` → exit 0; `openspec validate mvp-hardening --type change --strict` → valid
+- Verification: RED: `npx vitest run src/App.test.ts` against the parent commit's `App.vue` → FAIL (candidate header: expected [ Array(3) ] to deeply equal [ 'nav-interview', 'nav-results' ]; 1 failed, 6 passed); GREEN: `npx vitest run src/App.test.ts` → exit 0 (7 run); `npm run typecheck` → exit 0; `openspec validate mvp-hardening --type change --strict` → valid
 - Contracts/Migrations added: none. The delta spec modifies REQ-NAV-02 (no candidate "Sign out") and REQ-NAV-05 (professor only).
 - Decisions: 2.36 recorded (prompter change).
 - Open Questions: none
