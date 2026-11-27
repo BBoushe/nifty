@@ -99,6 +99,7 @@ node scripts/record-decision.mjs --category 1|2|3|4 --topic "..." --trigger "que
 | **2.34** | — | Design | Allow a new invite after a revoke | Decided | 2026-11-26 | question-round | [2-design.md](./2-design.md#234--allow-a-new-invite-after-a-revoke) |
 | **2.35** | — | Design | Retake gap in a new tab accepted | Decided | 2026-11-27 | question-round | [2-design.md](./2-design.md#235--retake-gap-in-a-new-tab-accepted) |
 | **2.36** | — | Design | No sign-out button for candidates | Decided | 2026-11-27 | prompter-change | [2-design.md](./2-design.md#236--no-sign-out-button-for-candidates) |
+| **3.16** | — | Team & Process | mvp-hardening ships without the manual smoke test | Decided | 2026-11-27 | prompter-change | [3-team-process.md](./3-team-process.md#316--mvp-hardening-ships-without-the-manual-smoke-test) |
 <!-- DECISION_INDEX_END -->
 
 ---

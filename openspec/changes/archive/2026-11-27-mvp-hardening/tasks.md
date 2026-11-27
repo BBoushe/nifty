@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 18 done (Group F complete, committed, not pushed). Only the `docs/feature_backlog.md` row waits for archive time. Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group G, Task 19 (full checks). Not started.
+- **Current:** Tasks 1 to 19 done; manual smoke skipped (Decision 3.16). Candidate sign-out removed (Decision 2.36). Archived; backlog row done.
+- **Next action:** ask the human, then push and open the PR; then the cold review.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -117,17 +117,17 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group G — Full verification
 
-- [ ] **Task 19: Full checks**
-  - [ ] `cd backend && ./mvnw -B test` → exit 0
-  - [ ] `cd frontend && npm ci && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0
-  - [ ] `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` → exit 0
-  - [ ] `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
-  - [ ] Manual smoke on `docker compose up --build -d`, with the candidate in a private window: Inspect opens the modal, the transcript reads as a chat, the status refreshes after an interview, and a retake works.
+- [x] **Task 19: Full checks**
+  - [x] `cd backend && ./mvnw -B test` → exit 0
+  - [x] `cd frontend && npm ci && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0
+  - [x] `OPENSPEC_TELEMETRY=0 openspec validate --all --strict` → exit 0
+  - [x] `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0
+  - [ ] Manual smoke on `docker compose up --build -d`, with the candidate in a private window: Inspect opens the modal, the transcript reads as a chat, the status refreshes after an interview, and a retake works. **Skipped (Decision 3.16).**
 
 ## Delivery
 
-- [ ] `git fetch origin && git merge origin/dev` (no rebase), re-run Task 19
-- [ ] `OPENSPEC_TELEMETRY=0 openspec archive mvp-hardening -y`, replace any placeholder `## Purpose`, add the `docs/feature_history.md` entry (newest first)
+- [x] `git fetch origin && git merge origin/dev` (no rebase), re-run Task 19
+- [x] `OPENSPEC_TELEMETRY=0 openspec archive mvp-hardening -y`, replace any placeholder `## Purpose`, add the `docs/feature_history.md` entry (newest first)
 - [ ] Ask the human, then `node scripts/forge.mjs push` and `node scripts/forge.mjs pr` (body via `pr-memo`)
 - [ ] Cold `reviewer` (Opus) on `origin/dev...HEAD`; fix Blocking items
 - [ ] GitHub checks green (GitLab has no CI minutes; accepted)
@@ -274,4 +274,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: n/a (no behaviour); GREEN: `python3 .agents/skills/asd-ste100/scripts/ste-lint.py docs/setup.md` → 3 findings, all in older lines (90, 92, 130), none in the new section (lines 47 to 53)
 - Contracts/Migrations added: none
 - Decisions: no new ID (cites 2.29). Design differed from code: `docs/setup.md` is the harness guide and had no troubleshooting section, so a `### Troubleshooting` section sits at the end of "For Teammates". It avoids the env file name and says "your local environment file". The `.env.example` header said "LLM Evaluator" and "ONLY", so both change. `docs/feature_backlog.md` is untouched (archive time).
+- Open Questions: none
+
+### Task 19: Full checks
+- Commits: (this commit) chore(specs): archive mvp-hardening
+- Verification: `./mvnw -B test` → exit 0 (506 run); `npm ci && npm run typecheck && npm run lint && npm run test && npm run build` → exit 0 (168 run); `openspec validate --all --strict` → exit 0 (11 items); `node --test .claude/hooks/hooks.test.mjs scripts/harness-scripts.test.mjs` → exit 0 (46 run). `git merge origin/dev` → already up to date.
+- Contracts/Migrations added: none
+- Decisions: 3.16 recorded (manual smoke skipped at the user's request).
 - Open Questions: none

@@ -1,6 +1,6 @@
 # Ticket #6: `mvp-hardening` — Review Modals, Bug Fixes and Review Follow-Ups
 
-- **OpenSpec Change:** [`openspec/changes/mvp-hardening/`](../../openspec/changes/mvp-hardening/)
+- **OpenSpec Change:** [`openspec/changes/archive/2026-11-27-mvp-hardening/`](../../openspec/changes/archive/2026-11-27-mvp-hardening/)
 - **Branch / Worktree:** `fix/mvp-hardening` (`../nifty-mvp-hardening`). Both already exist and hold the authored change.
 - **Owner:** sole contributor. The change touches every slice, but the tasks run one at a time on one branch.
 - **Migration:** none planned. If a task needs one, use the next free version (`V11`) and never edit `V1`–`V10`.

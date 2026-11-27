@@ -86,3 +86,10 @@ Form balanced, complementary, and defensible student teams. A seeded pure-Java S
 #### Scenario: Invalid team count rejected
 - **WHEN** a professor requests `numTeams = 20` for a cohort of `12` candidates
 - **THEN** the backend answers `400` ProblemDetail naming `numTeams` and creates no proposal.
+
+### Requirement: REQ-TB-13 Diagnostics Precision
+**THE SYSTEM SHALL** store team diagnostics at full precision after both generate and recalculate. The UI rounds for display only.
+
+#### Scenario: Recalculate after a drag
+- **WHEN** the professor moves a student and the proposal is recalculated
+- **THEN** the stored diagnostics equal those of a fresh computation on the same teams, with no rounding.

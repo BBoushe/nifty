@@ -25,7 +25,7 @@ Lifecycle (see `AGENTS.md` §3): when you propose a change, set its row to `in p
 | 9 | `evaluation-service` ([change](../openspec/changes/archive/2026-11-26-evaluation-service/), [ticket](tickets/04-evaluation.md)) | 4 | done | Teammate M (`evaluation`, `views/ranking/`, `views/assessment/` results) | 4, 5, 6, 8 (mockable) | `V7__evaluation.sql`, `V9__evaluation_queue.sql` |
 | 10 | `team-builder` ([change](../openspec/changes/archive/2026-11-26-team-builder/), [ticket](tickets/05-teams.md)) | 5 | done | Teammate C (`teams`, `views/teams/`) | 4, 6, 8, 9 (mockable) | `V8__teams.sql` |
 | 11 | `harness-review-followups` | any | queued | Shared (harness, CI, `shared`) | — | — |
-| 12 | `mvp-hardening` ([change](../openspec/changes/mvp-hardening/), [ticket](tickets/06-mvp-hardening.md)) | 6 | in progress | Sole contributor (all slices; Decisions 2.31–2.34) | 1–10 | — (none) |
+| 12 | `mvp-hardening` ([change](../openspec/changes/archive/2026-11-27-mvp-hardening/), [ticket](tickets/06-mvp-hardening.md)) | 6 | done | Sole contributor (all slices; Decisions 2.31–2.36, 3.16) | 1–10 | — (none) |
 
 ## Stories (Foundation & Shared Glue)
 
