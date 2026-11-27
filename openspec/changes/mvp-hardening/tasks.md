@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 17 done (Task 17 committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group F, Task 18 (docs). Not started.
+- **Current:** Tasks 1 to 18 done (Group F complete, committed, not pushed). Only the `docs/feature_backlog.md` row waits for archive time. Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group G, Task 19 (full checks). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -108,12 +108,12 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
   - [x] GREEN. Then: add `verify(repo).findByIdForUpdate(id)` for recalculate and publish; mark the three property tests `// design check, not required by spec`; delete the self-checking assert; merge the duplicated arrange blocks into one helper. All teams tests stay green.
   - [x] Commit `fix(teams): store full-precision diagnostics and tidy tests`.
 
-- [ ] **Task 18: Docs**
-  - [ ] `.env.example`: the comment above the key says that the key, URL and model serve both the interviewer and the evaluator. Never open `.env`.
-  - [ ] `docs/setup.md` troubleshooting: the "Interviewer call failed" log line (Decision 2.29).
-  - [ ] `docs/feature_backlog.md`: set `mvp-hardening` to done at archive time.
-  - [ ] Prose check: `python3 .agents/skills/asd-ste100/scripts/ste-lint.py <file>` on each changed doc.
-  - [ ] Commit `docs: clarify shared LLM config and interviewer fallback`.
+- [x] **Task 18: Docs**
+  - [x] `.env.example`: the comment above the key says that the key, URL and model serve both the interviewer and the evaluator. Never open `.env`.
+  - [x] `docs/setup.md` troubleshooting: the "Interviewer call failed" log line (Decision 2.29).
+  - [ ] `docs/feature_backlog.md`: set `mvp-hardening` to done at archive time. (Left for the archive step; the orchestrator does it.)
+  - [x] Prose check: `python3 .agents/skills/asd-ste100/scripts/ste-lint.py <file>` on each changed doc.
+  - [x] Commit `docs: clarify shared LLM config and interviewer fallback`.
 
 ## Group G — Full verification
 
@@ -267,4 +267,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='TeamBuilderServiceTest#recalculateStores*'` → FAIL (stored `{"cost": -0.2734, ...}` instead of `-0.27343750000000006`); `npx vitest run src/views/teams/TeamBuilderView.test.ts` → FAIL (view showed `0.123456`, expected `0.1235`); GREEN: `./mvnw -B test -Dtest='Team*Test,SimulatedAnnealing*Test'` → exit 0 (70 run); `npx vitest run src/views/teams` + `npm run typecheck` + `npm run lint` → exit 0 (6 run)
 - Contracts/Migrations added: `docs/api.md` (recalculate row: `diagnostics` keep full precision, the UI rounds); no migration
 - Decisions: no new ID. Design differed from code: (1) The rounding sat in `respond()`, which builds the response that `recalculate` stores, so recalculate stored 4 decimals while generate stored raw values. `respond()` now returns the raw diagnostics, so the wire value is full precision (as design §6 says "the UI rounds"); `TeamBuilderView.vue` shows `toFixed(4)`. Skill and trait averages keep `round4` (not stored, not in REQ-TB-13). (2) The task does not name the three property tests. Chosen as design checks beyond REQ-TB-03 to -11: `relabellingTheTeamsLeavesTheCostUnchanged`, `scalingTheTraitWeightsByPowersOfTwoLeavesCostAndAssignmentUnchanged` and `annealingBeatsTheStartingDealByAClearMarginOnSixtyCandidates` (a schedule-tuning check). (3) Self-checking asserts removed: `assertThat(best).hasSize(4)` (with its unused `optimize` call) in `naIsNotZeroSoReplacingItByZeroChangesTheResult`, and the `verify(audit, never())` precondition in the publish test (the later `verify(audit)` already means exactly once). (4) The lock check uses `@MockitoSpyBean TeamProposalRepository` in `TeamBuilderServiceTest` (real repository, Mockito `verify`). (5) Arrange blocks merged: `generateDraft(count, seed)` and `placementOf(draft)` in `TeamBuilderServiceTest` (the placement loop was copied twice), and `equalWeightsPop(...)` in `TeamInvariantPropertyTest` (two copied `Pop` set-ups).
+- Open Questions: none
+
+### Task 18: Docs
+- Commits: (this commit) docs: clarify shared LLM config and interviewer fallback
+- Verification: RED: n/a (no behaviour); GREEN: `python3 .agents/skills/asd-ste100/scripts/ste-lint.py docs/setup.md` → 3 findings, all in older lines (90, 92, 130), none in the new section (lines 47 to 53)
+- Contracts/Migrations added: none
+- Decisions: no new ID (cites 2.29). Design differed from code: `docs/setup.md` is the harness guide and had no troubleshooting section, so a `### Troubleshooting` section sits at the end of "For Teammates". It avoids the env file name and says "your local environment file". The `.env.example` header said "LLM Evaluator" and "ONLY", so both change. `docs/feature_backlog.md` is untouched (archive time).
 - Open Questions: none

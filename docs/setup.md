@@ -44,6 +44,13 @@ Three layers protect secrets and protected branches. Each layer catches what the
 5. **Run a cold review:** Start a fresh read-only `reviewer` session with *only* `git diff dev...HEAD`, `openspec/`, `.agents/rules/coding-standards.md`, and `docs/decisions/index.md`. Fix any `Blocking` findings.
 6. **Open a short PR / MR into `dev`:** Use `pr-memo` (it adapts to `gh`, `glab`, or both with `scripts/check-setup.mjs --forge` and `scripts/forge.mjs`) to produce a <=10-line plain-language summary.
 
+### Troubleshooting
+
+**The backend log shows "Interviewer call failed for attempt ...".**
+The interviewer call to the LLM threw an error. The log line names the attempt and the exception class.
+The candidate saw no error. The candidate saw the configured question text instead (Decision 2.29).
+Check the LLM key, URL and model in your local environment file. The interviewer and the evaluator use the same three values.
+
 ---
 
 ## For Agents
