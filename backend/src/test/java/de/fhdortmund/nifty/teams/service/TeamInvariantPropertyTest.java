@@ -475,9 +475,6 @@ class TeamInvariantPropertyTest {
             assertThat(withNa).isEqualTo(0.0); // every team mean stays 1.0 when N/A is left out
             assertThat(withZero).isGreaterThan(0.2); // cohort 0.75, team with the zero 0.5 -> deviation 0.25
         }
-        int[] best = SimulatedAnnealingTeamOptimizer.optimize(new TeamObjectiveCalculator(zero, hasZero, 1, 2, params),
-                4, 2, 1L);
-        assertThat(best).hasSize(4);
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -597,6 +594,7 @@ class TeamInvariantPropertyTest {
         assertThat(escaped).as("escaped of %d trapped deals", trapped).isGreaterThanOrEqualTo(trapped * 8 / 10);
     }
 
+    // design check, not required by spec
     @Test
     void annealingBeatsTheStartingDealByAClearMarginOnSixtyCandidates() {
         // 60 candidates, 6 teams, 3 hard skills and 5 traits, pure imbalance (alpha 1): the annealing schedule, its
@@ -634,6 +632,7 @@ class TeamInvariantPropertyTest {
         assertThat(weights).containsExactly(0.0, 0.0, 0.0, 0.75, 0.25);
     }
 
+    // design check, not required by spec
     @Test
     void relabellingTheTeamsLeavesTheCostUnchanged() {
         Random rnd = new Random(SEED + 6);
@@ -657,6 +656,7 @@ class TeamInvariantPropertyTest {
         }
     }
 
+    // design check, not required by spec
     @Test
     void scalingTheTraitWeightsByPowersOfTwoLeavesCostAndAssignmentUnchanged() {
         Random rnd = new Random(SEED + 7);
@@ -887,6 +887,14 @@ class TeamInvariantPropertyTest {
             }
         }
         return p;
+    }
+
+    private static Pop equalWeightsPop(UUID config, GroupingMode mode, String alpha, boolean bfi) {
+        Pop pop = new Pop();
+        pop.configId = config;
+        pop.view = new TeamView(config, 2, mode, SoftPreset.EQUAL_WEIGHTS, new BigDecimal("0.5"), new BigDecimal(alpha),
+                Map.of(), bfi);
+        return pop;
     }
 
     private static Map<String, Double> poisonTraits() {
@@ -1204,10 +1212,7 @@ class TeamInvariantPropertyTest {
     void serviceTreatsNaAsNotZeroAndPlacesAnAllNaCandidate() {
         UUID skill = new UUID(7, 7);
         UUID config = new UUID(8, 8);
-        Pop pop = new Pop();
-        pop.configId = config;
-        pop.view = new TeamView(config, 2, GroupingMode.HARD_SKILLS, SoftPreset.EQUAL_WEIGHTS, new BigDecimal("0.5"),
-                new BigDecimal("1.0"), Map.of(), false); // alpha 1: pure imbalance
+        Pop pop = equalWeightsPop(config, GroupingMode.HARD_SKILLS, "1.0", false); // alpha 1: pure imbalance
         GenerateTeamsRequest request = new GenerateTeamsRequest(2, null, null, null, 5L, null);
         List<CandidateHardSkillProfile> asNa = new ArrayList<>();
         List<CandidateHardSkillProfile> asZero = new ArrayList<>();
@@ -1258,10 +1263,7 @@ class TeamInvariantPropertyTest {
     @Test
     void traitsOneAndFiveSurviveTheRoundTripOnTheProfessorScale() {
         UUID config = new UUID(9, 9);
-        Pop pop = new Pop();
-        pop.configId = config;
-        pop.view = new TeamView(config, 2, GroupingMode.COMBINED, SoftPreset.EQUAL_WEIGHTS, new BigDecimal("0.5"),
-                new BigDecimal("0.5"), Map.of(), true);
+        Pop pop = equalWeightsPop(config, GroupingMode.COMBINED, "0.5", true);
         UUID low = new UUID(1, 1);
         UUID high = new UUID(1, 2);
         UUID attemptLow = new UUID(2, 1);

@@ -2,8 +2,8 @@
 
 ## Status
 - **Branch:** `fix/mvp-hardening` (worktree `../nifty-mvp-hardening`, from `origin/dev` `d0480e6`)
-- **Current:** Tasks 1 to 16 done (Group E complete, committed, not pushed). Candidate sign-out removed (Decision 2.36).
-- **Next action:** Group F, Task 17 (teams precision and test clean-up). Not started.
+- **Current:** Tasks 1 to 17 done (Task 17 committed, not pushed). Candidate sign-out removed (Decision 2.36).
+- **Next action:** Group F, Task 18 (docs). Not started.
 - **Uncommitted changes:** no
 - **PR / MR:** none yet
 - **Open review findings:** none
@@ -103,10 +103,10 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 
 ## Group F — Teams and docs
 
-- [ ] **Task 17: Teams precision and test clean-up (REQ-TB-13)**
-  - [ ] RED: recalculate stores the same diagnostics as a fresh generate on the same teams (no 4-decimal rounding).
-  - [ ] GREEN. Then: add `verify(repo).findByIdForUpdate(id)` for recalculate and publish; mark the three property tests `// design check, not required by spec`; delete the self-checking assert; merge the duplicated arrange blocks into one helper. All teams tests stay green.
-  - [ ] Commit `fix(teams): store full-precision diagnostics and tidy tests`.
+- [x] **Task 17: Teams precision and test clean-up (REQ-TB-13)**
+  - [x] RED: recalculate stores the same diagnostics as a fresh generate on the same teams (no 4-decimal rounding).
+  - [x] GREEN. Then: add `verify(repo).findByIdForUpdate(id)` for recalculate and publish; mark the three property tests `// design check, not required by spec`; delete the self-checking assert; merge the duplicated arrange blocks into one helper. All teams tests stay green.
+  - [x] Commit `fix(teams): store full-precision diagnostics and tidy tests`.
 
 - [ ] **Task 18: Docs**
   - [ ] `.env.example`: the comment above the key says that the key, URL and model serve both the interviewer and the evaluator. Never open `.env`.
@@ -260,4 +260,11 @@ Backend check: `cd backend && ./mvnw -B test -Dtest='<Class>'`. Frontend check: 
 - Verification: RED: `./mvnw -B test -Dtest='AssessmentReadAndDeletionIntegrationTest'` → FAIL (`listRunsTheSameFixedNumberOfQueriesFor5AssessmentsAsFor1`: expected 3 statements, was 11); GREEN: `./mvnw -B test -Dtest='AssessmentReadAndDeletionIntegrationTest,ConfigCreationAndQueryIntegrationTest,StudioConfigControllerTest,StudioSchemaAndTriggerTest,ArchitectureTest'` → exit 0 (31 run)
 - Contracts/Migrations added: none (the list response is unchanged, so no `docs/api.md` change); new repository record `ConfigWithCounts`
 - Decisions: no new ID. Design differed from code: the list ran `1 + 2N` statements (a count of skills and a count of questions per row). One JPQL constructor query in `AssessmentConfigRepository` now returns each configuration with two scalar sub-select counts, so the whole list is 1 statement (the test asserts 1 for both 1 and 5 assessments). It replaces `findByProfessorIdOrderByCreatedAtDesc`, and `SkillRepository.countByConfigId` and `CoreQuestionRepository.countByConfigId` are removed (no other caller). The test counts JDBC statements with Hibernate `Statistics`, which it switches on at run time, so it needs no new Spring context.
+- Open Questions: none
+
+### Task 17: Teams precision and test clean-up
+- Commits: (this commit) fix(teams): store full-precision diagnostics and tidy tests
+- Verification: RED: `./mvnw -B test -Dtest='TeamBuilderServiceTest#recalculateStores*'` → FAIL (stored `{"cost": -0.2734, ...}` instead of `-0.27343750000000006`); `npx vitest run src/views/teams/TeamBuilderView.test.ts` → FAIL (view showed `0.123456`, expected `0.1235`); GREEN: `./mvnw -B test -Dtest='Team*Test,SimulatedAnnealing*Test'` → exit 0 (70 run); `npx vitest run src/views/teams` + `npm run typecheck` + `npm run lint` → exit 0 (6 run)
+- Contracts/Migrations added: `docs/api.md` (recalculate row: `diagnostics` keep full precision, the UI rounds); no migration
+- Decisions: no new ID. Design differed from code: (1) The rounding sat in `respond()`, which builds the response that `recalculate` stores, so recalculate stored 4 decimals while generate stored raw values. `respond()` now returns the raw diagnostics, so the wire value is full precision (as design §6 says "the UI rounds"); `TeamBuilderView.vue` shows `toFixed(4)`. Skill and trait averages keep `round4` (not stored, not in REQ-TB-13). (2) The task does not name the three property tests. Chosen as design checks beyond REQ-TB-03 to -11: `relabellingTheTeamsLeavesTheCostUnchanged`, `scalingTheTraitWeightsByPowersOfTwoLeavesCostAndAssignmentUnchanged` and `annealingBeatsTheStartingDealByAClearMarginOnSixtyCandidates` (a schedule-tuning check). (3) Self-checking asserts removed: `assertThat(best).hasSize(4)` (with its unused `optimize` call) in `naIsNotZeroSoReplacingItByZeroChangesTheResult`, and the `verify(audit, never())` precondition in the publish test (the later `verify(audit)` already means exactly once). (4) The lock check uses `@MockitoSpyBean TeamProposalRepository` in `TeamBuilderServiceTest` (real repository, Mockito `verify`). (5) Arrange blocks merged: `generateDraft(count, seed)` and `placementOf(draft)` in `TeamBuilderServiceTest` (the placement loop was copied twice), and `equalWeightsPop(...)` in `TeamInvariantPropertyTest` (two copied `Pop` set-ups).
 - Open Questions: none

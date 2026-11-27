@@ -315,7 +315,8 @@ public class TeamBuilderService {
         return new TeamProposalResponse(proposal.getId(), proposal.getConfigId(), proposal.getStatus(), teams, mode,
                 proposal.getAlpha().doubleValue(), proposal.getCombinedHardWeight().doubleValue(), proposal.getSeed(),
                 proposal.getCreatedAt(), proposal.getPublishedAt(), new TeamProposalResponse.Diagnostics(
-                        round4(diagnostics.imbalance()), round4(diagnostics.diversity()), round4(diagnostics.cost()),
+                        // REQ-TB-13: full precision, so recalculate stores what generate stores; the UI rounds.
+                        diagnostics.imbalance(), diagnostics.diversity(), diagnostics.cost(),
                         naTotal), cards, upstream.pending);
     }
 
